@@ -1,0 +1,1444 @@
+/*
+ ============================================================================
+ Name        : fast-chess.c
+ Author      : Frederico Jordan <fredericojordan@gmail.com>
+ Version     :
+ Copyright   : Copyright (c) 2016 Frederico Jordan
+ Description : Simple chess game!
+ ============================================================================
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
+#include <stdlib.h>
+
+#define NUM_SQUARES 64
+
+#define COLOR_MASK 1<<3
+#define WHITE      0<<3
+#define BLACK      1<<3
+
+#define PIECE_MASK 0x7
+#define EMPTY  0
+#define PAWN   1
+#define KNIGHT 2
+#define BISHOP 3
+#define ROOK   4
+#define QUEEN  5
+#define KING   6
+
+#define ALL_SQUARES    0xFFFFFFFFFFFFFFFF
+#define FILE_A         0x0101010101010101
+#define FILE_B         0x0202020202020202
+#define FILE_C         0x0404040404040404
+#define FILE_D         0x0808080808080808
+#define FILE_E         0x1010101010101010
+#define FILE_F         0x2020202020202020
+#define FILE_G         0x4040404040404040
+#define FILE_H         0x8080808080808080
+#define RANK_1         0x00000000000000FF
+#define RANK_2         0x000000000000FF00
+#define RANK_3         0x0000000000FF0000
+#define RANK_4         0x00000000FF000000
+#define RANK_5         0x000000FF00000000
+#define RANK_6         0x0000FF0000000000
+#define RANK_7         0x00FF000000000000
+#define RANK_8         0xFF00000000000000
+#define DIAG_A1H8      0x8040201008040201
+#define ANTI_DIAG_H1A8 0x0102040810204080
+#define LIGHT_SQUARES  0x55AA55AA55AA55AA
+#define DARK_SQUARES   0xAA55AA55AA55AA55
+
+#define CASTLE_KINGSIDE_WHITE  1<<0
+#define CASTLE_QUEENSIDE_WHITE 1<<1
+#define CASTLE_KINGSIDE_BLACK  1<<2
+#define CASTLE_QUEENSIDE_BLACK 1<<3
+
+#define BOOL  char
+#define TRUE  1
+#define FALSE 0
+
+typedef uint_fast64_t Bitboard;
+typedef int Move;
+
+#define MOVE_BUFFER_SIZE 100
+
+#define AI_DEPTH 3
+
+typedef struct Game {
+   int board[NUM_SQUARES];
+   char toMove;
+   char ep_square;
+   char castling_rights;
+   unsigned int halfmove_clock;
+   unsigned int fullmove_number;
+} Game;
+
+typedef struct Node {
+	Move move;
+	int score;
+} Node;
+
+static char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+static char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
+
+static Bitboard FILES_BB[8] = { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H };
+//static Bitboard RANKS_BB[8] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
+
+static int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE|QUEEN, WHITE|KING, WHITE|BISHOP, WHITE|KNIGHT, WHITE|ROOK,
+                                          WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,  WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,
+                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                          BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,  BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,
+                                          BLACK|ROOK, BLACK|KNIGHT, BLACK|BISHOP, BLACK|QUEEN, BLACK|KING, BLACK|BISHOP, BLACK|KNIGHT, BLACK|ROOK };
+
+static int PIECE_VALUES[] = { 0, 100, 300, 300, 500, 900, 42000 };
+
+#define DOUBLED_PAWN_PENALTY      10
+#define ISOLATED_PAWN_PENALTY     20
+#define BACKWARDS_PAWN_PENALTY    8
+#define PASSED_PAWN_BONUS         20
+#define ROOK_SEMI_OPEN_FILE_BONUS 10
+#define ROOK_OPEN_FILE_BONUS      15
+#define ROOK_ON_SEVENTH_BONUS     20
+
+static int PAWN_BONUS[] = {0,   0,   0,   0,   0,   0,   0,   0,
+						   0,   0,   0, -40, -40,   0,   0,   0,
+						   1,   2,   3, -10, -10,   3,   2,   1,
+						   2,   4,   6,   8,   8,   6,   4,   2,
+						   3,   6,   9,  12,  12,   9,   6,   3,
+						   4,   8,  12,  16,  16,  12,   8,   4,
+						   5,  10,  15,  20,  20,  15,  10,   5,
+						   0,   0,   0,   0,   0,   0,   0,   0};
+
+static int KNIGHT_BONUS[] = {-10, -30, -10, -10, -10, -10, -30, -10,
+							 -10,   0,   0,   0,   0,   0,   0, -10,
+							 -10,   0,   5,   5,   5,   5,   0, -10,
+							 -10,   0,   5,  10,  10,   5,   0, -10,
+							 -10,   0,   5,  10,  10,   5,   0, -10,
+							 -10,   0,   5,   5,   5,   5,   0, -10,
+							 -10,   0,   0,   0,   0,   0,   0, -10,
+							 -10, -10, -10, -10, -10, -10, -10, -10};
+
+static int BISHOP_BONUS[] = {-10, -10, -20, -10, -10, -20, -10, -10,
+							 -10,   0,   0,   0,   0,   0,   0, -10,
+							 -10,   0,   5,   5,   5,   5,   0, -10,
+							 -10,   0,   5,  10,  10,   5,   0, -10,
+							 -10,   0,   5,  10,  10,   5,   0, -10,
+							 -10,   0,   5,   5,   5,   5,   0, -10,
+							 -10,   0,   0,   0,   0,   0,   0, -10,
+							 -10, -10, -10, -10, -10, -10, -10, -10};
+
+static int KING_BONUS[] = { 0,  20,  40, -20,   0, -20,  40,  20,
+						  -20, -20, -20, -20, -20, -20, -20, -20,
+						  -40, -40, -40, -40, -40, -40, -40, -40,
+						  -40, -40, -40, -40, -40, -40, -40, -40,
+						  -40, -40, -40, -40, -40, -40, -40, -40,
+						  -40, -40, -40, -40, -40, -40, -40, -40,
+						  -40, -40, -40, -40, -40, -40, -40, -40,
+						  -40, -40, -40, -40, -40, -40, -40, -40};
+
+static int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
+								   10,  20,  30,  40,  40,  30,  20,  10,
+								   20,  30,  40,  50,  50,  40,  30,  20,
+								   30,  40,  50,  60,  60,  50,  40,  30,
+								   30,  40,  50,  60,  60,  50,  40,  30,
+								   20,  30,  40,  50,  50,  40,  30,  20,
+								   10,  20,  30,  40,  40,  30,  20,  10,
+								    0,  10,  20,  30,  30,  20,  10,   0};
+
+
+
+
+
+
+BOOL isAttacked(Bitboard target, int board[], char color);
+
+
+
+
+
+
+Game getInitialGame(void) {
+	Game newGame;
+	memcpy(newGame.board, INITIAL_BOARD, sizeof(newGame.board));
+	newGame.toMove = WHITE;
+	newGame.ep_square = -1;
+	newGame.castling_rights = CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE|CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK;
+	newGame.halfmove_clock = 0;
+	newGame.fullmove_number = 1;
+	return newGame;
+}
+
+
+// ========= UTILITY =========
+
+Bitboard index2bb(int index) {
+	Bitboard bb = 1;
+	return bb << index;
+}
+
+int str2index(char *str) {
+	int i, file_num=0, rank_num=0;
+	for(i=0; i<8; i++) {
+		if ( str[0] == FILES[i] )
+			file_num = i;
+		if ( str[1] == RANKS[i] )
+			rank_num = i;
+	}
+	return 8*rank_num + file_num;
+}
+
+Bitboard str2bb(char *str) {
+	return index2bb(str2index(str));
+}
+
+BOOL isSet(Bitboard bb, int index) {
+	if (bb & index2bb(index))
+		return TRUE;
+	else
+		return FALSE;
+}
+
+Bitboard lsb(Bitboard bb) {
+	int i;
+	for (i=0; i<NUM_SQUARES; i++) {
+		Bitboard bit = index2bb(i);
+		if (bb & bit)
+			return bit;
+	}
+	return 0;
+}
+
+Bitboard msb(Bitboard bb) {
+	int i;
+	for (i=0; i<NUM_SQUARES; i++) {
+		Bitboard bit = index2bb(63-i);
+		if (bb & bit)
+			return bit;
+	}
+	return 0;
+}
+
+int bb2index(Bitboard bb) {
+	int i;
+	for (i=0; i<NUM_SQUARES; i++) {
+		Bitboard bit = index2bb(i);
+		if (bb & bit)
+			return i;
+	}
+	return -1;
+}
+
+char getFile(int position) {
+	int file = position%8;
+	return FILES[file];
+}
+
+char getRank(int position) {
+	int rank = (int) (position/8);
+	return RANKS[rank];
+}
+
+Move generateMove(int leavingSquare, int arrivingSquare) {
+	int leaving = (leavingSquare << 8);
+	int arriving = arrivingSquare;
+	return (Move) (leaving + arriving);
+}
+
+int getFrom(Move move) {
+	return (move >> 8) & 0xFF;
+}
+
+int getTo(Move move) {
+	return move & 0xFF;
+}
+
+char piece2str(int piece) {
+	switch(piece) {
+	case WHITE|PAWN:
+		return 'P';
+	case WHITE|KNIGHT:
+		return 'N';
+	case WHITE|BISHOP:
+		return 'B';
+	case WHITE|ROOK:
+		return 'R';
+	case WHITE|QUEEN:
+		return 'Q';
+	case WHITE|KING:
+		return 'K';
+	case BLACK|PAWN:
+		return 'p';
+	case BLACK|KNIGHT:
+		return 'n';
+	case BLACK|BISHOP:
+		return 'b';
+	case BLACK|ROOK:
+		return 'r';
+	case BLACK|QUEEN:
+		return 'q';
+	case BLACK|KING:
+		return 'k';
+	case EMPTY:
+		return '.';
+	}
+	return 0;
+}
+
+void printBitboard(Bitboard bitboard) {
+	int rank, file;
+
+	printf("\n");
+	for (rank=0; rank<8; rank++) {
+		printf("%d", 8-rank);
+		for (file=0; file<8; file++) {
+			if ( bitboard>>(file + (7-rank)*8) & 1 ) {
+				printf(" #");
+			} else {
+				printf(" .");
+			}
+		}
+		printf("\n");
+	}
+	printf("  a b c d e f g h\n");
+}
+
+void printBoard(int board[]) {
+	int rank, file;
+
+	printf("\n");
+	for (rank=0; rank<8; rank++) {
+		printf("%d", 8-rank);
+		for (file=0; file<8; file++) {
+			int position = file + (7-rank)*8;
+			printf(" %c", piece2str(board[position]));
+		}
+		printf("\n");
+	}
+	printf("  a b c d e f g h\n");
+}
+
+Bitboard not(Bitboard bb) {
+	return ~bb & ALL_SQUARES;
+}
+
+char opposingColor(char color) {
+	switch(color) {
+	case WHITE:
+		return BLACK;
+	case BLACK:
+		return WHITE;
+	}
+	return 0;
+}
+
+void flipVertical(int board[]) {
+    int flip[] = {56,  57,  58,  59,  60,  61,  62,  63,
+				  48,  49,  50,  51,  52,  53,  54,  55,
+				  40,  41,  42,  43,  44,  45,  46,  47,
+				  32,  33,  34,  35,  36,  37,  38,  39,
+				  24,  25,  26,  27,  28,  29,  30,  31,
+				  16,  17,  18,  19,  20,  21,  22,  23,
+				   8,   9,  10,  11,  12,  13,  14,  15,
+				   0,   1,   2,   3,   4,   5,   6,   7};
+
+    int flippedBoard[NUM_SQUARES];
+
+    int i;
+    for (i=0; i<NUM_SQUARES; i++) {
+    	flippedBoard[i] = board[flip[i]];
+    }
+    memcpy(&board, flippedBoard, sizeof(flippedBoard));
+}
+
+// ====== BOARD FILTERS ======
+
+Bitboard getColoredPieces(int board[], char color) {
+	int i;
+	Bitboard colored_squares = 0;
+
+	for (i=0; i<NUM_SQUARES; i++)
+		if (board[i] != EMPTY && (board[i]&COLOR_MASK) == color)
+			colored_squares |= index2bb(i);
+
+	return colored_squares;
+}
+
+Bitboard getEmptySquares(int board[]) {
+	int i;
+	Bitboard empty_squares = 0;
+
+	for (i=0; i<NUM_SQUARES; i++)
+		if (board[i] == EMPTY)
+			empty_squares |= index2bb(i);
+
+	return empty_squares;
+}
+
+Bitboard getOccupiedSquares(int board[]) {
+	return not(getEmptySquares(board));
+}
+
+Bitboard getPieces(int board[], int pieceType) {
+	int i;
+	Bitboard pieces = 0;
+
+	for (i=0; i<NUM_SQUARES; i++)
+		if ((board[i]&PIECE_MASK) == pieceType)
+			pieces |= index2bb(i);
+
+	return pieces;
+}
+
+char countPieces(Bitboard bitboard) {
+	int i, count=0;
+	for (i=0; i<NUM_SQUARES; i++) {
+		if (index2bb(i)&&bitboard)
+			count += 1;
+	}
+    return count;
+}
+
+// ======= DIRECTIONS ========
+
+Bitboard east(Bitboard bb) {
+    return (bb << 1) & not(FILE_A);
+}
+
+Bitboard west(Bitboard bb) {
+    return (bb >> 1) & not(FILE_H);
+}
+
+Bitboard north(Bitboard bb) {
+    return (bb << 8) & not(RANK_1);
+}
+
+Bitboard south(Bitboard bb) {
+    return (bb >> 8) & not(RANK_8);
+}
+
+Bitboard NE(Bitboard bb) {
+    return north(east(bb));
+}
+
+Bitboard NW(Bitboard bb) {
+    return north(west(bb));
+}
+
+Bitboard SE(Bitboard bb) {
+    return south(east(bb));
+}
+
+Bitboard SW(Bitboard bb) {
+    return south(west(bb));
+}
+
+Bitboard WNW(Bitboard moving_piece) {
+    return moving_piece << 6 & not(FILE_G | FILE_H | RANK_1);
+}
+
+Bitboard ENE(Bitboard moving_piece) {
+    return moving_piece << 10 & not(FILE_A | FILE_B | RANK_1);
+}
+
+Bitboard NNW(Bitboard moving_piece) {
+    return moving_piece << 15 & not(FILE_H | RANK_1 | RANK_2);
+}
+
+Bitboard NNE(Bitboard moving_piece) {
+    return moving_piece << 17 & not(FILE_A | RANK_1 | RANK_2);
+}
+
+Bitboard ESE(Bitboard moving_piece) {
+    return moving_piece >> 6 & not(FILE_A | FILE_B | RANK_8);
+}
+
+Bitboard WSW(Bitboard moving_piece) {
+    return moving_piece >> 10 & not(FILE_G | FILE_H | RANK_8);
+}
+
+Bitboard SSE(Bitboard moving_piece) {
+    return moving_piece >> 15 & not(FILE_A | RANK_7 | RANK_8);
+}
+
+Bitboard SSW(Bitboard moving_piece) {
+    return moving_piece >> 17 & not(FILE_H | RANK_7 | RANK_8);
+}
+
+// ========== PAWN ===========
+
+Bitboard getPawns(int board[]) { return getPieces(board, PAWN); }
+
+Bitboard pawnSimplePushes(Bitboard moving_piece, int board[], char color) {
+	switch(color) {
+	case WHITE:
+		return north(moving_piece) & getEmptySquares(board);
+	case BLACK:
+		return south(moving_piece) & getEmptySquares(board);
+	}
+	return 0;
+}
+
+Bitboard pawnDoublePushes(Bitboard moving_piece, int board[], char color) {
+	switch(color) {
+	case WHITE:
+		return north(pawnSimplePushes(moving_piece, board, color)) & (getEmptySquares(board) & RANK_4);
+	case BLACK:
+		return south(pawnSimplePushes(moving_piece, board, color)) & (getEmptySquares(board) & RANK_5);
+	}
+	return 0;
+}
+
+Bitboard pawnPushes(Bitboard moving_piece, int board[], char color) {
+	return pawnSimplePushes(moving_piece, board, color) | pawnDoublePushes(moving_piece, board, color);
+}
+
+Bitboard pawnEastAttacks(Bitboard moving_piece, int board[], char color) {
+	switch(color) {
+	case WHITE:
+        return NE(moving_piece);
+	case BLACK:
+        return SE(moving_piece);
+	}
+	return 0;
+}
+
+Bitboard pawnWestAttacks(Bitboard moving_piece, int board[], char color) {
+	switch(color) {
+	case WHITE:
+        return NW(moving_piece);
+	case BLACK:
+        return SW(moving_piece);
+	}
+	return 0;
+}
+
+Bitboard pawnAttacks(Bitboard moving_piece, int board[], char color) {
+	return pawnEastAttacks(moving_piece, board, color) | pawnWestAttacks(moving_piece, board, color);
+}
+
+Bitboard pawnSimpleCaptures(Bitboard moving_piece, int board[], char color) {
+	return pawnAttacks(moving_piece, board, color) & getColoredPieces(board, opposingColor(color));
+}
+
+Bitboard pawnEpCaptures(Bitboard moving_piece, Game game, char color) {
+	if (game.ep_square == -1)
+		return 0;
+
+	Bitboard valid_ep_square = 0;
+
+	switch(color) {
+	case WHITE:
+		valid_ep_square = index2bb(game.ep_square) & RANK_6;
+		break;
+	case BLACK:
+		valid_ep_square = index2bb(game.ep_square) & RANK_3;
+		break;
+	}
+
+	return pawnAttacks(moving_piece, game.board, color) & valid_ep_square;
+}
+
+Bitboard pawnCaptures(Bitboard moving_piece, Game game, char color) {
+    return pawnSimpleCaptures(moving_piece, game.board, color) | pawnEpCaptures(moving_piece, game, color);
+}
+
+Bitboard pawnMoves(Bitboard moving_piece, Game game, char color) {
+	return pawnPushes(moving_piece, game.board, color) | pawnCaptures(moving_piece, game, color);
+}
+
+BOOL isDoublePush(int leaving, int arriving) {
+	if ( (index2bb(leaving)&RANK_2) && (index2bb(arriving)&RANK_4) )
+		return TRUE;
+	if ( (index2bb(leaving)&RANK_7) && (index2bb(arriving)&RANK_5) )
+		return TRUE;
+	return FALSE;
+}
+
+int getEpSquare(int leaving) {
+	if (index2bb(leaving)&RANK_2)
+		return leaving+8;
+	if (index2bb(leaving)&RANK_7)
+		return leaving-8;
+	return -1;
+}
+
+void removeCapturedEp(Game game) {
+    if (index2bb(game.ep_square)&RANK_3)
+		game.board[game.ep_square+8] = EMPTY;
+
+    if (index2bb(game.ep_square)&RANK_6)
+		game.board[game.ep_square-8] = EMPTY;
+}
+
+BOOL isOpenFile(Bitboard bb, int board[]) {
+	int i;
+	for (i=0; i<8; i++)
+		if (bb&FILES_BB[i])
+			if (countPieces(getPawns(board)&FILES_BB[i]) == 0)
+				return TRUE;
+	return FALSE;
+}
+
+BOOL isSemiOpenFile(Bitboard bb, int board[]) {
+	int i;
+	for (i=0; i<8; i++)
+		if (bb&FILES_BB[i])
+			if (countPieces(getPawns(board)&FILES_BB[i]) == 1)
+				return TRUE;
+	return FALSE;
+}
+
+// ========== KNIGHT =========
+
+Bitboard getKnights(int board[]) { return getPieces(board, KNIGHT); }
+
+Bitboard knightAttacks(Bitboard moving_piece) {
+    return NNE(moving_piece) | ENE(moving_piece) |
+           NNW(moving_piece) | WNW(moving_piece) |
+           SSE(moving_piece) | ESE(moving_piece) |
+           SSW(moving_piece) | WSW(moving_piece);
+}
+
+Bitboard knightMoves(Bitboard moving_piece, int board[], char color) {
+    return knightAttacks(moving_piece) & not(getColoredPieces(board, color));
+}
+
+// ========== KING ===========
+
+Bitboard getKing(int board[], char color) {
+	return getPieces(board, KING) & getColoredPieces(board, color);
+}
+
+Bitboard kingAttacks(Bitboard moving_piece) {
+	Bitboard kingAtks = moving_piece | east(moving_piece) | west(moving_piece);
+	kingAtks |= north(kingAtks) | south(kingAtks);
+    return kingAtks & not(moving_piece);
+}
+
+Bitboard kingMoves(Bitboard moving_piece, int board[], char color) {
+    return kingAttacks(moving_piece) & not(getColoredPieces(board, color));
+}
+
+BOOL canCastleKingside(Game game, char color) {
+	switch(color) {
+
+	case WHITE:
+		if ( (game.castling_rights&CASTLE_KINGSIDE_WHITE) &&
+			 (game.board[str2index("f1")] == EMPTY) &&
+			 (game.board[str2index("g1")] == EMPTY) &&
+			 (!isAttacked(str2bb("e1"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("f1"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("g1"), game.board, opposingColor(color))) )
+			return TRUE;
+		else
+			return FALSE;
+
+	case BLACK:
+		if ( (game.castling_rights&CASTLE_KINGSIDE_BLACK) &&
+			 (game.board[str2index("f8")] == EMPTY) &&
+			 (game.board[str2index("g8")] == EMPTY) &&
+			 (!isAttacked(str2bb("e8"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("f8"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("g8"), game.board, opposingColor(color))) )
+			return TRUE;
+		else
+			return FALSE;
+
+	}
+	return FALSE;
+}
+
+BOOL canCastleQueenside(Game game, char color) {
+	switch(color) {
+
+	case WHITE:
+		if ( (game.castling_rights&CASTLE_QUEENSIDE_WHITE) &&
+			 (game.board[str2index("b1")] == EMPTY) &&
+			 (game.board[str2index("c1")] == EMPTY) &&
+			 (game.board[str2index("d1")] == EMPTY) &&
+			 (!isAttacked(str2bb("c1"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("d1"), game.board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("e1"), game.board, opposingColor(color))) )
+			return TRUE;
+		else
+			return FALSE;
+
+	case BLACK:
+		if ( (game.castling_rights&CASTLE_QUEENSIDE_BLACK) &&
+				 (game.board[str2index("b8")] == EMPTY) &&
+				 (game.board[str2index("c8")] == EMPTY) &&
+				 (game.board[str2index("d8")] == EMPTY) &&
+				 (!isAttacked(str2bb("c8"), game.board, opposingColor(color))) &&
+				 (!isAttacked(str2bb("d8"), game.board, opposingColor(color))) &&
+				 (!isAttacked(str2bb("e8"), game.board, opposingColor(color))) )
+			return TRUE;
+		else
+			return FALSE;
+
+	}
+	return FALSE;
+}
+
+char removeCastlingRights(Game game, char removed_rights) {
+    return (char) (game.castling_rights & ~removed_rights);
+}
+
+// ========== BISHOP =========
+
+Bitboard getBishops(int board[]) { return getPieces(board, BISHOP); }
+
+Bitboard NE_ray(Bitboard bb) {
+	int i;
+	Bitboard ray = NE(bb);
+
+	for (i=0; i<6; i++) {
+		ray |= NE(ray);
+	}
+
+	return ray & ALL_SQUARES;
+}
+
+Bitboard SE_ray(Bitboard bb) {
+	int i;
+	Bitboard ray = SE(bb);
+
+	for (i=0; i<6; i++) {
+		ray |= SE(ray);
+	}
+
+	return ray & ALL_SQUARES;
+}
+
+Bitboard NW_ray(Bitboard bb) {
+	int i;
+	Bitboard ray = NW(bb);
+
+	for (i=0; i<6; i++) {
+		ray |= NW(ray);
+	}
+
+	return ray & ALL_SQUARES;
+}
+
+Bitboard SW_ray(Bitboard bb) {
+	int i;
+	Bitboard ray = SW(bb);
+
+	for (i=0; i<6; i++) {
+		ray |= SW(ray);
+	}
+
+	return ray & ALL_SQUARES;
+}
+
+Bitboard NE_attack(Bitboard single_piece, int board[], char color) {
+	Bitboard blocker = lsb(NE_ray(single_piece) & getOccupiedSquares(board));
+	if (blocker) {
+		return NE_ray(single_piece) ^ NE_ray(blocker);
+	} else {
+		return NE_ray(single_piece);
+	}
+}
+
+Bitboard NW_attack(Bitboard single_piece, int board[], char color) {
+	Bitboard blocker = lsb(NW_ray(single_piece) & getOccupiedSquares(board));
+	if (blocker) {
+		return NW_ray(single_piece) ^ NW_ray(blocker);
+	} else {
+		return NW_ray(single_piece);
+	}
+}
+
+Bitboard SE_attack(Bitboard single_piece, int board[], char color) {
+	Bitboard blocker = msb(SE_ray(single_piece) & getOccupiedSquares(board));
+	if (blocker) {
+		return SE_ray(single_piece) ^ SE_ray(blocker);
+	} else {
+		return SE_ray(single_piece);
+	}
+}
+
+Bitboard SW_attack(Bitboard single_piece, int board[], char color) {
+	Bitboard blocker = msb(SW_ray(single_piece) & getOccupiedSquares(board));
+	if (blocker) {
+		return SW_ray(single_piece) ^ SW_ray(blocker);
+	} else {
+		return SW_ray(single_piece);
+	}
+}
+
+Bitboard diagonalAttacks(Bitboard single_piece, int board[], char color) {
+    return NE_attack(single_piece, board, color) | SW_attack(single_piece, board, color);
+}
+
+Bitboard antiDiagonalAttacks(Bitboard single_piece, int board[], char color) {
+    return NW_attack(single_piece, board, color) | SE_attack(single_piece, board, color);
+}
+
+Bitboard bishopAttacks(Bitboard moving_pieces, int board[], char color) {
+    return diagonalAttacks(moving_pieces, board, color) | antiDiagonalAttacks(moving_pieces, board, color);
+}
+
+Bitboard bishopMoves(Bitboard moving_piece, int board[], char color) {
+    return bishopAttacks(moving_piece, board, color) & not(getColoredPieces(board, color));
+}
+
+// ========== ROOK ===========
+
+Bitboard getRooks(int board[]) { return getPieces(board, ROOK); }
+
+Bitboard northRay(Bitboard moving_pieces) {
+    Bitboard ray_atks = north(moving_pieces);
+
+    int i;
+    for (i=0; i<6; i++) {
+        ray_atks |= north(ray_atks);
+    }
+
+    return ray_atks & ALL_SQUARES;
+}
+
+Bitboard southRay(Bitboard moving_pieces) {
+    Bitboard ray_atks = south(moving_pieces);
+
+    int i;
+    for (i=0; i<6; i++) {
+        ray_atks |= south(ray_atks);
+    }
+
+    return ray_atks & ALL_SQUARES;
+}
+
+Bitboard eastRay(Bitboard moving_pieces) {
+    Bitboard ray_atks = east(moving_pieces);
+
+    int i;
+    for (i=0; i<6; i++) {
+        ray_atks |= east(ray_atks);
+    }
+
+    return ray_atks & ALL_SQUARES;
+}
+
+Bitboard westRay(Bitboard moving_pieces) {
+    Bitboard ray_atks = west(moving_pieces);
+
+    int i;
+    for (i=0; i<6; i++) {
+        ray_atks |= west(ray_atks);
+    }
+
+    return ray_atks & ALL_SQUARES;
+}
+
+Bitboard northAttack(Bitboard single_piece, int board[], char color) {
+    Bitboard blocker = lsb(northRay(single_piece) & getOccupiedSquares(board));
+
+    if (blocker)
+        return northRay(single_piece) ^ northRay(blocker);
+    else
+        return northRay(single_piece);
+}
+
+Bitboard southAttack(Bitboard single_piece, int board[], char color) {
+    Bitboard blocker = msb(southRay(single_piece) & getOccupiedSquares(board));
+
+    if (blocker)
+        return southRay(single_piece) ^ southRay(blocker);
+    else
+        return southRay(single_piece);
+}
+
+Bitboard fileAttacks(Bitboard single_piece, int board[], char color) {
+    return northAttack(single_piece, board, color) | southAttack(single_piece, board, color);
+}
+
+Bitboard eastAttack(Bitboard single_piece, int board[], char color) {
+    Bitboard blocker = lsb(eastRay(single_piece) & getOccupiedSquares(board));
+
+    if (blocker)
+        return eastRay(single_piece) ^ eastRay(blocker);
+    else
+        return eastRay(single_piece);
+}
+
+Bitboard westAttack(Bitboard single_piece, int board[], char color) {
+    Bitboard blocker = msb(westRay(single_piece) & getOccupiedSquares(board));
+
+    if (blocker)
+        return westRay(single_piece) ^ westRay(blocker);
+    else
+        return westRay(single_piece);
+}
+
+Bitboard rankAttacks(Bitboard single_piece, int board[], char color) {
+    return eastAttack(single_piece, board, color) | westAttack(single_piece, board, color);
+}
+
+Bitboard rookAttacks(Bitboard moving_piece, int board[], char color) {
+    return fileAttacks(moving_piece, board, color) | rankAttacks(moving_piece, board, color);
+}
+
+Bitboard rookMoves(Bitboard moving_piece, int board[], char color) {
+    return rookAttacks(moving_piece, board, color) & not(getColoredPieces(board, color));
+}
+
+// ========== QUEEN ==========
+
+Bitboard getQueens(int board[]) { return getPieces(board, QUEEN); }
+
+Bitboard queenAttacks(Bitboard moving_piece, int board[], char color) {
+    return rookAttacks(moving_piece, board, color) | bishopAttacks(moving_piece, board, color);
+}
+
+Bitboard queenMoves(Bitboard moving_piece, int board[], char color) {
+    return rookMoves(moving_piece, board, color) | bishopMoves(moving_piece, board, color);
+}
+
+// ======== MAKE MOVE ========
+
+void movePiece(int board[], Move move) {
+	board[getTo(move)] = board[getFrom(move)];
+	board[getFrom(move)] = EMPTY;
+}
+
+Game makeMove(Game game, Move move) {
+	Game newGame = game;
+	int leavingSquare = getFrom(move);
+	int arrivingSquare = getTo(move);
+	int piece = game.board[leavingSquare];
+	int pieceType = game.board[leavingSquare]&PIECE_MASK;
+
+	movePiece(newGame.board, move);
+	newGame.toMove = opposingColor(game.toMove);
+
+	newGame.halfmove_clock += 1;
+	if (game.toMove == BLACK) {
+		newGame.fullmove_number += 1;
+	}
+
+	if (game.board[arrivingSquare] != EMPTY) {
+		newGame.halfmove_clock = 0;
+	}
+
+	newGame.ep_square = -1;
+
+	if (pieceType == PAWN) {
+		newGame.halfmove_clock = 0;
+
+		if (arrivingSquare == game.ep_square) {
+			removeCapturedEp(newGame);
+		}
+
+		if (isDoublePush(leavingSquare, arrivingSquare)) {
+			newGame.ep_square = getEpSquare(leavingSquare);
+		}
+
+		if (index2bb(arrivingSquare)&(RANK_1|RANK_8)) {
+			newGame.board[arrivingSquare] = game.toMove|QUEEN;
+		}
+
+	}
+
+	if (leavingSquare == str2index("a1")) {
+		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_QUEENSIDE_WHITE);
+	}
+	else if (leavingSquare == str2index("h1")) {
+		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_WHITE);
+	}
+	else if (leavingSquare == str2index("a8")) {
+		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_QUEENSIDE_BLACK);
+	}
+	else if (leavingSquare == str2index("h8")) {
+		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_BLACK);
+	}
+
+	if ( piece == (WHITE|KING) ) {
+		newGame.castling_rights = removeCastlingRights(newGame, (CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE));
+		if (leavingSquare == str2index("e1")) {
+
+			if (arrivingSquare == str2index("g1"))
+				movePiece(newGame.board, generateMove(str2index("h1"), str2index("f1")));
+
+            if (arrivingSquare == str2index("c1"))
+				movePiece(newGame.board, generateMove(str2index("a1"), str2index("d1")));
+		}
+	} else if ( piece == (BLACK|KING) ) {
+		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
+		if (leavingSquare == str2index("e8")) {
+
+			if (arrivingSquare == str2index("g8"))
+				movePiece(newGame.board, generateMove(str2index("h8"), str2index("f8")));
+
+            if (arrivingSquare == str2index("c8"))
+				movePiece(newGame.board, generateMove(str2index("a8"), str2index("d8")));
+		}
+	}
+
+	/*
+	    # update history
+	    new_game.move_history.append(move2str(move))
+	    new_game.position_history.append(new_game.to_FEN())
+	    return new_game
+	    */
+	return newGame;
+}
+
+// ======== MOVE GEN =========
+
+Bitboard getMoves(Bitboard movingPiece, Game game, char color) {
+	int piece = game.board[bb2index(movingPiece)] & PIECE_MASK;
+
+	switch (piece) {
+	case PAWN:
+		return pawnMoves(movingPiece, game, color);
+	case KNIGHT:
+		return knightMoves(movingPiece, game.board, color);
+	case BISHOP:
+		return bishopMoves(movingPiece, game.board, color);
+	case ROOK:
+		return rookMoves(movingPiece, game.board, color);
+	case QUEEN:
+		return queenMoves(movingPiece, game.board, color);
+	case KING:
+		return kingMoves(movingPiece, game.board, color);
+	}
+	return 0;
+}
+
+int pseudoLegalMoves(Move * moves, Game game, char color) {
+	int leavingSquare, arrivingSquare, moveCount = 0;
+
+	for (leavingSquare=0; leavingSquare<NUM_SQUARES; leavingSquare++) {
+		int piece = game.board[leavingSquare];
+
+		if (piece != EMPTY && (piece&COLOR_MASK) == color) {
+			Bitboard targets = getMoves(index2bb(leavingSquare), game, color);
+
+			for (arrivingSquare=0; arrivingSquare<NUM_SQUARES; arrivingSquare++) {
+				if (isSet(targets, arrivingSquare)) {
+					moves[moveCount++] = generateMove(leavingSquare, arrivingSquare);
+				}
+			}
+
+			if ( (piece&PIECE_MASK) == KING ) {
+				if (canCastleKingside(game, color)) {
+					moves[moveCount++] = generateMove(leavingSquare, leavingSquare+2);
+				}
+				if (canCastleQueenside(game, color)) {
+					moves[moveCount++] = generateMove(leavingSquare, leavingSquare-2);
+				}
+			}
+		}
+	}
+
+	return moveCount;
+}
+
+Bitboard getAttacks(Bitboard movingPiece, int board[], char color) {
+	int piece = board[bb2index(movingPiece)] & PIECE_MASK;
+
+	switch (piece) {
+	case PAWN:
+		return pawnAttacks(movingPiece, board, color);
+	case KNIGHT:
+		return knightAttacks(movingPiece);
+	case BISHOP:
+		return bishopAttacks(movingPiece, board, color);
+	case ROOK:
+		return rookAttacks(movingPiece, board, color);
+	case QUEEN:
+		return queenAttacks(movingPiece, board, color);
+	case KING:
+		return kingAttacks(movingPiece);
+	}
+	return 0;
+}
+
+int countAttacks(Bitboard target, int board[], char color) {
+	int i, attackCount = 0;
+
+	for (i=0; i<NUM_SQUARES; i++)
+		if (board[i] != EMPTY && (board[i]&COLOR_MASK) == color)
+			if ( getAttacks(index2bb(i), board, color) & target )
+				attackCount += 1;
+
+	return attackCount;
+}
+
+BOOL isAttacked(Bitboard target, int board[], char color) {
+	if (countAttacks(target, board, color) > 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+BOOL isCheck(int board[], char color) {
+	return isAttacked(getKing(board, color), board, opposingColor(color));
+}
+
+BOOL isLegalMove(Game game, Move move) {
+	Game newGame = makeMove(game, move);
+	if ( isCheck(newGame.board, game.toMove) )
+		return FALSE;
+	return TRUE;
+}
+
+int legalMoves(Move * legalMoves, Game game, char color) {
+	int i, legalCount = 0;
+
+	Move pseudoMoves[MOVE_BUFFER_SIZE];
+	int pseudoCount = pseudoLegalMoves(pseudoMoves, game, color);
+
+
+
+	for (i=0; i<pseudoCount; i++) {
+		if (isLegalMove(game, pseudoMoves[i])) {
+			legalMoves[legalCount++] = pseudoMoves[i];
+		}
+	}
+
+	return legalCount;
+}
+
+// ====== GAME CONTROL =======
+
+BOOL isCheckmate(Game game) {
+	Move moves[MOVE_BUFFER_SIZE];
+	if (isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
+		return TRUE;
+	else
+		return FALSE;
+
+}
+
+BOOL isStalemate(Game game) {
+	Move moves[MOVE_BUFFER_SIZE];
+	if (!isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+BOOL hasInsufficientMaterial(Game game) {
+	return FALSE; // TODO
+}
+
+BOOL isEndgame(int board[]) {
+	return FALSE; // TODO
+}
+
+BOOL isOver75MovesRule(Game game) {
+	if (game.halfmove_clock >= 150)
+		return TRUE;
+	else
+		return FALSE;
+}
+
+BOOL hasGameEnded(Game game) {
+	if ( isCheckmate(game) ||
+		 isStalemate(game) ||
+		 hasInsufficientMaterial(game) ||
+		 isOver75MovesRule(game) )
+		return TRUE;
+	else
+		return FALSE;
+}
+
+void printOutcome(Game game) {
+	if (isCheckmate(game) && game.toMove == BLACK)
+		printf("WHITE wins!\n");
+	if (isCheckmate(game) && game.toMove == WHITE)
+		printf("BLACK wins!\n");
+	if (isStalemate(game))
+		printf("Draw by stalemate!\n");
+	if (hasInsufficientMaterial(game))
+		printf("Draw by insufficient material!\n");
+	if ( isOver75MovesRule(game) )
+		printf("Draw by 75 move rule!\n");
+}
+
+// ========== EVAL ===========
+
+int winScore(char color) {
+	if (color == WHITE)
+		return 10*PIECE_VALUES[KING];
+	if (color == BLACK)
+		return -10*PIECE_VALUES[KING];
+	return 0;
+}
+
+int materialSum(int board[], char color) {
+	int i, material = 0;
+
+	for (i=0; i<NUM_SQUARES; i++) {
+		if (board[i] != EMPTY && (board[i]&COLOR_MASK) == color) {
+			material += PIECE_VALUES[board[i]&PIECE_MASK];
+		}
+	}
+
+	return material;
+}
+
+int materialBalance(int board[]) {
+	return materialSum(board, WHITE) - materialSum(board, BLACK);
+}
+
+int positionalBonus(int board[], char color) {
+	int bonus = 0;
+
+	int evalBoard[NUM_SQUARES];
+	memcpy(&evalBoard, board, NUM_SQUARES*sizeof(int));
+	if (color == BLACK)
+		flipVertical(evalBoard);
+
+	int i;
+	for (i=0; i<NUM_SQUARES; i++) {
+		int piece = evalBoard[i];
+
+		if (piece != EMPTY && (piece&COLOR_MASK) == color) {
+			int pieceType = piece&PIECE_MASK;
+
+			switch(pieceType) {
+			case PAWN:
+				bonus += PAWN_BONUS[i];
+				break;
+
+			case KNIGHT:
+				bonus += KNIGHT_BONUS[i];
+				break;
+
+			case BISHOP:
+				bonus += BISHOP_BONUS[i];
+				break;
+
+			case ROOK:
+                if (isOpenFile(index2bb(i), evalBoard))
+                    bonus += ROOK_OPEN_FILE_BONUS;
+                else if (isSemiOpenFile(index2bb(i), evalBoard))
+                    bonus += ROOK_SEMI_OPEN_FILE_BONUS;
+
+				if (index2bb(i) & RANK_7)
+					bonus += ROOK_ON_SEVENTH_BONUS;
+				break;
+
+			case KING:
+				if (isEndgame(evalBoard))
+					bonus += KING_ENDGAME_BONUS[i];
+				else
+					bonus += KING_BONUS[i];
+			}
+		}
+	}
+
+	return bonus;
+}
+
+int positionalBalance(int board[]) {
+	return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
+}
+
+int evaluateEndNode(Game game) {
+	if (isCheckmate(game)) {
+		return winScore(opposingColor(game.toMove));
+	}
+	if (isStalemate(game) || hasInsufficientMaterial(game) || isOver75MovesRule(game)) {
+		return 0;
+	}
+	return 0;
+}
+
+int evaluateGame(Game game) {
+	if (hasGameEnded(game))
+		return evaluateEndNode(game);
+	else
+		return materialBalance(game.board) + positionalBalance(game.board);
+}
+
+// ========= SEARCH ==========
+
+Node simpleEvaluation(Game game) {
+	int bestScore = winScore(opposingColor(game.toMove));
+	Move bestMove = 0;
+
+	Move moves[MOVE_BUFFER_SIZE];
+	int moveCount = legalMoves(moves, game, game.toMove);
+
+	int i;
+	for (i=0; i<moveCount; i++) {
+		Game newGame = makeMove(game, moves[i]);
+		int score = evaluateGame(newGame);
+
+		if (score == winScore(game.toMove)) {
+			return (Node) { .move = moves[i], .score = score };
+		}
+
+		if ( (game.toMove == WHITE && score > bestScore) ||
+			 (game.toMove == BLACK && score < bestScore) ) {
+			bestScore = score;
+			bestMove = moves[i];
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = bestScore };
+}
+
+Node alpha_beta(Game game, char depth, int alpha, int beta) {
+	if (hasGameEnded(game))
+		return (Node) { .score = evaluateEndNode(game) };
+
+	Node simpleNode = simpleEvaluation(game);
+
+	if (depth == 1 || simpleNode.score == winScore(game.toMove))
+		return simpleNode;
+
+	Move bestMove = 0;
+
+	Move moves[MOVE_BUFFER_SIZE];
+	int moveCount = legalMoves(moves, game, game.toMove);
+
+	int i;
+	for (i=0; i<moveCount; i++) {
+		Game newGame = makeMove(game, moves[i]);
+
+		if (depth==AI_DEPTH) {
+			int l = getFrom(moves[i]);
+			int a = getTo(moves[i]);
+			printf("eval move (%d/%d): %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
+			fflush(stdout);
+		}
+
+		int score = alpha_beta(newGame, depth-1, alpha, beta).score;
+
+		if (depth==AI_DEPTH) {
+			printf("%d\n", score);
+		}
+
+		if (score == winScore(game.toMove)) {
+			return (Node) { .move = moves[i], .score = score };
+		}
+
+		if (game.toMove == WHITE) {
+			if (score > alpha) {
+				alpha = score;
+				bestMove = moves[i];
+				if (alpha > beta) {
+					break;
+				}
+			}
+		} else if (game.toMove == BLACK) {
+			if (score < beta) {
+				beta = score;
+				bestMove = moves[i];
+				if (alpha > beta) {
+					break;
+				}
+			}
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = game.toMove==WHITE?alpha:beta };
+}
+
+Move getRandomMove(Game game) {
+	Move moves[MOVE_BUFFER_SIZE];
+	int totalMoves = legalMoves(moves, game, game.toMove);
+	int chosenMove = rand() % totalMoves;
+	return moves[chosenMove];
+}
+
+Move getAIMove(Game game) {
+	printf("Searching with base depth = %d\n", AI_DEPTH);
+
+//	Move move = getRandomMove(game);
+//	Move move = simpleEvaluation(game).move;
+//	Move move = minimax(game, AI_DEPTH).move;
+	Node node = alpha_beta(game, AI_DEPTH, -INT32_MAX, INT32_MAX);
+
+	int l = getFrom(node.move);
+	int a = getTo(node.move);
+	printf("CHOSEN move: %c%c to %c%c [%d,%d]\n", getFile(l), getRank(l), getFile(a), getRank(a), evaluateGame(game), node.score);
+	fflush(stdout);
+
+	return node.move;
+}
+
+Move getPlayerMove() {
+	char input[100];
+	gets( input );
+	return generateMove(str2index(&input[0]), str2index(&input[2]));
+}
+
+// ========= PLAY LOOP =======
+
+void playWhite() {
+	printf("Playing as WHITE!\n");
+	fflush(stdout);
+	Game game;
+	game = getInitialGame();
+
+	while(TRUE) {
+        printBoard(game.board);
+        fflush(stdout);
+        if (hasGameEnded(game))
+        	break;
+
+        game = makeMove(game, getPlayerMove(game));
+
+        printBoard(game.board);
+        fflush(stdout);
+        if (hasGameEnded(game))
+			break;
+
+        game = makeMove(game, getAIMove(game));
+	}
+	printOutcome(game);
+	fflush(stdout);
+}
+
+// ===========================
+
+
+void tests(void) {
+	Game game = getInitialGame();
+	printBoard(game.board);
+
+	int pos = str2index("e4");
+	char color = BLACK;
+
+	printBitboard(index2bb(pos));
+	printBitboard(kingMoves(index2bb(pos), game.board, color));
+	printBitboard(knightMoves(index2bb(pos), game.board, color));
+	printBitboard(bishopMoves(index2bb(pos), game.board, color));
+	printBitboard(rookMoves(index2bb(pos), game.board, color));
+	printBitboard(queenMoves(index2bb(pos), game.board, color));
+
+	Move moves[MOVE_BUFFER_SIZE];
+	int moveCount = legalMoves(moves, game, game.toMove);
+	printf("\nYou have %d legal moves:\n", moveCount );
+
+	int i;
+	for (i=0; i<moveCount; i++) {
+		int l = (moves[i] >> 8) & 0xFF;
+		int a = moves[i] & 0xFF;
+		printf("move %d: %c%c to %c%c\n", i+1, getFile(l), getRank(l), getFile(a), getRank(a) );
+	}
+
+}
+
+/*
+int main(int argc, char *argv[]) {
+	srand(time(NULL));
+
+//	tests();
+	playWhite();
+	return EXIT_SUCCESS;
+}
+*/
