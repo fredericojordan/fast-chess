@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #define NUM_SQUARES 64
+#define ENDGAME_PIECE_COUNT 7
 
 #define COLOR_MASK 1<<3
 #define WHITE      0<<3
@@ -355,6 +356,15 @@ void flipVertical(int board[]) {
     	flippedBoard[i] = board[flip[i]];
     }
     memcpy(&board, flippedBoard, sizeof(flippedBoard));
+}
+
+int countBits(Bitboard bb) {
+	int i, bitCount = 0;
+	for (i=0; i<NUM_SQUARES; i++) {
+		if (index2bb(i) & bb)
+			bitCount++;
+	}
+	return bitCount;
 }
 
 // ====== BOARD FILTERS ======
@@ -1127,12 +1137,21 @@ BOOL isStalemate(Game game) {
 		return FALSE;
 }
 
-BOOL hasInsufficientMaterial(Game game) {
-	return FALSE; // TODO
+BOOL hasInsufficientMaterial(int board[]) {
+	int pieceCount = countBits(getOccupiedSquares(board));
+
+	if ( pieceCount <= 3 ) {
+		if ( pieceCount == 2 || getKnights(board) != 0 || getBishops(board) != 0 )
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 BOOL isEndgame(int board[]) {
-	return FALSE; // TODO
+	if (countBits(getOccupiedSquares(board)) <= ENDGAME_PIECE_COUNT)
+		return TRUE;
+	return FALSE;
 }
 
 BOOL isOver75MovesRule(Game game) {
