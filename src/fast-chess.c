@@ -14,155 +14,70 @@
 #include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include "fast-chess.h"
 
-#define NUM_SQUARES 64
-#define ENDGAME_PIECE_COUNT 7
+char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
 
-#define COLOR_MASK 1<<3
-#define WHITE      0<<3
-#define BLACK      1<<3
+Bitboard FILES_BB[8] = { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H };
+Bitboard RANKS_BB[8] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
 
-#define PIECE_MASK 0x7
-#define EMPTY  0
-#define PAWN   1
-#define KNIGHT 2
-#define BISHOP 3
-#define ROOK   4
-#define QUEEN  5
-#define KING   6
+int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE|QUEEN, WHITE|KING, WHITE|BISHOP, WHITE|KNIGHT, WHITE|ROOK,
+                                   WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,  WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,
+                                   EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                   EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                   EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                   EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
+                                   BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,  BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,
+                                   BLACK|ROOK, BLACK|KNIGHT, BLACK|BISHOP, BLACK|QUEEN, BLACK|KING, BLACK|BISHOP, BLACK|KNIGHT, BLACK|ROOK };
 
-#define ALL_SQUARES    0xFFFFFFFFFFFFFFFF
-#define FILE_A         0x0101010101010101
-#define FILE_B         0x0202020202020202
-#define FILE_C         0x0404040404040404
-#define FILE_D         0x0808080808080808
-#define FILE_E         0x1010101010101010
-#define FILE_F         0x2020202020202020
-#define FILE_G         0x4040404040404040
-#define FILE_H         0x8080808080808080
-#define RANK_1         0x00000000000000FF
-#define RANK_2         0x000000000000FF00
-#define RANK_3         0x0000000000FF0000
-#define RANK_4         0x00000000FF000000
-#define RANK_5         0x000000FF00000000
-#define RANK_6         0x0000FF0000000000
-#define RANK_7         0x00FF000000000000
-#define RANK_8         0xFF00000000000000
-#define DIAG_A1H8      0x8040201008040201
-#define ANTI_DIAG_H1A8 0x0102040810204080
-#define LIGHT_SQUARES  0x55AA55AA55AA55AA
-#define DARK_SQUARES   0xAA55AA55AA55AA55
+int PIECE_VALUES[] = { 0, 100, 300, 300, 500, 900, 42000 };
 
-#define CASTLE_KINGSIDE_WHITE  1<<0
-#define CASTLE_QUEENSIDE_WHITE 1<<1
-#define CASTLE_KINGSIDE_BLACK  1<<2
-#define CASTLE_QUEENSIDE_BLACK 1<<3
+int PAWN_BONUS[] = {0,   0,   0,   0,   0,   0,   0,   0,
+					0,   0,   0, -40, -40,   0,   0,   0,
+					1,   2,   3, -10, -10,   3,   2,   1,
+					2,   4,   6,   8,   8,   6,   4,   2,
+					3,   6,   9,  12,  12,   9,   6,   3,
+					4,   8,  12,  16,  16,  12,   8,   4,
+					5,  10,  15,  20,  20,  15,  10,   5,
+					0,   0,   0,   0,   0,   0,   0,   0};
 
-#define BOOL  char
-#define TRUE  1
-#define FALSE 0
+int KNIGHT_BONUS[] = {-10, -30, -10, -10, -10, -10, -30, -10,
+					  -10,   0,   0,   0,   0,   0,   0, -10,
+					  -10,   0,   5,   5,   5,   5,   0, -10,
+					  -10,   0,   5,  10,  10,   5,   0, -10,
+					  -10,   0,   5,  10,  10,   5,   0, -10,
+					  -10,   0,   5,   5,   5,   5,   0, -10,
+					  -10,   0,   0,   0,   0,   0,   0, -10,
+					  -10, -10, -10, -10, -10, -10, -10, -10};
 
-typedef uint_fast64_t Bitboard;
-typedef int Move;
+int BISHOP_BONUS[] = {-10, -10, -20, -10, -10, -20, -10, -10,
+					  -10,   0,   0,   0,   0,   0,   0, -10,
+					  -10,   0,   5,   5,   5,   5,   0, -10,
+					  -10,   0,   5,  10,  10,   5,   0, -10,
+					  -10,   0,   5,  10,  10,   5,   0, -10,
+					  -10,   0,   5,   5,   5,   5,   0, -10,
+					  -10,   0,   0,   0,   0,   0,   0, -10,
+					  -10, -10, -10, -10, -10, -10, -10, -10};
 
-#define MOVE_BUFFER_SIZE 100
+int KING_BONUS[] = { 0,  20,  40, -20,   0, -20,  40,  20,
+				   -20, -20, -20, -20, -20, -20, -20, -20,
+				   -40, -40, -40, -40, -40, -40, -40, -40,
+				   -40, -40, -40, -40, -40, -40, -40, -40,
+				   -40, -40, -40, -40, -40, -40, -40, -40,
+				   -40, -40, -40, -40, -40, -40, -40, -40,
+				   -40, -40, -40, -40, -40, -40, -40, -40,
+				   -40, -40, -40, -40, -40, -40, -40, -40};
 
-#define AI_DEPTH 3
-
-typedef struct Game {
-   int board[NUM_SQUARES];
-   char toMove;
-   char ep_square;
-   char castling_rights;
-   unsigned int halfmove_clock;
-   unsigned int fullmove_number;
-} Game;
-
-typedef struct Node {
-	Move move;
-	int score;
-} Node;
-
-static char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-static char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
-
-static Bitboard FILES_BB[8] = { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H };
-//static Bitboard RANKS_BB[8] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
-
-static int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE|QUEEN, WHITE|KING, WHITE|BISHOP, WHITE|KNIGHT, WHITE|ROOK,
-                                          WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,  WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,
-                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
-                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
-                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
-                                          EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
-                                          BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,  BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,
-                                          BLACK|ROOK, BLACK|KNIGHT, BLACK|BISHOP, BLACK|QUEEN, BLACK|KING, BLACK|BISHOP, BLACK|KNIGHT, BLACK|ROOK };
-
-static int PIECE_VALUES[] = { 0, 100, 300, 300, 500, 900, 42000 };
-
-#define DOUBLED_PAWN_PENALTY      10
-#define ISOLATED_PAWN_PENALTY     20
-#define BACKWARDS_PAWN_PENALTY    8
-#define PASSED_PAWN_BONUS         20
-#define ROOK_SEMI_OPEN_FILE_BONUS 10
-#define ROOK_OPEN_FILE_BONUS      15
-#define ROOK_ON_SEVENTH_BONUS     20
-
-static int PAWN_BONUS[] = {0,   0,   0,   0,   0,   0,   0,   0,
-						   0,   0,   0, -40, -40,   0,   0,   0,
-						   1,   2,   3, -10, -10,   3,   2,   1,
-						   2,   4,   6,   8,   8,   6,   4,   2,
-						   3,   6,   9,  12,  12,   9,   6,   3,
-						   4,   8,  12,  16,  16,  12,   8,   4,
-						   5,  10,  15,  20,  20,  15,  10,   5,
-						   0,   0,   0,   0,   0,   0,   0,   0};
-
-static int KNIGHT_BONUS[] = {-10, -30, -10, -10, -10, -10, -30, -10,
-							 -10,   0,   0,   0,   0,   0,   0, -10,
-							 -10,   0,   5,   5,   5,   5,   0, -10,
-							 -10,   0,   5,  10,  10,   5,   0, -10,
-							 -10,   0,   5,  10,  10,   5,   0, -10,
-							 -10,   0,   5,   5,   5,   5,   0, -10,
-							 -10,   0,   0,   0,   0,   0,   0, -10,
-							 -10, -10, -10, -10, -10, -10, -10, -10};
-
-static int BISHOP_BONUS[] = {-10, -10, -20, -10, -10, -20, -10, -10,
-							 -10,   0,   0,   0,   0,   0,   0, -10,
-							 -10,   0,   5,   5,   5,   5,   0, -10,
-							 -10,   0,   5,  10,  10,   5,   0, -10,
-							 -10,   0,   5,  10,  10,   5,   0, -10,
-							 -10,   0,   5,   5,   5,   5,   0, -10,
-							 -10,   0,   0,   0,   0,   0,   0, -10,
-							 -10, -10, -10, -10, -10, -10, -10, -10};
-
-static int KING_BONUS[] = { 0,  20,  40, -20,   0, -20,  40,  20,
-						  -20, -20, -20, -20, -20, -20, -20, -20,
-						  -40, -40, -40, -40, -40, -40, -40, -40,
-						  -40, -40, -40, -40, -40, -40, -40, -40,
-						  -40, -40, -40, -40, -40, -40, -40, -40,
-						  -40, -40, -40, -40, -40, -40, -40, -40,
-						  -40, -40, -40, -40, -40, -40, -40, -40,
-						  -40, -40, -40, -40, -40, -40, -40, -40};
-
-static int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
-								   10,  20,  30,  40,  40,  30,  20,  10,
-								   20,  30,  40,  50,  50,  40,  30,  20,
-								   30,  40,  50,  60,  60,  50,  40,  30,
-								   30,  40,  50,  60,  60,  50,  40,  30,
-								   20,  30,  40,  50,  50,  40,  30,  20,
-								   10,  20,  30,  40,  40,  30,  20,  10,
-								    0,  10,  20,  30,  30,  20,  10,   0};
-
-
-
-
-
-
-BOOL isAttacked(Bitboard target, int board[], char color);
-
-
-
-
+int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
+							10,  20,  30,  40,  40,  30,  20,  10,
+							20,  30,  40,  50,  50,  40,  30,  20,
+							30,  40,  50,  60,  60,  50,  40,  30,
+							30,  40,  50,  60,  60,  50,  40,  30,
+							20,  30,  40,  50,  50,  40,  30,  20,
+							10,  20,  30,  40,  40,  30,  20,  10,
+							0,  10,  20,  30,  30,  20,  10,   0};
 
 
 Game getInitialGame(void) {
@@ -292,7 +207,7 @@ char piece2str(int piece) {
 	return 0;
 }
 
-void printBitboard(Bitboard bitboard) {
+void printfBitboard(Bitboard bitboard) {
 	int rank, file;
 
 	printf("\n");
@@ -310,7 +225,7 @@ void printBitboard(Bitboard bitboard) {
 	printf("  a b c d e f g h\n");
 }
 
-void printBoard(int board[]) {
+void printfBoard(int board[]) {
 	int rank, file;
 
 	printf("\n");
@@ -1164,7 +1079,7 @@ BOOL isOver75MovesRule(Game game) {
 BOOL hasGameEnded(Game game) {
 	if ( isCheckmate(game) ||
 		 isStalemate(game) ||
-		 hasInsufficientMaterial(game) ||
+		 hasInsufficientMaterial(game.board) ||
 		 isOver75MovesRule(game) )
 		return TRUE;
 	else
@@ -1178,7 +1093,7 @@ void printOutcome(Game game) {
 		printf("BLACK wins!\n");
 	if (isStalemate(game))
 		printf("Draw by stalemate!\n");
-	if (hasInsufficientMaterial(game))
+	if (hasInsufficientMaterial(game.board))
 		printf("Draw by insufficient material!\n");
 	if ( isOver75MovesRule(game) )
 		printf("Draw by 75 move rule!\n");
@@ -1268,7 +1183,7 @@ int evaluateEndNode(Game game) {
 	if (isCheckmate(game)) {
 		return winScore(opposingColor(game.toMove));
 	}
-	if (isStalemate(game) || hasInsufficientMaterial(game) || isOver75MovesRule(game)) {
+	if (isStalemate(game) || hasInsufficientMaterial(game.board) || isOver75MovesRule(game)) {
 		return 0;
 	}
 	return 0;
@@ -1399,27 +1314,23 @@ Move getPlayerMove() {
 
 void playWhite() {
 	printf("Playing as WHITE!\n");
-	fflush(stdout);
 	Game game;
 	game = getInitialGame();
 
 	while(TRUE) {
-        printBoard(game.board);
-        fflush(stdout);
+        printfBoard(game.board);
         if (hasGameEnded(game))
         	break;
 
         game = makeMove(game, getPlayerMove(game));
 
-        printBoard(game.board);
-        fflush(stdout);
+        printfBoard(game.board);
         if (hasGameEnded(game))
 			break;
 
         game = makeMove(game, getAIMove(game));
 	}
 	printOutcome(game);
-	fflush(stdout);
 }
 
 // ===========================
@@ -1427,17 +1338,17 @@ void playWhite() {
 
 void tests(void) {
 	Game game = getInitialGame();
-	printBoard(game.board);
+	printfBoard(game.board);
 
 	int pos = str2index("e4");
 	char color = BLACK;
 
-	printBitboard(index2bb(pos));
-	printBitboard(kingMoves(index2bb(pos), game.board, color));
-	printBitboard(knightMoves(index2bb(pos), game.board, color));
-	printBitboard(bishopMoves(index2bb(pos), game.board, color));
-	printBitboard(rookMoves(index2bb(pos), game.board, color));
-	printBitboard(queenMoves(index2bb(pos), game.board, color));
+	printfBitboard(index2bb(pos));
+	printfBitboard(kingMoves(index2bb(pos), game.board, color));
+	printfBitboard(knightMoves(index2bb(pos), game.board, color));
+	printfBitboard(bishopMoves(index2bb(pos), game.board, color));
+	printfBitboard(rookMoves(index2bb(pos), game.board, color));
+	printfBitboard(queenMoves(index2bb(pos), game.board, color));
 
 	Move moves[MOVE_BUFFER_SIZE];
 	int moveCount = legalMoves(moves, game, game.toMove);
@@ -1450,6 +1361,7 @@ void tests(void) {
 		printf("move %d: %c%c to %c%c\n", i+1, getFile(l), getRank(l), getFile(a), getRank(a) );
 	}
 
+	fflush(stdout);
 }
 
 /*
