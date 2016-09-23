@@ -78,26 +78,40 @@ void close() {
     SDL_Quit();
 }
 
-SDL_Rect index2rect(int index) {
+SDL_Rect index2rect(int index, char color) {
 	int file = index%8;
 	int rank = index/8;
 
 	SDL_Rect tile;
-	tile.x = file*TILE_SIDE;
-	tile.y = (7-rank)*TILE_SIDE;
-	tile.w = TILE_SIDE;
-	tile.h = TILE_SIDE;
+
+	if (color == WHITE) {
+		tile.x = file*TILE_SIDE;
+		tile.y = (7-rank)*TILE_SIDE;
+		tile.w = TILE_SIDE;
+		tile.h = TILE_SIDE;
+	} else if (color == BLACK) {
+		tile.x = (7-file)*TILE_SIDE;
+		tile.y = rank*TILE_SIDE;
+		tile.w = TILE_SIDE;
+		tile.h = TILE_SIDE;
+	}
 
 	return tile;
 }
 
-SDL_Rect bb2rect(Bitboard bb) {
-	return index2rect(bb2index(bb));
+SDL_Rect bb2rect(Bitboard bb, char color) {
+	return index2rect(bb2index(bb), color);
 }
 
-int xy2index(int x, int y) {
-	int file = (int) (x/TILE_SIDE);
-	int rank = (int) (7 - (y/TILE_SIDE));
+int xy2index(int x, int y, char color) {
+	int file, rank;
+	if (color == WHITE) {
+		file = (int) (x/TILE_SIDE);
+		rank = (int) (7 - (y/TILE_SIDE));
+	} else if (color == BLACK) {
+		file = (int) (7 - (x/TILE_SIDE));
+		rank = (int) (y/TILE_SIDE);
+	}
 	return 8*rank + file;
 }
 
@@ -109,12 +123,12 @@ void int2str(int index) {
 	fflush(stdout);
 }
 
-void xy2str(int x, int y){
-	int2str(xy2index(x, y));
+void xy2str(int x, int y, char color){
+	int2str(xy2index(x, y, color));
 }
 
-void paintTile(SDL_Surface * destSurface, int position, char color[]) {
-	SDL_Rect tile = index2rect(position);
+void paintTile(SDL_Surface * destSurface, int position, char color[], char toMove) {
+	SDL_Rect tile = index2rect(position, toMove);
 	SDL_FillRect( destSurface, &tile, SDL_MapRGB( destSurface->format, color[0], color[1], color[2] ) );
 }
 
@@ -124,10 +138,10 @@ void paintBoard(SDL_Surface * destSurface, char colors[]) {
 	int i;
 	for ( i=0; i<NUM_SQUARES; i++)
 		if ( index2bb(i) & DARK_SQUARES )
-			paintTile(destSurface, i, &colors[3]);
+			paintTile(destSurface, i, &colors[3], WHITE);
 }
 
-void renderBoard(int board[]) {
+void renderBoard(int board[], char color) {
 	SDL_Rect boardRect;
 	boardRect.x = 0;
 	boardRect.y = 0;
@@ -137,11 +151,11 @@ void renderBoard(int board[]) {
 
 	if (isCheck(board, WHITE)) {
 		Bitboard kingPos = getKing(board, WHITE);
-		SDL_Rect checkRect = bb2rect(kingPos);
+		SDL_Rect checkRect = bb2rect(kingPos, color);
 		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
 	} else if (isCheck(board, BLACK)) {
 		Bitboard kingPos = getKing(board, BLACK);
-		SDL_Rect checkRect = bb2rect(kingPos);
+		SDL_Rect checkRect = bb2rect(kingPos, color);
 		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
 	}
 
@@ -150,7 +164,7 @@ void renderBoard(int board[]) {
 		int piece = board[i];
 
 		if ( piece != EMPTY ) {
-			SDL_Rect squareRect = index2rect(i);
+			SDL_Rect squareRect = index2rect(i, color);
 
 			switch(piece) {
 			case BLACK|PAWN:
@@ -280,7 +294,7 @@ void setEndTitle(Game game) {
 	if (isStalemate(game))
 		SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
 	if (hasInsufficientMaterial(game.board))
-		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!!");
+		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!");
 	if (isOver75MovesRule(game))
 		SDL_SetWindowTitle(window, "Chess Game - Draw by 75-move rule!");
 }
@@ -290,7 +304,7 @@ void playAs(char color, int AIdepth) {
 	fflush(stdout);
 
 	Game game = getInitialGame();
-	renderBoard(game.board);
+	renderBoard(game.board, color);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
@@ -298,7 +312,7 @@ void playAs(char color, int AIdepth) {
 	int leavingPos = -1, arrivingPos = -1;
 
 	while( run ) {
-		renderBoard(game.board);
+		renderBoard(game.board, color);
 
 		if ( ongoing && hasGameEnded(game) ) {
 			ongoing = FALSE;
@@ -316,11 +330,11 @@ void playAs(char color, int AIdepth) {
 				break;
 
 			case SDL_MOUSEBUTTONDOWN:
-				leavingPos = xy2index(event.motion.x, event.motion.y);
+				leavingPos = xy2index(event.motion.x, event.motion.y, color);
 				break;
 
 			case SDL_MOUSEBUTTONUP:
-				arrivingPos = xy2index(event.motion.x, event.motion.y);
+				arrivingPos = xy2index(event.motion.x, event.motion.y, color);
 
 				if ( ongoing && game.toMove == color ) {
 					Move moves[MOVE_BUFFER_SIZE];
@@ -330,7 +344,7 @@ void playAs(char color, int AIdepth) {
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 							game = makeMove(game, moves[i]);
-							renderBoard(game.board);
+							renderBoard(game.board, color);
 						}
 				}
 				break;
@@ -343,7 +357,7 @@ void playAs(char color, int AIdepth) {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.board);
+					renderBoard(game.board, color);
 					break;
 
 				default:
@@ -362,7 +376,7 @@ void playAs(char color, int AIdepth) {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.board);
+					renderBoard(game.board, color);
 					fflush(stdout);
 					break;
 				}
@@ -373,7 +387,7 @@ void playAs(char color, int AIdepth) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
 			game = makeMove(game, getAIMove(game, AIdepth));
 			SDL_SetWindowTitle(window, "Chess Game");
-			renderBoard(game.board);
+			renderBoard(game.board, color);
 		}
 	}
 }
@@ -386,7 +400,7 @@ void playRandomColor(int depth) {
 
 void playAlone() {
 	Game game = getInitialGame();
-	renderBoard(game.board);
+	renderBoard(game.board, WHITE);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
@@ -394,7 +408,7 @@ void playAlone() {
 	int leavingPos = -1, arrivingPos = -1;
 
 	while( run ) {
-		renderBoard(game.board);
+		renderBoard(game.board, WHITE);
 
 		if ( ongoing && hasGameEnded(game) ) {
 			ongoing = FALSE;
@@ -412,11 +426,11 @@ void playAlone() {
 				break;
 
 			case SDL_MOUSEBUTTONDOWN:
-				leavingPos = xy2index(event.motion.x, event.motion.y);
+				leavingPos = xy2index(event.motion.x, event.motion.y, WHITE);
 				break;
 
 			case SDL_MOUSEBUTTONUP:
-				arrivingPos = xy2index(event.motion.x, event.motion.y);
+				arrivingPos = xy2index(event.motion.x, event.motion.y, WHITE);
 
 				if ( ongoing ) {
 					Move moves[MOVE_BUFFER_SIZE];
@@ -426,7 +440,7 @@ void playAlone() {
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 							game = makeMove(game, moves[i]);
-							renderBoard(game.board);
+							renderBoard(game.board, WHITE);
 						}
 				}
 				break;
@@ -439,7 +453,7 @@ void playAlone() {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.board);
+					renderBoard(game.board, WHITE);
 					break;
 
 				default:
@@ -458,7 +472,7 @@ void playAlone() {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.board);
+					renderBoard(game.board, WHITE);
 					fflush(stdout);
 					break;
 				}
