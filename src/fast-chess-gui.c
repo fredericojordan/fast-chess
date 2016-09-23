@@ -188,6 +188,8 @@ void loadBackground(void) {
 }
 
 BOOL init() {
+	srand(time(NULL));
+
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
         return FALSE;
@@ -216,10 +218,7 @@ BOOL init() {
     return TRUE;
 }
 
-int main( int argc, char* args[] ) {
-	if ( !init() )
-		return -1;
-
+void playAs(char color) {
 	Game game = getInitialGame();
 
 	BOOL run = TRUE;
@@ -231,7 +230,7 @@ int main( int argc, char* args[] ) {
 	{
 		renderBoard(game.board);
 
-		if ( game.toMove == WHITE ) {
+		if ( game.toMove == opposingColor(color) ) {
 			char title[50];
 			strcpy(title, windowTitle);
 			strcat(title, " - Calculating move...");
@@ -260,7 +259,7 @@ int main( int argc, char* args[] ) {
 			case SDL_MOUSEBUTTONUP:
 				arrivingPos = xy2index(event.motion.x, event.motion.y);
 
-				if (game.toMove == BLACK) {
+				if (game.toMove == color) {
 					Move moves[MOVE_BUFFER_SIZE];
 					int moveCount = legalMoves(moves, game, game.toMove);
 
@@ -275,6 +274,22 @@ int main( int argc, char* args[] ) {
 			}
 		}
 	}
+}
+
+void playRandomColor(void) {
+	char colors[] = {WHITE, BLACK};
+	int n = rand();
+	char color = colors[n%2];
+	printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK");
+	fflush(stdout);
+	playAs(color);
+}
+
+int main( int argc, char* args[] ) {
+	if ( !init() )
+		return -1;
+
+	playRandomColor();
 
 	close();
 
