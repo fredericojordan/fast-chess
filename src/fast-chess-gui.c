@@ -216,7 +216,7 @@ BOOL init() {
         return FALSE;
     }
 
-	window = SDL_CreateWindow( "Chess Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 8*TILE_SIDE, 8*TILE_SIDE, SDL_WINDOW_SHOWN );
+	window = SDL_CreateWindow( "Chess Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 8*TILE_SIDE, 8*TILE_SIDE, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE );
 
 	if( window == NULL ) {
 		printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -270,18 +270,10 @@ void playAs(char color, int AIdepth) {
 	while( run ) {
 		renderBoard(game.board);
 
-		if ( hasGameEnded(game) ) {
+		if ( ongoing && hasGameEnded(game) ) {
 			ongoing = FALSE;
 			setEndTitle(game);
 		}
-
-		if ( ongoing && game.toMove == opposingColor(color) ) {
-			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
-			game = makeMove(game, getAIMove(game, AIdepth));
-			SDL_SetWindowTitle(window, "Chess Game");
-			renderBoard(game.board);
-		}
-
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -325,13 +317,33 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				default:
-					printf("User pressed key: '%s' key acting as '%s' key\n",
-							SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
-					fflush(stdout);
+//					printf("User pressed key: '%s' key acting as '%s' key\n", SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
+//					fflush(stdout);
 					break;
 				}
 				break;
+
+			case SDL_WINDOWEVENT:
+				switch (event.window.event) {
+				case SDL_WINDOWEVENT_RESIZED:
+					if ( event.window.data1 != 8*TILE_SIDE ) {
+						TILE_SIDE = (int) (event.window.data1/8);
+					} else if ( event.window.data2 != 8*TILE_SIDE ) {
+						TILE_SIDE = (int) (event.window.data2/8);
+					}
+					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
+					renderBoard(game.board);
+					fflush(stdout);
+					break;
+				}
 			}
+		}
+
+		if ( ongoing && game.toMove == opposingColor(color) ) {
+			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
+			game = makeMove(game, getAIMove(game, AIdepth));
+			SDL_SetWindowTitle(window, "Chess Game");
+			renderBoard(game.board);
 		}
 	}
 }
@@ -354,7 +366,7 @@ void playAlone() {
 	while( run ) {
 		renderBoard(game.board);
 
-		if ( hasGameEnded(game) ) {
+		if ( ongoing && hasGameEnded(game) ) {
 			ongoing = FALSE;
 			setEndTitle(game);
 		}
@@ -388,6 +400,38 @@ void playAlone() {
 						}
 				}
 				break;
+
+			case SDL_KEYDOWN:
+				switch( event.key.keysym.sym ) {
+				case SDLK_q:
+					run = FALSE;
+					break;
+
+				case SDLK_c:
+					changeColors();
+					renderBoard(game.board);
+					break;
+
+				default:
+//					printf("User pressed key: '%s' key acting as '%s' key\n", SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
+//					fflush(stdout);
+					break;
+				}
+				break;
+
+			case SDL_WINDOWEVENT:
+				switch (event.window.event) {
+				case SDL_WINDOWEVENT_RESIZED:
+					if ( event.window.data1 != 8*TILE_SIDE ) {
+						TILE_SIDE = (int) (event.window.data1/8);
+					} else if ( event.window.data2 != 8*TILE_SIDE ) {
+						TILE_SIDE = (int) (event.window.data2/8);
+					}
+					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
+					renderBoard(game.board);
+					fflush(stdout);
+					break;
+				}
 			}
 		}
 	}
