@@ -15,11 +15,16 @@
 
 int TILE_SIDE = 60;
 
-//char LICHESS_LIGHT[] = { 0xff, 0xff, 0xff };
-//char LICHESS_DARK[]  = { 0xfa, 0xfa, 0xfa };
-
-char LICHESS_LIGHT[] = { 0xF0, 0xD9, 0xB5 };
-char LICHESS_DARK[]  = { 0xB5, 0x88, 0x63 };
+char COLOR_SQUEMES[][6] = {
+							{ 240, 217, 181, 181, 136,  99 }, // LICHESS
+							{ 255, 255, 255, 240, 240, 240 }, // WHITE
+							{ 240, 240, 240, 200, 200, 200 }, // LIGHT_GRAY
+							{ 164, 164, 164, 136, 136, 136 }, // LICHESS_GRAY
+							{ 140, 184, 219,  91, 131, 159 }, // ROYAL BLUE
+							{ 255, 255, 255, 140, 184, 219 }, // WHITE/BLUE
+							{ 212, 202, 190, 100,  92,  89 }, // CHESSWEBSITE
+						  };
+int bgColorNum = -1;
 
 SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
@@ -106,13 +111,13 @@ void paintTile(SDL_Surface * destSurface, int position, char color[]) {
 	SDL_FillRect( destSurface, &tile, SDL_MapRGB( destSurface->format, color[0], color[1], color[2] ) );
 }
 
-void paintBoard(SDL_Surface * destSurface, char light_color[], char dark_color[]) {
-	SDL_FillRect( destSurface, NULL, SDL_MapRGB( destSurface->format, light_color[0], light_color[1], light_color[2] ) );
+void paintBoard(SDL_Surface * destSurface, char colors[]) {
+	SDL_FillRect( destSurface, NULL, SDL_MapRGB( destSurface->format, colors[0], colors[1], colors[2] ) );
 
 	int i;
 	for ( i=0; i<NUM_SQUARES; i++)
 		if ( index2bb(i) & DARK_SQUARES )
-			paintTile(destSurface, i, dark_color);
+			paintTile(destSurface, i, &colors[3]);
 }
 
 void renderBoard(int board[]) {
@@ -188,9 +193,19 @@ void renderBoard(int board[]) {
 void loadBackground(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	paintBoard(bgSurface, LICHESS_LIGHT, LICHESS_DARK);
+	paintBoard(bgSurface, COLOR_SQUEMES[bgColorNum]);
 	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
 	SDL_FreeSurface( bgSurface );
+}
+
+void changeColors() {
+	int colorCount = (int) (sizeof(COLOR_SQUEMES)/6);
+	int newColor = rand() % colorCount;
+
+	while ( newColor == bgColorNum ) { newColor = rand() % colorCount; }
+
+	bgColorNum = newColor;
+	loadBackground();
 }
 
 BOOL init() {
@@ -218,6 +233,7 @@ BOOL init() {
 	screenSurface = SDL_GetWindowSurface( window );
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
+	changeColors();
 	loadBackground();
 	loadImages();
 
@@ -294,6 +310,25 @@ void playAs(char color, int AIdepth) {
 							game = makeMove(game, moves[i]);
 							renderBoard(game.board);
 						}
+				}
+				break;
+
+			case SDL_KEYDOWN:
+				switch( event.key.keysym.sym ) {
+				case SDLK_q:
+					run = FALSE;
+					break;
+
+				case SDLK_c:
+					changeColors();
+					renderBoard(game.board);
+					break;
+
+				default:
+					printf("User pressed key: '%s' key acting as '%s' key\n",
+							SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
+					fflush(stdout);
+					break;
 				}
 				break;
 			}
