@@ -26,11 +26,14 @@ char COLOR_SQUEMES[][6] = {
 						  };
 int bgColorNum = -1;
 
+int checkRed = 0xFF0000;
+int checkTransparency = 0x80;
+
 SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
 SDL_Renderer* renderer = NULL;      // The main renderer
 
-SDL_Texture *bgTexture;
+SDL_Texture *bgTexture, *checkSquare;
 SDL_Texture *bPawn, *bKnight, *bBishop, *bRook, *bQueen, *bKing;
 SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
@@ -88,6 +91,10 @@ SDL_Rect index2rect(int index) {
 	return tile;
 }
 
+SDL_Rect bb2rect(Bitboard bb) {
+	return index2rect(bb2index(bb));
+}
+
 int xy2index(int x, int y) {
 	int file = (int) (x/TILE_SIDE);
 	int rank = (int) (7 - (y/TILE_SIDE));
@@ -127,6 +134,16 @@ void renderBoard(int board[]) {
 	boardRect.w = 8*TILE_SIDE;
 	boardRect.h = 8*TILE_SIDE;
 	SDL_RenderCopy(renderer, bgTexture, NULL, &boardRect);
+
+	if (isCheck(board, WHITE)) {
+		Bitboard kingPos = getKing(board, WHITE);
+		SDL_Rect checkRect = bb2rect(kingPos);
+		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
+	} else if (isCheck(board, BLACK)) {
+		Bitboard kingPos = getKing(board, BLACK);
+		SDL_Rect checkRect = bb2rect(kingPos);
+		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
+	}
 
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
@@ -198,7 +215,17 @@ void loadBackground(void) {
 	SDL_FreeSurface( bgSurface );
 }
 
-void changeColors() {
+void loadCheckSquare(void) {
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * checkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	SDL_FillRect( checkSurf, NULL, checkRed );
+	checkSquare = SDL_CreateTextureFromSurface(renderer, checkSurf);
+	SDL_SetTextureBlendMode( checkSquare, SDL_BLENDMODE_BLEND );
+	SDL_SetTextureAlphaMod( checkSquare, checkTransparency );
+	SDL_FreeSurface( checkSurf );
+}
+
+void changeColors(void) {
 	int colorCount = (int) (sizeof(COLOR_SQUEMES)/6);
 	int newColor = rand() % colorCount;
 
@@ -231,10 +258,13 @@ BOOL init() {
 	}
 
 	screenSurface = SDL_GetWindowSurface( window );
+
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	changeColors();
 	loadBackground();
+	loadCheckSquare();
 	loadImages();
 
     return TRUE;
