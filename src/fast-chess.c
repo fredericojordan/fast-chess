@@ -511,20 +511,12 @@ BOOL isDoublePush(int leaving, int arriving) {
 	return FALSE;
 }
 
-int getEpSquare(int leaving) {
+char getEpSquare(int leaving) {
 	if (index2bb(leaving)&RANK_2)
 		return leaving+8;
 	if (index2bb(leaving)&RANK_7)
 		return leaving-8;
 	return -1;
-}
-
-void removeCapturedEp(Game game) {
-    if (index2bb(game.ep_square)&RANK_3)
-		game.board[game.ep_square+8] = EMPTY;
-
-    if (index2bb(game.ep_square)&RANK_6)
-		game.board[game.ep_square-8] = EMPTY;
 }
 
 BOOL isOpenFile(Bitboard bb, int board[]) {
@@ -860,11 +852,13 @@ void movePiece(int board[], Move move) {
 }
 
 Game makeMove(Game game, Move move) {
+//	Game newGame;
+//	memcpy(&newGame, &game, sizeof(Game));
+
 	Game newGame = game;
 	int leavingSquare = getFrom(move);
 	int arrivingSquare = getTo(move);
 	int piece = game.board[leavingSquare];
-	int pieceType = game.board[leavingSquare]&PIECE_MASK;
 
 	movePiece(newGame.board, move);
 	newGame.toMove = opposingColor(game.toMove);
@@ -879,17 +873,23 @@ Game makeMove(Game game, Move move) {
 		newGame.halfmove_clock = 0;
 	}
 
-	newGame.ep_square = -1;
-
-	if (pieceType == PAWN) {
+	if ( (piece&PIECE_MASK) == PAWN ) {
 		newGame.halfmove_clock = 0;
 
 		if (arrivingSquare == game.ep_square) {
-			removeCapturedEp(newGame);
+		    if (index2bb(game.ep_square)&RANK_3) {
+				newGame.board[(int)(game.ep_square+8)] = EMPTY;
+		    }
+
+		    if (index2bb(game.ep_square)&RANK_6) {
+		    	newGame.board[(int)(game.ep_square-8)] = EMPTY;
+		    }
 		}
 
 		if (isDoublePush(leavingSquare, arrivingSquare)) {
 			newGame.ep_square = getEpSquare(leavingSquare);
+		} else {
+			newGame.ep_square = -1;
 		}
 
 		if (index2bb(arrivingSquare)&(RANK_1|RANK_8)) {
@@ -1252,7 +1252,7 @@ Node simpleEvaluation(Game game) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
-Node alpha_beta(Game game, char depth, int alpha, int beta) {
+Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(game))
 		return (Node) { .score = evaluateEndNode(game) };
 
@@ -1270,16 +1270,16 @@ Node alpha_beta(Game game, char depth, int alpha, int beta) {
 	for (i=0; i<moveCount; i++) {
 		Game newGame = makeMove(game, moves[i]);
 
-		if (depth==AI_DEPTH) {
+		if (verbose) {
 			int l = getFrom(moves[i]);
 			int a = getTo(moves[i]);
 			printf("eval move (%d/%d): %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
 			fflush(stdout);
 		}
 
-		int score = alpha_beta(newGame, depth-1, alpha, beta).score;
+		int score = alpha_beta(newGame, depth-1, alpha, beta, FALSE).score;
 
-		if (depth==AI_DEPTH) {
+		if (verbose) {
 			printf("%d\n", score);
 		}
 
@@ -1316,17 +1316,22 @@ Move getRandomMove(Game game) {
 	return moves[chosenMove];
 }
 
-Move getAIMove(Game game) {
-	printf("Searching with base depth = %d\n", AI_DEPTH);
+Move getAIMove(Game game, int depth) {
+	time_t startTime, endTime;
+	printf("Searching with base depth = %d\n", depth);
+
+	startTime = time(NULL);
 
 //	Move move = getRandomMove(game);
 //	Move move = simpleEvaluation(game).move;
 //	Move move = minimax(game, AI_DEPTH).move;
-	Node node = alpha_beta(game, AI_DEPTH, -INT32_MAX, INT32_MAX);
+	Node node = alpha_beta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
+
+	endTime = time(NULL);
 
 	int l = getFrom(node.move);
 	int a = getTo(node.move);
-	printf("CHOSEN move: %c%c to %c%c [%d,%d]\n", getFile(l), getRank(l), getFile(a), getRank(a), evaluateGame(game), node.score);
+	printf("CHOSEN move: %c%c to %c%c in %d seconds [%d,%d]\n", getFile(l), getRank(l), getFile(a), getRank(a), (int) (endTime-startTime), evaluateGame(game), node.score);
 	fflush(stdout);
 
 	return node.move;
@@ -1356,7 +1361,7 @@ void playWhite() {
         if (hasGameEnded(game))
 			break;
 
-        game = makeMove(game, getAIMove(game));
+        game = makeMove(game, getAIMove(game, DEFAULT_AI_DEPTH));
 	}
 	printOutcome(game);
 }

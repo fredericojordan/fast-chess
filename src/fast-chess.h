@@ -68,7 +68,7 @@ typedef int Move;
 #define MOVE_BUFFER_SIZE (100)
 #define MOVE_LIST_MAX_LEN (1024)
 
-#define AI_DEPTH (3)
+#define DEFAULT_AI_DEPTH (3)
 
 typedef struct Game {
    int board[NUM_SQUARES];
@@ -174,8 +174,7 @@ Bitboard pawnEpCaptures(Bitboard moving_piece, Game game, char color);
 Bitboard pawnCaptures(Bitboard moving_piece, Game game, char color);
 Bitboard pawnMoves(Bitboard moving_piece, Game game, char color);
 BOOL isDoublePush(int leaving, int arriving);
-int getEpSquare(int leaving);
-void removeCapturedEp(Game game);
+char getEpSquare(int leaving);
 BOOL isOpenFile(Bitboard bb, int board[]);
 BOOL isSemiOpenFile(Bitboard bb, int board[]);
 
@@ -271,9 +270,9 @@ int evaluateGame(Game game);
 // ========= SEARCH ==========
 
 Node simpleEvaluation(Game game);
-Node alpha_beta(Game game, char depth, int alpha, int beta);
+Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose);
 Move getRandomMove(Game game);
-Move getAIMove(Game game);
+Move getAIMove(Game game, int depth);
 Move getPlayerMove();
 
 // ========= PLAY LOOP =======

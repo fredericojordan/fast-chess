@@ -21,8 +21,6 @@ int TILE_SIDE = 60;
 char LICHESS_LIGHT[] = { 0xF0, 0xD9, 0xB5 };
 char LICHESS_DARK[]  = { 0xB5, 0x88, 0x63 };
 
-char windowTitle[] = "Chess Game";
-
 SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
 SDL_Renderer* renderer = NULL;      // The main renderer
@@ -118,7 +116,12 @@ void paintBoard(SDL_Surface * destSurface, char light_color[], char dark_color[]
 }
 
 void renderBoard(int board[]) {
-	SDL_RenderCopy(renderer, bgTexture, NULL, NULL);
+	SDL_Rect boardRect;
+	boardRect.x = 0;
+	boardRect.y = 0;
+	boardRect.w = 8*TILE_SIDE;
+	boardRect.h = 8*TILE_SIDE;
+	SDL_RenderCopy(renderer, bgTexture, NULL, &boardRect);
 
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
@@ -183,8 +186,11 @@ void renderBoard(int board[]) {
 }
 
 void loadBackground(void) {
-	paintBoard(screenSurface, LICHESS_LIGHT, LICHESS_DARK);
-	bgTexture = SDL_CreateTextureFromSurface(renderer, screenSurface);
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	paintBoard(bgSurface, LICHESS_LIGHT, LICHESS_DARK);
+	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+	SDL_FreeSurface( bgSurface );
 }
 
 BOOL init() {
@@ -195,7 +201,7 @@ BOOL init() {
         return FALSE;
     }
 
-	window = SDL_CreateWindow( windowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 8*TILE_SIDE, 8*TILE_SIDE, SDL_WINDOW_SHOWN );
+	window = SDL_CreateWindow( "Chess Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 8*TILE_SIDE, 8*TILE_SIDE, SDL_WINDOW_SHOWN );
 
 	if( window == NULL ) {
 		printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -218,26 +224,45 @@ BOOL init() {
     return TRUE;
 }
 
-void playAs(char color) {
-	Game game = getInitialGame();
+void setEndTitle(Game game) {
+	if (isCheckmate(game)) {
+		if (game.toMove == BLACK)
+			SDL_SetWindowTitle(window, "Chess Game - WHITE wins!");
+		else
+			SDL_SetWindowTitle(window, "Chess Game - BLACK wins!");
+	}
+	if (isStalemate(game))
+		SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
+	if (hasInsufficientMaterial(game.board))
+		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!!");
+	if (isOver75MovesRule(game))
+		SDL_SetWindowTitle(window, "Chess Game - Draw by 75-move rule!");
+}
 
-	BOOL run = TRUE;
+void playAs(char color, int AIdepth) {
+	printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK");
+	fflush(stdout);
+
+	Game game = getInitialGame();
+	renderBoard(game.board);
+
+	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
 
 	int leavingPos = -1, arrivingPos = -1;
 
-	while( run )
-	{
+	while( run ) {
 		renderBoard(game.board);
 
-		if ( game.toMove == opposingColor(color) ) {
-			char title[50];
-			strcpy(title, windowTitle);
-			strcat(title, " - Calculating move...");
-			SDL_SetWindowTitle(window, title);
+		if ( hasGameEnded(game) ) {
+			ongoing = FALSE;
+			setEndTitle(game);
+		}
 
-			game = makeMove(game, getAIMove(game));
-			SDL_SetWindowTitle(window, windowTitle);
+		if ( ongoing && game.toMove == opposingColor(color) ) {
+			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
+			game = makeMove(game, getAIMove(game, AIdepth));
+			SDL_SetWindowTitle(window, "Chess Game");
 			renderBoard(game.board);
 		}
 
@@ -259,14 +284,16 @@ void playAs(char color) {
 			case SDL_MOUSEBUTTONUP:
 				arrivingPos = xy2index(event.motion.x, event.motion.y);
 
-				if (game.toMove == color) {
+				if ( ongoing && game.toMove == color ) {
 					Move moves[MOVE_BUFFER_SIZE];
 					int moveCount = legalMoves(moves, game, game.toMove);
 
 					int i;
 					for (i=0; i<moveCount; i++)
-						if (generateMove(leavingPos, arrivingPos) == moves[i])
+						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 							game = makeMove(game, moves[i]);
+							renderBoard(game.board);
+						}
 				}
 				break;
 			}
@@ -274,20 +301,68 @@ void playAs(char color) {
 	}
 }
 
-void playRandomColor(void) {
+void playRandomColor(int depth) {
 	char colors[] = {WHITE, BLACK};
-	int n = rand();
-	char color = colors[n%2];
-	printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK");
-	fflush(stdout);
-	playAs(color);
+	char color = colors[rand()%2];
+	playAs(color, depth);
+}
+
+void playAlone() {
+	Game game = getInitialGame();
+	renderBoard(game.board);
+
+	BOOL run = TRUE, ongoing = TRUE;
+	SDL_Event event;
+
+	int leavingPos = -1, arrivingPos = -1;
+
+	while( run ) {
+		renderBoard(game.board);
+
+		if ( hasGameEnded(game) ) {
+			ongoing = FALSE;
+			setEndTitle(game);
+		}
+
+		while( SDL_PollEvent( &event ) != 0 ) {
+
+			switch (event.type) {
+			case SDL_QUIT:
+				run = FALSE;
+				break;
+
+			case SDL_MOUSEMOTION:
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				leavingPos = xy2index(event.motion.x, event.motion.y);
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				arrivingPos = xy2index(event.motion.x, event.motion.y);
+
+				if ( ongoing ) {
+					Move moves[MOVE_BUFFER_SIZE];
+					int moveCount = legalMoves(moves, game, game.toMove);
+
+					int i;
+					for (i=0; i<moveCount; i++)
+						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
+							game = makeMove(game, moves[i]);
+							renderBoard(game.board);
+						}
+				}
+				break;
+			}
+		}
+	}
 }
 
 int main( int argc, char* args[] ) {
 	if ( !init() )
 		return -1;
 
-	playRandomColor();
+	playRandomColor(DEFAULT_AI_DEPTH);
 
 	close();
 
