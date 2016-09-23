@@ -77,7 +77,7 @@ int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
 							30,  40,  50,  60,  60,  50,  40,  30,
 							20,  30,  40,  50,  50,  40,  30,  20,
 							10,  20,  30,  40,  40,  30,  20,  10,
-							0,  10,  20,  30,  30,  20,  10,   0};
+							 0,  10,  20,  30,  30,  20,  10,   0};
 
 
 Game getInitialGame(void) {
@@ -87,7 +87,9 @@ Game getInitialGame(void) {
 	newGame.ep_square = -1;
 	newGame.castling_rights = CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE|CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK;
 	newGame.halfmove_clock = 0;
+	newGame.halfmove_number = 0;
 	newGame.fullmove_number = 1;
+	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
 	return newGame;
 }
 
@@ -149,6 +151,29 @@ int bb2index(Bitboard bb) {
 			return i;
 	}
 	return -1;
+}
+
+char * moveList2str(Game game) {
+	char * movestr = NULL;
+
+	movestr = (char*) malloc (5*game.halfmove_number);
+
+	int i;
+	for (i=0;i<game.halfmove_number;i++) {
+		int leaving = getFrom(game.moveList[i]);
+		int arriving = getTo(game.moveList[i]);
+		movestr[5*i] = getFile(leaving);
+		movestr[5*i+1] = getRank(leaving);
+		movestr[5*i+2] = getFile(arriving);
+		movestr[5*i+3] = getRank(arriving);
+		movestr[5*i+4] = ' ';
+
+		if ( i == game.halfmove_number-1 ) {
+			movestr[5*i+4] = 0;
+		}
+	}
+
+	return movestr;
 }
 
 char getFile(int position) {
@@ -845,6 +870,7 @@ Game makeMove(Game game, Move move) {
 	newGame.toMove = opposingColor(game.toMove);
 
 	newGame.halfmove_clock += 1;
+	newGame.halfmove_number += 1;
 	if (game.toMove == BLACK) {
 		newGame.fullmove_number += 1;
 	}
@@ -907,9 +933,11 @@ Game makeMove(Game game, Move move) {
 		}
 	}
 
+
+	newGame.moveList[newGame.halfmove_number-1] = move;
+
 	/*
 	    # update history
-	    new_game.move_history.append(move2str(move))
 	    new_game.position_history.append(new_game.to_FEN())
 	    return new_game
 	    */

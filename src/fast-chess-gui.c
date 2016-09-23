@@ -264,11 +264,9 @@ void playAs(char color) {
 					int moveCount = legalMoves(moves, game, game.toMove);
 
 					int i;
-					for (i=0; i<moveCount; i++) {
-						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
+					for (i=0; i<moveCount; i++)
+						if (generateMove(leavingPos, arrivingPos) == moves[i])
 							game = makeMove(game, moves[i]);
-						}
-					}
 				}
 				break;
 			}

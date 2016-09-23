@@ -66,6 +66,7 @@ typedef uint_fast64_t Bitboard;
 typedef int Move;
 
 #define MOVE_BUFFER_SIZE (100)
+#define MOVE_LIST_MAX_LEN (1024)
 
 #define AI_DEPTH (3)
 
@@ -75,7 +76,9 @@ typedef struct Game {
    char ep_square;
    char castling_rights;
    unsigned int halfmove_clock;
+   unsigned int halfmove_number;
    unsigned int fullmove_number;
+   Move moveList[MOVE_LIST_MAX_LEN];
 } Game;
 
 typedef struct Node {
@@ -117,6 +120,7 @@ BOOL isSet(Bitboard bb, int index);
 Bitboard lsb(Bitboard bb);
 Bitboard msb(Bitboard bb);
 int bb2index(Bitboard bb);
+char * moveList2str(Game game);
 char getFile(int position);
 char getRank(int position);
 Move generateMove(int leavingSquare, int arrivingSquare);
