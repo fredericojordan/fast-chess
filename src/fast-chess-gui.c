@@ -314,11 +314,6 @@ void playAs(char color, int AIdepth) {
 	while( run ) {
 		renderBoard(game.board, color);
 
-		if ( ongoing && hasGameEnded(game) ) {
-			ongoing = FALSE;
-			setEndTitle(game);
-		}
-
 		while( SDL_PollEvent( &event ) != 0 ) {
 
 			switch (event.type) {
@@ -345,6 +340,11 @@ void playAs(char color, int AIdepth) {
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 							game = makeMove(game, moves[i]);
 							renderBoard(game.board, color);
+
+							if ( hasGameEnded(game) ) {
+								ongoing = FALSE;
+								setEndTitle(game);
+							}
 						}
 				}
 				break;
@@ -388,6 +388,11 @@ void playAs(char color, int AIdepth) {
 			game = makeMove(game, getAIMove(game, AIdepth));
 			SDL_SetWindowTitle(window, "Chess Game");
 			renderBoard(game.board, color);
+
+			if ( hasGameEnded(game) ) {
+				ongoing = FALSE;
+				setEndTitle(game);
+			}
 		}
 	}
 }
@@ -409,11 +414,6 @@ void playAlone() {
 
 	while( run ) {
 		renderBoard(game.board, WHITE);
-
-		if ( ongoing && hasGameEnded(game) ) {
-			ongoing = FALSE;
-			setEndTitle(game);
-		}
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -441,6 +441,11 @@ void playAlone() {
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 							game = makeMove(game, moves[i]);
 							renderBoard(game.board, WHITE);
+
+							if ( hasGameEnded(game) ) {
+								ongoing = FALSE;
+								setEndTitle(game);
+							}
 						}
 				}
 				break;
