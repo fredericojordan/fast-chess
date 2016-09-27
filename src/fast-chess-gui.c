@@ -360,6 +360,11 @@ void playAs(char color, int AIdepth) {
 					renderBoard(game.board, color);
 					break;
 
+				case SDLK_e:
+					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
+					fflush(stdout);
+					break;
+
 				default:
 //					printf("User pressed key: '%s' key acting as '%s' key\n", SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
 //					fflush(stdout);
@@ -459,6 +464,11 @@ void playAlone() {
 				case SDLK_c:
 					changeColors();
 					renderBoard(game.board, WHITE);
+					break;
+
+				case SDLK_e:
+					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
+					fflush(stdout);
 					break;
 
 				default:

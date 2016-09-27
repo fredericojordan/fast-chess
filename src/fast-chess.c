@@ -279,7 +279,7 @@ char opposingColor(char color) {
 	return 0;
 }
 
-void flipVertical(int board[]) {
+void flipVertical(int resultBoard[], int board[]) {
     int flip[] = {56,  57,  58,  59,  60,  61,  62,  63,
 				  48,  49,  50,  51,  52,  53,  54,  55,
 				  40,  41,  42,  43,  44,  45,  46,  47,
@@ -289,13 +289,10 @@ void flipVertical(int board[]) {
 				   8,   9,  10,  11,  12,  13,  14,  15,
 				   0,   1,   2,   3,   4,   5,   6,   7};
 
-    int flippedBoard[NUM_SQUARES];
-
     int i;
     for (i=0; i<NUM_SQUARES; i++) {
-    	flippedBoard[i] = board[flip[i]];
+    	resultBoard[i] = board[flip[i]];
     }
-    memcpy(&board, flippedBoard, sizeof(flippedBoard));
 }
 
 int countBits(Bitboard bb) {
@@ -1153,11 +1150,13 @@ int materialBalance(int board[]) {
 
 int positionalBonus(int board[], char color) {
 	int bonus = 0;
-
 	int evalBoard[NUM_SQUARES];
-	memcpy(&evalBoard, board, NUM_SQUARES*sizeof(int));
-	if (color == BLACK)
-		flipVertical(evalBoard);
+
+	if ( color == WHITE ) {
+		memcpy(&evalBoard, board, NUM_SQUARES*sizeof(int));
+	} else if (color == BLACK) {
+		flipVertical(evalBoard, board);
+	}
 
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
@@ -1271,14 +1270,14 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 		if (verbose) {
 			int l = getFrom(moves[i]);
 			int a = getTo(moves[i]);
-			printf("eval move (%d/%d): %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
+			printf("(%d/%d) evaluating move: %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
 			fflush(stdout);
 		}
 
 		int score = alpha_beta(newGame, depth-1, alpha, beta, FALSE).score;
 
 		if (verbose) {
-			printf("%d\n", score);
+			printf("%.2f\n", score/100.0);
 		}
 
 		if (score == winScore(game.toMove)) {
@@ -1329,7 +1328,7 @@ Move getAIMove(Game game, int depth) {
 
 	int l = getFrom(node.move);
 	int a = getTo(node.move);
-	printf("CHOSEN move: %c%c to %c%c in %d seconds [%d,%d]\n", getFile(l), getRank(l), getFile(a), getRank(a), (int) (endTime-startTime), evaluateGame(game), node.score);
+	printf("CHOSEN move: %c%c to %c%c in %d seconds [%.2f,%.2f]\n", getFile(l), getRank(l), getFile(a), getRank(a), (int) (endTime-startTime), evaluateGame(game)/100.0, node.score/100.0);
 	fflush(stdout);
 
 	return node.move;

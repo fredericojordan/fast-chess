@@ -131,7 +131,7 @@ void printBitboard(Bitboard bitboard);
 void printBoard(int board[]);
 Bitboard not(Bitboard bb);
 char opposingColor(char color);
-void flipVertical(int board[]);
+void flipVertical(int resultBoard[], int board[]);
 
 // ====== BOARD FILTERS ======
 
