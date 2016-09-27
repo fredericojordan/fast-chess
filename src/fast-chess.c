@@ -628,8 +628,8 @@ BOOL canCastleQueenside(Game game, char color) {
 	return FALSE;
 }
 
-char removeCastlingRights(Game game, char removed_rights) {
-    return (char) (game.castling_rights & ~removed_rights);
+char removeCastlingRights(char original_rights, char removed_rights) {
+    return (char) (original_rights & ~(removed_rights));
 }
 
 // ========== BISHOP =========
@@ -899,20 +899,20 @@ Game makeMove(Game game, Move move) {
 	}
 
 	if (leavingSquare == str2index("a1")) {
-		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_QUEENSIDE_WHITE);
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_QUEENSIDE_WHITE);
 	}
 	else if (leavingSquare == str2index("h1")) {
-		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_WHITE);
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_WHITE);
 	}
 	else if (leavingSquare == str2index("a8")) {
-		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_QUEENSIDE_BLACK);
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_QUEENSIDE_BLACK);
 	}
 	else if (leavingSquare == str2index("h8")) {
-		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_BLACK);
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_BLACK);
 	}
 
 	if ( piece == (WHITE|KING) ) {
-		newGame.castling_rights = removeCastlingRights(newGame, (CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE));
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, (CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE));
 		if (leavingSquare == str2index("e1")) {
 
 			if (arrivingSquare == str2index("g1"))
@@ -922,7 +922,7 @@ Game makeMove(Game game, Move move) {
 				movePiece(newGame.board, generateMove(str2index("a1"), str2index("d1")));
 		}
 	} else if ( piece == (BLACK|KING) ) {
-		newGame.castling_rights = removeCastlingRights(newGame, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
+		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
 		if (leavingSquare == str2index("e8")) {
 
 			if (arrivingSquare == str2index("g8"))
@@ -937,10 +937,11 @@ Game makeMove(Game game, Move move) {
 	newGame.moveList[newGame.halfmove_number-1] = move;
 
 	/*
-	    # update history
-	    new_game.position_history.append(new_game.to_FEN())
-	    return new_game
-	    */
+	# update history
+	new_game.position_history.append(new_game.to_FEN())
+	return new_game
+	*/
+
 	return newGame;
 }
 

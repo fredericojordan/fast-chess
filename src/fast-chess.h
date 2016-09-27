@@ -191,7 +191,7 @@ Bitboard kingAttacks(Bitboard moving_piece);
 Bitboard kingMoves(Bitboard moving_piece, int board[], char color) ;
 BOOL canCastleKingside(Game game, char color);
 BOOL canCastleQueenside(Game game, char color);
-char removeCastlingRights(Game game, char removed_rights);
+char removeCastlingRights(char original_rights, char removed_rights);
 
 // ========== BISHOP =========
 
