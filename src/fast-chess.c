@@ -852,10 +852,8 @@ void movePiece(int board[], Move move) {
 }
 
 Game makeMove(Game game, Move move) {
-//	Game newGame;
-//	memcpy(&newGame, &game, sizeof(Game));
-
-	Game newGame = game;
+	Game newGame;
+	memcpy(&newGame, &game, sizeof(Game));
 	int leavingSquare = getFrom(move);
 	int arrivingSquare = getTo(move);
 	int piece = game.board[leavingSquare];
@@ -873,6 +871,7 @@ Game makeMove(Game game, Move move) {
 		newGame.halfmove_clock = 0;
 	}
 
+	newGame.ep_square = -1;
 	if ( (piece&PIECE_MASK) == PAWN ) {
 		newGame.halfmove_clock = 0;
 
@@ -888,8 +887,6 @@ Game makeMove(Game game, Move move) {
 
 		if (isDoublePush(leavingSquare, arrivingSquare)) {
 			newGame.ep_square = getEpSquare(leavingSquare);
-		} else {
-			newGame.ep_square = -1;
 		}
 
 		if (index2bb(arrivingSquare)&(RANK_1|RANK_8)) {
