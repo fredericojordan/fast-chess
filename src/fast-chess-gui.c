@@ -308,6 +308,7 @@ void playAs(char color, int AIdepth) {
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
+	char * movelist;
 
 	int leavingPos = -1, arrivingPos = -1;
 
@@ -363,6 +364,13 @@ void playAs(char color, int AIdepth) {
 				case SDLK_e:
 					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
 					fflush(stdout);
+					break;
+
+				case SDLK_p:
+					movelist = moveList2str(game);
+					printf("movelist = %s\n", movelist);
+					fflush(stdout);
+					free(movelist);
 					break;
 
 				default:

@@ -176,6 +176,27 @@ char * moveList2str(Game game) {
 	return movestr;
 }
 
+BOOL startsWith(const char *str, const char *pre) {
+    size_t lenpre = strlen(pre), lenstr = strlen(str);
+
+    if (lenpre > lenstr)
+    	return FALSE;
+
+    return strncmp(pre, str, lenpre) == 0 ? TRUE : FALSE;
+}
+
+BOOL isInBook(char * moveList) {
+    FILE * fp = fopen("book.txt", "r");
+    if (fp == NULL)
+        return FALSE;
+
+//    char * line = NULL;
+
+    fclose(fp);
+
+    return FALSE;
+}
+
 char getFile(int position) {
 	int file = position%8;
 	return FILES[file];
