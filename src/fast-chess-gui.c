@@ -367,7 +367,7 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				case SDLK_p:
-					movelist = moveList2str(game);
+					movelist = movelist2str(game);
 					printf("movelist = %s\n", movelist);
 					fflush(stdout);
 					free(movelist);
@@ -422,6 +422,7 @@ void playAlone() {
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
+	char * movelist;
 
 	int leavingPos = -1, arrivingPos = -1;
 
@@ -477,6 +478,13 @@ void playAlone() {
 				case SDLK_e:
 					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
 					fflush(stdout);
+					break;
+
+				case SDLK_p:
+					movelist = movelist2str(game);
+					printf("movelist = %s\n", movelist);
+					fflush(stdout);
+					free(movelist);
 					break;
 
 				default:

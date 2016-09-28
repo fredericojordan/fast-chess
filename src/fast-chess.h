@@ -65,6 +65,7 @@
 typedef uint_fast64_t Bitboard;
 typedef int Move;
 
+#define MAX_BOOK_ENTRY_LEN (300)
 #define MOVE_BUFFER_SIZE (100)
 #define MOVE_LIST_MAX_LEN (1024)
 
@@ -120,7 +121,10 @@ BOOL isSet(Bitboard bb, int index);
 Bitboard lsb(Bitboard bb);
 Bitboard msb(Bitboard bb);
 int bb2index(Bitboard bb);
-char * moveList2str(Game game);
+char * movelist2str(Game game);
+BOOL startsWith(const char *str, const char *pre);
+int countBookOccurrences(Game game);
+Move getBookMove(Game game);
 char getFile(int position);
 char getRank(int position);
 Move generateMove(int leavingSquare, int arrivingSquare);
@@ -273,6 +277,7 @@ Node simpleEvaluation(Game game);
 Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose);
 Move getRandomMove(Game game);
 Move getAIMove(Game game, int depth);
+Move parseMove(char * move);
 Move getPlayerMove();
 
 // ========= PLAY LOOP =======

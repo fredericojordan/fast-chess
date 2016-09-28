@@ -153,8 +153,14 @@ int bb2index(Bitboard bb) {
 	return -1;
 }
 
-char * moveList2str(Game game) {
+char * movelist2str(Game game) {
 	char * movestr = NULL;
+
+	if (game.halfmove_number == 0) {
+		movestr = (char*) malloc(sizeof(char));
+		movestr[0] = 0;
+		return movestr;
+	}
 
 	movestr = (char*) malloc (5*game.halfmove_number);
 
@@ -185,16 +191,79 @@ BOOL startsWith(const char *str, const char *pre) {
     return strncmp(pre, str, lenpre) == 0 ? TRUE : FALSE;
 }
 
-BOOL isInBook(char * moveList) {
+int countBookOccurrences(Game game) {
     FILE * fp = fopen("book.txt", "r");
-    if (fp == NULL)
-        return FALSE;
 
-//    char * line = NULL;
+    if (fp == NULL)
+        return 0;
+
+    char * moveList = movelist2str(game);
+    char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
+    int charPos = 0, occurrences = 0;
+
+    while (TRUE) {
+		char ch = getc(fp);
+		line[charPos++] = ch;
+
+		if ( ch == '\n' || ch == EOF ) {
+			line[charPos-1] = '\0';
+
+			if (startsWith(line, moveList) && strlen(line) > strlen(moveList)) {
+				occurrences++;
+			}
+
+			if ( ch == EOF )
+				break;
+
+			charPos = 0;
+		}
+    }
 
     fclose(fp);
+    free(line);
+    free(moveList);
 
-    return FALSE;
+    return occurrences;
+}
+
+Move getBookMove(Game game) {
+	Move move = 0;
+	int moveNum = rand() % countBookOccurrences(game);
+
+	FILE * fp = fopen("book.txt", "r");
+
+	if (fp == NULL)
+		return 0;
+
+	char * moveList = movelist2str(game);
+	char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
+	int charPos = 0, occurrences = 0;
+
+	while (TRUE) {
+		char ch = getc(fp);
+		line[charPos++] = ch;
+
+		if ( ch == '\n' ) {
+			line[charPos] = '\0';
+
+			if (startsWith(line, moveList)) {
+				if ( occurrences == moveNum ) {
+					int ind = game.halfmove_number*5;
+					move = parseMove(&line[ind]);
+					break;
+				}
+				occurrences++;
+			}
+
+			charPos = 0;
+		}
+	}
+
+	fclose(fp);
+	free(line);
+	free(moveList);
+
+	return move;
 }
 
 char getFile(int position) {
@@ -1335,6 +1404,17 @@ Move getRandomMove(Game game) {
 }
 
 Move getAIMove(Game game, int depth) {
+	printf("--- AI ---\n");
+
+	if ( countBookOccurrences(game) > 0 ) {
+		printf("There are %d available book continuations.\n", countBookOccurrences(game));
+		fflush(stdout);
+		Move bookMove = getBookMove(game);
+		printf("CHOSEN book move: %c%c to %c%c\n", getFile(getFrom(bookMove)), getRank(getFrom(bookMove)), getFile(getTo(bookMove)), getRank(getTo(bookMove)));
+		fflush(stdout);
+		return bookMove;
+	}
+
 	time_t startTime, endTime;
 	printf("Searching with base depth = %d\n", depth);
 
@@ -1355,10 +1435,16 @@ Move getAIMove(Game game, int depth) {
 	return node.move;
 }
 
+Move parseMove(char * move) {
+	int pos1 = str2index(&move[0]);
+	int pos2 = str2index(&move[2]);
+	return generateMove(pos1, pos2);
+}
+
 Move getPlayerMove() {
 	char input[100];
 	gets( input );
-	return generateMove(str2index(&input[0]), str2index(&input[2]));
+	return parseMove(input);
 }
 
 // ========= PLAY LOOP =======
@@ -1415,12 +1501,13 @@ void tests(void) {
 	fflush(stdout);
 }
 
-/*
+ /*
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
 //	tests();
-	playWhite();
+//	playWhite();
+
 	return EXIT_SUCCESS;
 }
-*/
+// */
