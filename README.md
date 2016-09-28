@@ -14,6 +14,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 
 - **C** - Change board [c]olor
 - **Q** - [Q]uit
+- **E** - [E]valuate board position (debug mode only)
 
 ## Screenshot
 ![chess game](http://i.imgur.com/O6rcSqu.png)
