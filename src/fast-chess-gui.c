@@ -249,6 +249,23 @@ void changeColors(void) {
 	loadBackground();
 }
 
+void loadRandomTintedBackground(void) {
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+
+	unsigned char bgColor[6];
+	int i;
+	for (i=0; i<3; i++) {
+		int value = (rand() % 256);
+		bgColor[i]   = (unsigned char) (value + 0.5*(255-value));
+		bgColor[i+3] = (unsigned char) value;
+	}
+
+	paintBoard(bgSurface, bgColor);
+	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+	SDL_FreeSurface( bgSurface );
+}
+
 BOOL init() {
 	srand(time(NULL));
 
@@ -286,17 +303,24 @@ BOOL init() {
 
 void setEndTitle(Game game) {
 	if (isCheckmate(game)) {
-		if (game.toMove == BLACK)
+		if (game.toMove == BLACK) {
 			SDL_SetWindowTitle(window, "Chess Game - WHITE wins!");
-		else
+			printf("WHITE wins!\n");
+		} else {
 			SDL_SetWindowTitle(window, "Chess Game - BLACK wins!");
-	}
-	if (isStalemate(game))
+			printf("BLACK wins!\n");
+		}
+	} else if (isStalemate(game)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
-	if (hasInsufficientMaterial(game.board))
+		printf("Draw by stalemate!\n");
+	} else if (hasInsufficientMaterial(game.board)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!");
-	if (isOver75MovesRule(game))
+		printf("Draw by insufficient material!\n");
+	} else if (isOver75MovesRule(game)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by 75-move rule!");
+		printf("Draw by 75-move rule!\n");
+	}
+	fflush(stdout);
 }
 
 void playAs(char color, int AIdepth) {
@@ -358,6 +382,11 @@ void playAs(char color, int AIdepth) {
 
 				case SDLK_c:
 					changeColors();
+					renderBoard(game.board, color);
+					break;
+
+				case SDLK_r:
+					loadRandomTintedBackground();
 					renderBoard(game.board, color);
 					break;
 
@@ -475,6 +504,11 @@ void playAlone() {
 					renderBoard(game.board, WHITE);
 					break;
 
+				case SDLK_r:
+					loadRandomTintedBackground();
+					renderBoard(game.board, WHITE);
+					break;
+
 				case SDLK_e:
 					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
 					fflush(stdout);
@@ -514,11 +548,11 @@ void playAlone() {
 
 int main( int argc, char* args[] ) {
 	if ( !init() )
-		return -1;
+		return EXIT_FAILURE;
 
 	playRandomColor(DEFAULT_AI_DEPTH);
 
 	close();
 
-	return 0;
+	return EXIT_SUCCESS;
 }

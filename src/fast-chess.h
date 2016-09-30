@@ -280,12 +280,13 @@ Move getAIMove(Game game, int depth);
 Move parseMove(char * move);
 Move getPlayerMove();
 
-// ========= PLAY LOOP =======
+// ===== PLAY LOOP (TEXT) ====
 
-void playWhite();
+void playTextWhite(int depth);
+void playTextBlack(int depth);
+void playTextAs(char color, int depth);
+void playTextRandomColor(int depth);
 
 // ===========================
-
-void tests(void);
 
 #endif /* FAST_CHESS_H_ */

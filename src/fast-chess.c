@@ -1447,9 +1447,9 @@ Move getPlayerMove() {
 	return parseMove(input);
 }
 
-// ========= PLAY LOOP =======
+// ==-== PLAY LOOP (TEXT) ====
 
-void playWhite() {
+void playTextWhite(int depth) {
 	printf("Playing as WHITE!\n");
 	Game game;
 	game = getInitialGame();
@@ -1465,48 +1465,52 @@ void playWhite() {
         if (hasGameEnded(game))
 			break;
 
-        game = makeMove(game, getAIMove(game, DEFAULT_AI_DEPTH));
+        game = makeMove(game, getAIMove(game, depth));
 	}
 	printOutcome(game);
 }
 
-// ===========================
+void playTextBlack(int depth) {
+	printf("Playing as BLACK!\n");
+	Game game;
+	game = getInitialGame();
 
+	while(TRUE) {
+        printfBoard(game.board);
+        if (hasGameEnded(game))
+        	break;
 
-void tests(void) {
-	Game game = getInitialGame();
-	printfBoard(game.board);
+        game = makeMove(game, getAIMove(game, depth));
 
-	int pos = str2index("e4");
-	char color = BLACK;
+        printfBoard(game.board);
+        if (hasGameEnded(game))
+			break;
 
-	printfBitboard(index2bb(pos));
-	printfBitboard(kingMoves(index2bb(pos), game.board, color));
-	printfBitboard(knightMoves(index2bb(pos), game.board, color));
-	printfBitboard(bishopMoves(index2bb(pos), game.board, color));
-	printfBitboard(rookMoves(index2bb(pos), game.board, color));
-	printfBitboard(queenMoves(index2bb(pos), game.board, color));
-
-	Move moves[MOVE_BUFFER_SIZE];
-	int moveCount = legalMoves(moves, game, game.toMove);
-	printf("\nYou have %d legal moves:\n", moveCount );
-
-	int i;
-	for (i=0; i<moveCount; i++) {
-		int l = (moves[i] >> 8) & 0xFF;
-		int a = moves[i] & 0xFF;
-		printf("move %d: %c%c to %c%c\n", i+1, getFile(l), getRank(l), getFile(a), getRank(a) );
+        game = makeMove(game, getPlayerMove(game));
 	}
-
-	fflush(stdout);
+	printOutcome(game);
 }
+
+void playTextAs(char color, int depth) {
+	if (color == WHITE)
+		playTextWhite(depth);
+	if (color == BLACK)
+		playTextBlack(depth);
+}
+
+void playTextRandomColor(int depth) {
+	char colors[] = {WHITE, BLACK};
+	char color = colors[rand()%2];
+	playTextAs(color, depth);
+}
+
+// ===========================
 
  /*
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
-//	tests();
-//	playWhite();
+	playTextRandomColor(DEFAULT_AI_DEPTH);
 
 	return EXIT_SUCCESS;
 }
