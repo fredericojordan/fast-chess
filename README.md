@@ -12,10 +12,10 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 
 ## GUI Hotkeys
 
-- **C** - Change board [c]olor
-- **R** - [R]andom board color (tinted)
+- **C** - Change board [c]olor scheme
+- **R** - [R]andom board color
 - **Q** - [Q]uit
-- **E** - [E]valuate board position (debug mode only)
+- **E** - Static board [e]valuation (debug mode only)
 - **P** - [P]rint move list (debug mode only)
 
 ## Screenshot
