@@ -1,5 +1,5 @@
 # fast-chess
-Simple chess game (intended to be faster than [python version](https://github.com/fredericojordan/chess)). GUI uses [SDL](https://www.libsdl.org/) library.
+Simple chess game (developed to be faster than [python version](https://github.com/fredericojordan/chess)). GUI uses [SDL](https://www.libsdl.org/) library.
 
 Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispaces.com).
 
@@ -13,8 +13,10 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 ## GUI Hotkeys
 
 - **C** - Change board [c]olor
+- **R** - [R]andom board color (tinted)
 - **Q** - [Q]uit
 - **E** - [E]valuate board position (debug mode only)
+- **P** - [P]rint move list (debug mode only)
 
 ## Screenshot
 ![chess game](http://i.imgur.com/O6rcSqu.png)
