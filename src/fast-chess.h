@@ -8,12 +8,7 @@
 #ifndef FAST_CHESS_H_
 #define FAST_CHESS_H_
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
-#include <string.h>
-#include <time.h>
-#include <stdlib.h>
 
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
@@ -111,6 +106,7 @@ extern int KING_BONUS[];
 extern int KING_ENDGAME_BONUS[];
 
 Game getInitialGame(void);
+Game loadFen(char fen[]);
 
 // ========= UTILITY =========
 
@@ -130,6 +126,7 @@ char getRank(int position);
 Move generateMove(int leavingSquare, int arrivingSquare);
 int getFrom(Move move);
 int getTo(Move move);
+int str2piece(char pieceCode);
 char piece2str(int piece);
 void printBitboard(Bitboard bitboard);
 void printBoard(int board[]);

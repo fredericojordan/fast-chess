@@ -11,6 +11,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "fast-chess.h"
 
 int TILE_SIDE = 60;

@@ -10,11 +10,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <time.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <ctype.h>
 #include "fast-chess.h"
 
 char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
@@ -90,6 +88,90 @@ Game getInitialGame(void) {
 	newGame.halfmove_number = 0;
 	newGame.fullmove_number = 1;
 	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+	return newGame;
+}
+
+Game loadFen(char fen[]) {
+	Game newGame;
+
+	// ===== BOARD =====
+	memset(newGame.board, EMPTY, sizeof(newGame.board));
+
+	int rank = 7;
+	int boardPos = rank*8;
+	char * charPos = fen;
+
+	char code = *(charPos);
+
+	while(code != ' ') {
+		if (code == '/') {
+			rank--;
+			boardPos = rank*8;
+		} else if (isdigit(code)) {
+			int emptySquares = atoi(charPos);
+			boardPos += emptySquares;
+		} else {
+			newGame.board[boardPos++] = str2piece(code);
+		}
+
+		code = *(++charPos);
+	}
+
+
+	// ===== TO MOVE =====
+	char *nextFenField = strchr(fen, ' ') + 1;
+
+	if (*nextFenField == 'b') {
+		newGame.toMove = BLACK;
+	} else {
+		newGame.toMove = WHITE;
+	}
+
+
+	// ===== CASTLING RIGHTS =====
+	nextFenField = strchr(nextFenField, ' ') + 1;
+
+	if (*nextFenField == '-') {
+		newGame.castling_rights = 0;
+	} else {
+		if (strchr(nextFenField, 'K'))
+			newGame.castling_rights |= CASTLE_KINGSIDE_WHITE;
+		if (strchr(nextFenField, 'Q'))
+			newGame.castling_rights |= CASTLE_QUEENSIDE_WHITE;
+		if (strchr(nextFenField, 'k'))
+			newGame.castling_rights |= CASTLE_KINGSIDE_BLACK;
+		if (strchr(nextFenField, 'q'))
+			newGame.castling_rights |= CASTLE_QUEENSIDE_BLACK;
+	}
+
+
+	// ===== EN PASSANT =====
+	nextFenField = strchr(nextFenField, ' ') + 1;
+
+	if (*nextFenField == '-') {
+		newGame.ep_square = -1;
+	} else {
+		newGame.ep_square = str2index(nextFenField);
+	}
+
+	// ===== HALF MOVE CLOCK =====
+	nextFenField = strchr(nextFenField, ' ') + 1;
+
+	newGame.halfmove_clock = atoi(nextFenField);
+
+	// ===== FULL MOVE NUMBER =====
+	nextFenField = strchr(nextFenField, ' ') + 1;
+
+	newGame.fullmove_number = atoi(nextFenField);
+
+	// ===== HALF MOVE NUMBER =====
+	newGame.halfmove_number = 2*(newGame.fullmove_number-1);
+	if (newGame.toMove == BLACK)
+		newGame.halfmove_number++;
+
+	// ===== MOVE LIST =====
+	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+
 	return newGame;
 }
 
@@ -290,6 +372,37 @@ int getTo(Move move) {
 	return move & 0xFF;
 }
 
+int str2piece(char pieceCode) {
+	switch(pieceCode) {
+	case 'P':
+		return WHITE|PAWN;
+	case 'N':
+		return WHITE|KNIGHT;
+	case 'B':
+		return WHITE|BISHOP;
+	case 'R':
+		return WHITE|ROOK;
+	case 'Q':
+		return WHITE|QUEEN;
+	case 'K':
+		return WHITE|KING;
+
+	case 'p':
+		return BLACK|PAWN;
+	case 'n':
+		return BLACK|KNIGHT;
+	case 'b':
+		return BLACK|BISHOP;
+	case 'r':
+		return BLACK|ROOK;
+	case 'q':
+		return BLACK|QUEEN;
+	case 'k':
+		return BLACK|KING;
+	}
+	return 0;
+}
+
 char piece2str(int piece) {
 	switch(piece) {
 	case WHITE|PAWN:
@@ -322,7 +435,7 @@ char piece2str(int piece) {
 	return 0;
 }
 
-void printfBitboard(Bitboard bitboard) {
+void printBitboard(Bitboard bitboard) {
 	int rank, file;
 
 	printf("\n");
@@ -340,7 +453,7 @@ void printfBitboard(Bitboard bitboard) {
 	printf("  a b c d e f g h\n");
 }
 
-void printfBoard(int board[]) {
+void printBoard(int board[]) {
 	int rank, file;
 
 	printf("\n");
@@ -1455,13 +1568,13 @@ void playTextWhite(int depth) {
 	game = getInitialGame();
 
 	while(TRUE) {
-        printfBoard(game.board);
+		printBoard(game.board);
         if (hasGameEnded(game))
         	break;
 
         game = makeMove(game, getPlayerMove(game));
 
-        printfBoard(game.board);
+        printBoard(game.board);
         if (hasGameEnded(game))
 			break;
 
@@ -1476,13 +1589,13 @@ void playTextBlack(int depth) {
 	game = getInitialGame();
 
 	while(TRUE) {
-        printfBoard(game.board);
+        printBoard(game.board);
         if (hasGameEnded(game))
         	break;
 
         game = makeMove(game, getAIMove(game, depth));
 
-        printfBoard(game.board);
+        printBoard(game.board);
         if (hasGameEnded(game))
 			break;
 
