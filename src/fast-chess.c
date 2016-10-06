@@ -550,22 +550,24 @@ Bitboard getPieces(int board[], int pieceType) {
 	return pieces;
 }
 
-Bitboard fileFilter(int position) {
-	Bitboard pos_bb = index2bb(position);
+Bitboard fileFilter(Bitboard positions) {
+	Bitboard filter = 0;
 	int i;
+
 	for (i=0; i<8; i++)
-		if (pos_bb&FILES_BB[i])
-			return FILES_BB[i];
-	return 0;
+		if (positions&FILES_BB[i])
+			filter |= FILES_BB[i];
+	return filter;
 }
 
-Bitboard rankFilter(int position) {
-	Bitboard pos_bb = index2bb(position);
+Bitboard rankFilter(Bitboard positions) {
+	Bitboard filter = 0;
 	int i;
+
 	for (i=0; i<8; i++)
-		if (pos_bb&RANKS_BB[i])
-			return RANKS_BB[i];
-	return 0;
+		if (positions&RANKS_BB[i])
+			filter |= RANKS_BB[i];
+	return filter;
 }
 
 char countPieces(Bitboard bitboard) {
@@ -741,32 +743,36 @@ char getEpSquare(int leaving) {
 	return -1;
 }
 
-BOOL isDoubledPawn(int position, int board[]) {
-	char pieceColor = board[position]&COLOR_MASK;
+BOOL isDoubledPawn(Bitboard position, int board[]) {
+	char pieceColor = board[bb2index(position)]&COLOR_MASK;
 	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&fileFilter(position) ) > 1)
 		return TRUE;
 	return FALSE;
 }
 
-BOOL isIsolatedPawn(int position, int board[]) { // TODO
+BOOL isIsolatedPawn(Bitboard position, int board[]) {
+	Bitboard sides = fileFilter(east(position) | west(position));
+	char pieceColor = board[bb2index(position)]&COLOR_MASK;
+	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&sides ) == 0)
+		return TRUE;
 	return FALSE;
 }
 
-BOOL isBackwardsPawn(int position, int board[]) { // TODO
+BOOL isBackwardsPawn(Bitboard position, int board[]) { // TODO
 	return FALSE;
 }
 
-BOOL isPassedPawn(int position, int board[]) { // TODO
+BOOL isPassedPawn(Bitboard position, int board[]) { // TODO
 	return FALSE;
 }
 
-BOOL isOpenFile(int position, int board[]) {
+BOOL isOpenFile(Bitboard position, int board[]) {
 	if (countPieces( getPawns(board)&fileFilter(position) ) == 0)
 		return TRUE;
 	return FALSE;
 }
 
-BOOL isSemiOpenFile(int position, int board[]) {
+BOOL isSemiOpenFile(Bitboard position, int board[]) {
 	if (countPieces( getPawns(board)&fileFilter(position) ) == 1)
 		return TRUE;
 	return FALSE;
@@ -1408,7 +1414,7 @@ int positionalBonus(int board[], char color) {
 				bonus += PAWN_BONUS[i];
 
 				if (isDoubledPawn(i, evalBoard))
-					bonus -= DOUBLED_PAWN_PENALTY;
+					bonus -= DOUBLED_PAWN_PENALTY/2;
 				if (isIsolatedPawn(i, evalBoard))
 					bonus -= ISOLATED_PAWN_PENALTY;
 				if (isBackwardsPawn(i, evalBoard))

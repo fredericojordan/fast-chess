@@ -141,8 +141,8 @@ Bitboard getColoredPieces(int board[], char color);
 Bitboard getEmptySquares(int board[]);
 Bitboard getOccupiedSquares(int board[]);
 Bitboard getPieces(int board[], int pieceType);
-Bitboard fileFilter(int position);
-Bitboard rankFilter(int position);
+Bitboard fileFilter(Bitboard positions);
+Bitboard rankFilter(Bitboard positions);
 char countPieces(Bitboard bitboard);
 
 // ======= DIRECTIONS ========
@@ -179,12 +179,12 @@ Bitboard pawnCaptures(Bitboard moving_piece, Game game, char color);
 Bitboard pawnMoves(Bitboard moving_piece, Game game, char color);
 BOOL isDoublePush(int leaving, int arriving);
 char getEpSquare(int leaving);
-BOOL isDoubledPawn(int position, int board[]);
-BOOL isIsolatedPawn(int position, int board[]);
-BOOL isBackwardsPawn(int position, int board[]);
-BOOL isPassedPawn(int position, int board[]);
-BOOL isOpenFile(int position, int board[]);
-BOOL isSemiOpenFile(int position, int board[]);
+BOOL isDoubledPawn(Bitboard position, int board[]);
+BOOL isIsolatedPawn(Bitboard position, int board[]);
+BOOL isBackwardsPawn(Bitboard position, int board[]);
+BOOL isPassedPawn(Bitboard position, int board[]);
+BOOL isOpenFile(Bitboard position, int board[]);
+BOOL isSemiOpenFile(Bitboard position, int board[]);
 
 // ========== KNIGHT =========
 
