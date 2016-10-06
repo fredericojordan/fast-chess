@@ -77,6 +77,15 @@ int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
 							10,  20,  30,  40,  40,  30,  20,  10,
 							 0,  10,  20,  30,  30,  20,  10,   0};
 
+int FLIP[] = {56,  57,  58,  59,  60,  61,  62,  63,
+			  48,  49,  50,  51,  52,  53,  54,  55,
+			  40,  41,  42,  43,  44,  45,  46,  47,
+			  32,  33,  34,  35,  36,  37,  38,  39,
+			  24,  25,  26,  27,  28,  29,  30,  31,
+			  16,  17,  18,  19,  20,  21,  22,  23,
+			   8,   9,  10,  11,  12,  13,  14,  15,
+			   0,   1,   2,   3,   4,   5,   6,   7};
+
 
 Game getInitialGame(void) {
 	Game newGame;
@@ -484,22 +493,6 @@ char opposingColor(char color) {
 		return WHITE;
 	}
 	return 0;
-}
-
-void flipVertical(int resultBoard[], int board[]) {
-    int flip[] = {56,  57,  58,  59,  60,  61,  62,  63,
-				  48,  49,  50,  51,  52,  53,  54,  55,
-				  40,  41,  42,  43,  44,  45,  46,  47,
-				  32,  33,  34,  35,  36,  37,  38,  39,
-				  24,  25,  26,  27,  28,  29,  30,  31,
-				  16,  17,  18,  19,  20,  21,  22,  23,
-				   8,   9,  10,  11,  12,  13,  14,  15,
-				   0,   1,   2,   3,   4,   5,   6,   7};
-
-    int i;
-    for (i=0; i<NUM_SQUARES; i++) {
-    	resultBoard[i] = board[flip[i]];
-    }
 }
 
 int countBits(Bitboard bb) {
@@ -1418,60 +1411,85 @@ int materialBalance(int board[]) {
 
 int positionalBonus(int board[], char color) {
 	int bonus = 0;
-	int evalBoard[NUM_SQUARES];
-
-	if ( color == WHITE ) {
-		memcpy(&evalBoard, board, NUM_SQUARES*sizeof(int));
-	} else if (color == BLACK) {
-		flipVertical(evalBoard, board);
-	}
 
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
-		int piece = evalBoard[i];
+		int piece = board[i];
 
 		if (piece != EMPTY && (piece&COLOR_MASK) == color) {
 			int pieceType = piece&PIECE_MASK;
 
 			switch(pieceType) {
 			case PAWN:
-				bonus += PAWN_BONUS[i];
+				if (color == WHITE) {
+					bonus += PAWN_BONUS[i];
+				} else {
+					bonus += PAWN_BONUS[FLIP[i]];
+				}
 
-				if (isDoubledPawn(i, evalBoard))
+				if (isDoubledPawn(index2bb(i), board)) {
 					bonus -= DOUBLED_PAWN_PENALTY/2;
-				if (isPassedPawn(i, evalBoard))
+				}
+				if (isPassedPawn(index2bb(i), board)) {
 					bonus += PASSED_PAWN_BONUS;
+				}
 
-				if (isIsolatedPawn(i, evalBoard))
+				if (isIsolatedPawn(index2bb(i), board)) {
 					bonus -= ISOLATED_PAWN_PENALTY;
-				else if (isBackwardsPawn(i, evalBoard))
+				} else if (isBackwardsPawn(index2bb(i), board)) {
 					bonus -= BACKWARDS_PAWN_PENALTY;
+				}
 
 				break;
 
 			case KNIGHT:
-				bonus += KNIGHT_BONUS[i];
+				if (color == WHITE) {
+					bonus += KNIGHT_BONUS[i];
+				} else {
+					bonus += KNIGHT_BONUS[FLIP[i]];
+				}
 				break;
 
 			case BISHOP:
-				bonus += BISHOP_BONUS[i];
+				if (color == WHITE) {
+					bonus += BISHOP_BONUS[i];
+				} else {
+					bonus += BISHOP_BONUS[FLIP[i]];
+				}
 				break;
 
 			case ROOK:
-                if (isOpenFile(i, evalBoard))
+                if (isOpenFile(index2bb(i), board)) {
                     bonus += ROOK_OPEN_FILE_BONUS;
-                else if (isSemiOpenFile(i, evalBoard))
+                } else if (isSemiOpenFile(index2bb(i), board)) {
                     bonus += ROOK_SEMI_OPEN_FILE_BONUS;
+                }
 
-				if (index2bb(i) & RANK_7)
-					bonus += ROOK_ON_SEVENTH_BONUS;
+				if (color == WHITE) {
+					if (index2bb(i) & RANK_7) {
+						bonus += ROOK_ON_SEVENTH_BONUS;
+					}
+				} else {
+					if (index2bb(i) & RANK_2) {
+						bonus += ROOK_ON_SEVENTH_BONUS;
+					}
+				}
 				break;
 
 			case KING:
-				if (isEndgame(evalBoard))
-					bonus += KING_ENDGAME_BONUS[i];
-				else
-					bonus += KING_BONUS[i];
+				if (isEndgame(board)) {
+					if (color == WHITE) {
+						bonus += KING_ENDGAME_BONUS[i];
+					} else {
+						bonus += KING_ENDGAME_BONUS[FLIP[i]];
+					}
+				} else {
+					if (color == WHITE) {
+						bonus += KING_BONUS[i];
+					} else {
+						bonus += KING_BONUS[FLIP[i]];
+					}
+				}
 			}
 		}
 	}

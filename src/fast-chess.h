@@ -105,6 +105,7 @@ extern int KNIGHT_BONUS[];
 extern int BISHOP_BONUS[];
 extern int KING_BONUS[];
 extern int KING_ENDGAME_BONUS[];
+extern int FLIP[];
 
 Game getInitialGame(void);
 Game loadFen(char fen[]);
@@ -133,7 +134,6 @@ void printBitboard(Bitboard bitboard);
 void printBoard(int board[]);
 Bitboard not(Bitboard bb);
 char opposingColor(char color);
-void flipVertical(int resultBoard[], int board[]);
 
 // ====== BOARD FILTERS ======
 
