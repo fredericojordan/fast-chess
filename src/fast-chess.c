@@ -550,10 +550,28 @@ Bitboard getPieces(int board[], int pieceType) {
 	return pieces;
 }
 
+Bitboard fileFilter(int position) {
+	Bitboard pos_bb = index2bb(position);
+	int i;
+	for (i=0; i<8; i++)
+		if (pos_bb&FILES_BB[i])
+			return FILES_BB[i];
+	return 0;
+}
+
+Bitboard rankFilter(int position) {
+	Bitboard pos_bb = index2bb(position);
+	int i;
+	for (i=0; i<8; i++)
+		if (pos_bb&RANKS_BB[i])
+			return RANKS_BB[i];
+	return 0;
+}
+
 char countPieces(Bitboard bitboard) {
 	int i, count=0;
 	for (i=0; i<NUM_SQUARES; i++) {
-		if (index2bb(i)&&bitboard)
+		if (index2bb(i)&bitboard)
 			count += 1;
 	}
     return count;
@@ -723,21 +741,34 @@ char getEpSquare(int leaving) {
 	return -1;
 }
 
-BOOL isOpenFile(Bitboard bb, int board[]) {
-	int i;
-	for (i=0; i<8; i++)
-		if (bb&FILES_BB[i])
-			if (countPieces(getPawns(board)&FILES_BB[i]) == 0)
-				return TRUE;
+BOOL isDoubledPawn(int position, int board[]) {
+	char pieceColor = board[position]&COLOR_MASK;
+	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&fileFilter(position) ) > 1)
+		return TRUE;
 	return FALSE;
 }
 
-BOOL isSemiOpenFile(Bitboard bb, int board[]) {
-	int i;
-	for (i=0; i<8; i++)
-		if (bb&FILES_BB[i])
-			if (countPieces(getPawns(board)&FILES_BB[i]) == 1)
-				return TRUE;
+BOOL isIsolatedPawn(int position, int board[]) { // TODO
+	return FALSE;
+}
+
+BOOL isBackwardsPawn(int position, int board[]) { // TODO
+	return FALSE;
+}
+
+BOOL isPassedPawn(int position, int board[]) { // TODO
+	return FALSE;
+}
+
+BOOL isOpenFile(int position, int board[]) {
+	if (countPieces( getPawns(board)&fileFilter(position) ) == 0)
+		return TRUE;
+	return FALSE;
+}
+
+BOOL isSemiOpenFile(int position, int board[]) {
+	if (countPieces( getPawns(board)&fileFilter(position) ) == 1)
+		return TRUE;
 	return FALSE;
 }
 
@@ -1375,6 +1406,16 @@ int positionalBonus(int board[], char color) {
 			switch(pieceType) {
 			case PAWN:
 				bonus += PAWN_BONUS[i];
+
+				if (isDoubledPawn(i, evalBoard))
+					bonus -= DOUBLED_PAWN_PENALTY;
+				if (isIsolatedPawn(i, evalBoard))
+					bonus -= ISOLATED_PAWN_PENALTY;
+				if (isBackwardsPawn(i, evalBoard))
+					bonus -= BACKWARDS_PAWN_PENALTY;
+				if (isPassedPawn(i, evalBoard))
+					bonus += PASSED_PAWN_BONUS;
+
 				break;
 
 			case KNIGHT:
@@ -1386,9 +1427,9 @@ int positionalBonus(int board[], char color) {
 				break;
 
 			case ROOK:
-                if (isOpenFile(index2bb(i), evalBoard))
+                if (isOpenFile(i, evalBoard))
                     bonus += ROOK_OPEN_FILE_BONUS;
-                else if (isSemiOpenFile(index2bb(i), evalBoard))
+                else if (isSemiOpenFile(i, evalBoard))
                     bonus += ROOK_SEMI_OPEN_FILE_BONUS;
 
 				if (index2bb(i) & RANK_7)
