@@ -75,6 +75,7 @@ typedef struct Game {
    unsigned int halfmove_number;
    unsigned int fullmove_number;
    Move moveList[MOVE_LIST_MAX_LEN];
+   BOOL fromInitial;
 } Game;
 
 typedef struct Node {

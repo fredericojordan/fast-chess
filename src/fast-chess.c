@@ -88,6 +88,7 @@ Game getInitialGame(void) {
 	newGame.halfmove_number = 0;
 	newGame.fullmove_number = 1;
 	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+	newGame.fromInitial = TRUE;
 	return newGame;
 }
 
@@ -171,6 +172,9 @@ Game loadFen(char fen[]) {
 
 	// ===== MOVE LIST =====
 	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+
+	// ===== INITIAL POSITION =====
+	newGame.fromInitial = FALSE;
 
 	return newGame;
 }
@@ -1519,7 +1523,7 @@ Move getRandomMove(Game game) {
 Move getAIMove(Game game, int depth) {
 	printf("--- AI ---\n");
 
-	if ( countBookOccurrences(game) > 0 ) {
+	if ( game.fromInitial && countBookOccurrences(game) > 0 ) {
 		printf("There are %d available book continuations.\n", countBookOccurrences(game));
 		fflush(stdout);
 		Move bookMove = getBookMove(game);
@@ -1560,7 +1564,7 @@ Move getPlayerMove() {
 	return parseMove(input);
 }
 
-// ==-== PLAY LOOP (TEXT) ====
+// ===== PLAY LOOP (TEXT) ====
 
 void playTextWhite(int depth) {
 	printf("Playing as WHITE!\n");
