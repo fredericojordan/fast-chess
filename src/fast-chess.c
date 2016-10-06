@@ -745,24 +745,48 @@ char getEpSquare(int leaving) {
 
 BOOL isDoubledPawn(Bitboard position, int board[]) {
 	char pieceColor = board[bb2index(position)]&COLOR_MASK;
+
 	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&fileFilter(position) ) > 1)
 		return TRUE;
 	return FALSE;
 }
 
 BOOL isIsolatedPawn(Bitboard position, int board[]) {
-	Bitboard sides = fileFilter(east(position) | west(position));
+	Bitboard sideFiles = fileFilter(east(position) | west(position));
 	char pieceColor = board[bb2index(position)]&COLOR_MASK;
-	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&sides ) == 0)
+
+	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&sideFiles ) == 0)
 		return TRUE;
 	return FALSE;
 }
 
-BOOL isBackwardsPawn(Bitboard position, int board[]) { // TODO
+BOOL isBackwardsPawn(Bitboard position, int board[]) {
+	Bitboard squaresFilter = east(position) | west(position);
+	char pieceColor = board[bb2index(position)]&COLOR_MASK;
+
+	if ( pieceColor == BLACK ) {
+		squaresFilter |= northRay(squaresFilter);
+	} else {
+		squaresFilter |= southRay(squaresFilter);
+	}
+
+	if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&squaresFilter ) == 0)
+		return TRUE;
 	return FALSE;
 }
 
-BOOL isPassedPawn(Bitboard position, int board[]) { // TODO
+BOOL isPassedPawn(Bitboard position, int board[]) {
+	Bitboard squaresFilter = 0;
+	char pieceColor = board[bb2index(position)]&COLOR_MASK;
+
+	if ( pieceColor == BLACK ) {
+		squaresFilter |= southRay(east(position)) | southRay(west(position)) | southRay(position);
+	} else {
+		squaresFilter |= northRay(east(position)) | northRay(west(position)) | northRay(position);
+	}
+
+	if (countPieces( getPawns(board)&getColoredPieces(board, opposingColor(pieceColor))&squaresFilter ) == 0)
+		return TRUE;
 	return FALSE;
 }
 
@@ -1415,12 +1439,13 @@ int positionalBonus(int board[], char color) {
 
 				if (isDoubledPawn(i, evalBoard))
 					bonus -= DOUBLED_PAWN_PENALTY/2;
-				if (isIsolatedPawn(i, evalBoard))
-					bonus -= ISOLATED_PAWN_PENALTY;
-				if (isBackwardsPawn(i, evalBoard))
-					bonus -= BACKWARDS_PAWN_PENALTY;
 				if (isPassedPawn(i, evalBoard))
 					bonus += PASSED_PAWN_BONUS;
+
+				if (isIsolatedPawn(i, evalBoard))
+					bonus -= ISOLATED_PAWN_PENALTY;
+				else if (isBackwardsPawn(i, evalBoard))
+					bonus -= BACKWARDS_PAWN_PENALTY;
 
 				break;
 
