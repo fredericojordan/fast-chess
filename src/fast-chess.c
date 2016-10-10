@@ -188,6 +188,98 @@ Game loadFen(char fen[]) {
 	return newGame;
 }
 
+int toFen(Game game, char * fen) {
+	int charCount = 0;
+
+	// ===== BOARD =====
+	int rank = 7;
+	int file = 0;
+	int emptySquares = 0;
+
+	while(rank >= 0) {
+		int piece = game.board[8*rank+file];
+
+		if ( piece == EMPTY ) {
+			emptySquares++;
+		} else {
+			if (emptySquares != 0) {
+				itoa(emptySquares, &fen[charCount++], 10);
+				emptySquares = 0;
+			}
+			fen[charCount++] = piece2str(piece);
+		}
+
+		file++;
+		if ( file > 7 ) {
+			if (emptySquares != 0) {
+				itoa(emptySquares, &fen[charCount++], 10);
+				emptySquares = 0;
+			}
+			file = 0;
+			rank--;
+			fen[charCount++] = '/';
+		}
+	}
+	fen[charCount-1] = ' ';
+
+
+	// ===== TO MOVE =====
+	if (game.toMove == BLACK) {
+		fen[charCount++] = 'b';
+	} else {
+		fen[charCount++] = 'w';
+	}
+	fen[charCount++] = ' ';
+
+	// ===== CASTLING RIGHTS =====
+	if (game.castling_rights == 0) {
+			fen[charCount++] = '-';
+	} else {
+		if (game.castling_rights & CASTLE_KINGSIDE_WHITE) {
+			fen[charCount++] = 'K';
+		}
+		if (game.castling_rights & CASTLE_QUEENSIDE_WHITE) {
+				fen[charCount++] = 'Q';
+		}
+		if (game.castling_rights & CASTLE_KINGSIDE_BLACK) {
+			fen[charCount++] = 'k';
+		}
+		if (game.castling_rights & CASTLE_QUEENSIDE_BLACK) {
+			fen[charCount++] = 'q';
+		}
+	}
+	fen[charCount++] = ' ';
+
+	// ===== EN PASSANT =====
+	if (game.ep_square == -1) {
+			fen[charCount++] = '-';
+	} else {
+		fen[charCount++] = getFile(game.ep_square);
+		fen[charCount++] = getRank(game.ep_square);
+	}
+	fen[charCount++] = ' ';
+
+	// ===== HALF MOVE CLOCK =====
+	itoa(game.halfmove_clock, &fen[charCount++], 10);
+	if (game.halfmove_clock >= 10) {
+		charCount++;
+		if (game.halfmove_clock >= 100) {
+			charCount++;
+		}
+	}
+	fen[charCount++] = ' ';
+
+	// ===== FULL MOVE NUMBER =====
+	itoa(game.fullmove_number, &fen[charCount++], 10);
+	if (game.fullmove_number >= 10) {
+		charCount++;
+		if (game.fullmove_number >= 100) {
+			charCount++;
+		}
+	}
+
+	return charCount;
+}
 
 // ========= UTILITY =========
 
@@ -1306,8 +1398,6 @@ int legalMoves(Move * legalMoves, Game game, char color) {
 	Move pseudoMoves[MOVE_BUFFER_SIZE];
 	int pseudoCount = pseudoLegalMoves(pseudoMoves, game, color);
 
-
-
 	for (i=0; i<pseudoCount; i++) {
 		if (isLegalMove(game, pseudoMoves[i])) {
 			legalMoves[legalCount++] = pseudoMoves[i];
@@ -1325,7 +1415,6 @@ BOOL isCheckmate(Game game) {
 		return TRUE;
 	else
 		return FALSE;
-
 }
 
 BOOL isStalemate(Game game) {

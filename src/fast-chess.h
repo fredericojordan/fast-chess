@@ -109,6 +109,7 @@ extern int FLIP[];
 
 Game getInitialGame(void);
 Game loadFen(char fen[]);
+int toFen(Game game, char * fen);
 
 // ========= UTILITY =========
 
