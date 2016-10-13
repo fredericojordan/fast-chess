@@ -359,7 +359,7 @@ void playAs(char color, int AIdepth) {
 				arrivingPos = xy2index(event.motion.x, event.motion.y, color);
 
 				if ( ongoing && game.toMove == color ) {
-					Move moves[MOVE_BUFFER_SIZE];
+					Move moves[MAX_BRANCHING_FACTOR];
 					int moveCount = legalMoves(moves, game, game.toMove);
 
 					int i;
@@ -402,6 +402,10 @@ void playAs(char color, int AIdepth) {
 					printf("movelist = %s\n", movelist);
 					fflush(stdout);
 					free(movelist);
+					break;
+
+				case SDLK_u:
+					game = unmakeMove(game);
 					break;
 
 				default:
@@ -478,7 +482,7 @@ void playAlone() {
 				arrivingPos = xy2index(event.motion.x, event.motion.y, WHITE);
 
 				if ( ongoing ) {
-					Move moves[MOVE_BUFFER_SIZE];
+					Move moves[MAX_BRANCHING_FACTOR];
 					int moveCount = legalMoves(moves, game, game.toMove);
 
 					int i;
@@ -521,6 +525,10 @@ void playAlone() {
 					printf("movelist = %s\n", movelist);
 					fflush(stdout);
 					free(movelist);
+					break;
+
+				case SDLK_u:
+					game = unmakeMove(game);
 					break;
 
 				default:

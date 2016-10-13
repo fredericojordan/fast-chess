@@ -96,7 +96,7 @@ Game getInitialGame(void) {
 	newGame.halfmove_clock = 0;
 	newGame.halfmove_number = 0;
 	newGame.fullmove_number = 1;
-	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+	memset(newGame.moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
 	newGame.fromInitial = TRUE;
 	return newGame;
 }
@@ -180,7 +180,7 @@ Game loadFen(char fen[]) {
 		newGame.halfmove_number++;
 
 	// ===== MOVE LIST =====
-	memset(newGame.moveList, 0, MOVE_LIST_MAX_LEN*sizeof(int));
+	memset(newGame.moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
 
 	// ===== INITIAL POSITION =====
 	newGame.fromInitial = FALSE;
@@ -1208,9 +1208,13 @@ Game makeMove(Game game, Move move) {
 	int arrivingSquare = getTo(move);
 	int piece = game.board[leavingSquare];
 
+	// ===== MOVE PIECE =====
 	movePiece(newGame.board, move);
+
+	// ===== TO MOVE =====
 	newGame.toMove = opposingColor(game.toMove);
 
+	// ===== MOVE COUNTS =====
 	newGame.halfmove_clock += 1;
 	newGame.halfmove_number += 1;
 	if (game.toMove == BLACK) {
@@ -1221,6 +1225,7 @@ Game makeMove(Game game, Move move) {
 		newGame.halfmove_clock = 0;
 	}
 
+	// ===== PAWNS =====
 	newGame.ep_square = -1;
 	if ( (piece&PIECE_MASK) == PAWN ) {
 		newGame.halfmove_clock = 0;
@@ -1245,6 +1250,7 @@ Game makeMove(Game game, Move move) {
 
 	}
 
+	// ===== CASTLING =====
 	if (leavingSquare == str2index("a1")) {
 		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_QUEENSIDE_WHITE);
 	}
@@ -1280,16 +1286,17 @@ Game makeMove(Game game, Move move) {
 		}
 	}
 
-
+	// ===== MOVE LIST =====
 	newGame.moveList[newGame.halfmove_number-1] = move;
 
-	/*
-	# update history
-	new_game.position_history.append(new_game.to_FEN())
-	return new_game
-	*/
+	// ===== POSITION HISTORY =====
+	// TODO
 
 	return newGame;
+}
+
+Game unmakeMove(Game game) {
+	return getInitialGame(); // FIXME
 }
 
 // ======== MOVE GEN =========
@@ -1395,7 +1402,7 @@ BOOL isLegalMove(Game game, Move move) {
 int legalMoves(Move * legalMoves, Game game, char color) {
 	int i, legalCount = 0;
 
-	Move pseudoMoves[MOVE_BUFFER_SIZE];
+	Move pseudoMoves[MAX_BRANCHING_FACTOR];
 	int pseudoCount = pseudoLegalMoves(pseudoMoves, game, color);
 
 	for (i=0; i<pseudoCount; i++) {
@@ -1410,7 +1417,7 @@ int legalMoves(Move * legalMoves, Game game, char color) {
 // ====== GAME CONTROL =======
 
 BOOL isCheckmate(Game game) {
-	Move moves[MOVE_BUFFER_SIZE];
+	Move moves[MAX_BRANCHING_FACTOR];
 	if (isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
 		return TRUE;
 	else
@@ -1418,7 +1425,7 @@ BOOL isCheckmate(Game game) {
 }
 
 BOOL isStalemate(Game game) {
-	Move moves[MOVE_BUFFER_SIZE];
+	Move moves[MAX_BRANCHING_FACTOR];
 	if (!isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
 		return TRUE;
 	else
@@ -1613,7 +1620,7 @@ Node simpleEvaluation(Game game) {
 	int bestScore = winScore(opposingColor(game.toMove));
 	Move bestMove = 0;
 
-	Move moves[MOVE_BUFFER_SIZE];
+	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = legalMoves(moves, game, game.toMove);
 
 	int i;
@@ -1646,7 +1653,7 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 
 	Move bestMove = 0;
 
-	Move moves[MOVE_BUFFER_SIZE];
+	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = legalMoves(moves, game, game.toMove);
 
 	int i;
@@ -1693,7 +1700,7 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 }
 
 Move getRandomMove(Game game) {
-	Move moves[MOVE_BUFFER_SIZE];
+	Move moves[MAX_BRANCHING_FACTOR];
 	int totalMoves = legalMoves(moves, game, game.toMove);
 	int chosenMove = rand() % totalMoves;
 	return moves[chosenMove];

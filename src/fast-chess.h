@@ -61,8 +61,9 @@ typedef uint_fast64_t Bitboard;
 typedef int Move;
 
 #define MAX_BOOK_ENTRY_LEN (300)
-#define MOVE_BUFFER_SIZE (100)
-#define MOVE_LIST_MAX_LEN (1024)
+#define MAX_PLYS_PER_GAME (1024)
+#define MAX_FEN_LEN (100)
+#define MAX_BRANCHING_FACTOR (100)
 
 #define DEFAULT_AI_DEPTH (3)
 
@@ -74,7 +75,7 @@ typedef struct Game {
    unsigned int halfmove_clock;
    unsigned int halfmove_number;
    unsigned int fullmove_number;
-   Move moveList[MOVE_LIST_MAX_LEN];
+   Move moveList[MAX_PLYS_PER_GAME];
    BOOL fromInitial;
 } Game;
 
@@ -244,6 +245,7 @@ Bitboard queenMoves(Bitboard moving_piece, int board[], char color);
 
 void movePiece(int board[], Move move);
 Game makeMove(Game game, Move move);
+Game unmakeMove(Game game);
 
 // ======== MOVE GEN =========
 
