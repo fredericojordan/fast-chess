@@ -111,20 +111,20 @@ Game loadFen(char fen[]) {
 	int boardPos = rank*8;
 	char * charPos = fen;
 
-	char code = *(charPos);
+	char pieceCode = *(charPos);
 
-	while(code != ' ') {
-		if (code == '/') {
+	while(pieceCode != ' ') {
+		if (pieceCode == '/') {
 			rank--;
 			boardPos = rank*8;
-		} else if (isdigit(code)) {
+		} else if (isdigit(pieceCode)) {
 			int emptySquares = atoi(charPos);
 			boardPos += emptySquares;
 		} else {
-			newGame.board[boardPos++] = str2piece(code);
+			newGame.board[boardPos++] = char2piece(pieceCode);
 		}
 
-		code = *(++charPos);
+		pieceCode = *(++charPos);
 	}
 
 
@@ -206,7 +206,7 @@ int toFen(Game game, char * fen) {
 				itoa(emptySquares, &fen[charCount++], 10);
 				emptySquares = 0;
 			}
-			fen[charCount++] = piece2str(piece);
+			fen[charCount++] = piece2char(piece);
 		}
 
 		file++;
@@ -360,11 +360,9 @@ char * movelist2str(Game game) {
 		movestr[5*i+2] = getFile(arriving);
 		movestr[5*i+3] = getRank(arriving);
 		movestr[5*i+4] = ' ';
-
-		if ( i == game.halfmove_number-1 ) {
-			movestr[5*i+4] = 0;
-		}
 	}
+
+	movestr[5*game.halfmove_number-1] = 0;
 
 	return movestr;
 }
@@ -477,7 +475,7 @@ int getTo(Move move) {
 	return move & 0xFF;
 }
 
-int str2piece(char pieceCode) {
+int char2piece(char pieceCode) {
 	switch(pieceCode) {
 	case 'P':
 		return WHITE|PAWN;
@@ -508,7 +506,7 @@ int str2piece(char pieceCode) {
 	return 0;
 }
 
-char piece2str(int piece) {
+char piece2char(int piece) {
 	switch(piece) {
 	case WHITE|PAWN:
 		return 'P';
@@ -566,7 +564,7 @@ void printBoard(int board[]) {
 		printf("%d", 8-rank);
 		for (file=0; file<8; file++) {
 			int position = file + (7-rank)*8;
-			printf(" %c", piece2str(board[position]));
+			printf(" %c", piece2char(board[position]));
 		}
 		printf("\n");
 	}
