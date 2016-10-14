@@ -257,6 +257,7 @@ BOOL isAttacked(Bitboard target, int board[], char color);
 BOOL isCheck(int board[], char color);
 BOOL isLegalMove(Game game, Move move);
 int legalMoves(Move * legalMoves, Game game, char color);
+int legalMovesCount(Game game, char color);
 
 // ====== GAME CONTROL =======
 
@@ -286,6 +287,7 @@ Move getRandomMove(Game game);
 Move getAIMove(Game game, int depth);
 Move parseMove(char * move);
 Move getPlayerMove();
+Move suggestMove(char fen[], int depth);
 
 // ===== PLAY LOOP (TEXT) ====
 

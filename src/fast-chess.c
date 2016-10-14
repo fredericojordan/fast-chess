@@ -554,6 +554,7 @@ void printBitboard(Bitboard bitboard) {
 		printf("\n");
 	}
 	printf("  a b c d e f g h\n");
+	fflush(stdout);
 }
 
 void printBoard(int board[]) {
@@ -569,6 +570,7 @@ void printBoard(int board[]) {
 		printf("\n");
 	}
 	printf("  a b c d e f g h\n");
+	fflush(stdout);
 }
 
 Bitboard not(Bitboard bb) {
@@ -1412,19 +1414,32 @@ int legalMoves(Move * legalMoves, Game game, char color) {
 	return legalCount;
 }
 
+int legalMovesCount(Game game, char color) {
+	int i, legalCount = 0;
+
+	Move pseudoMoves[MAX_BRANCHING_FACTOR];
+	int pseudoCount = pseudoLegalMoves(pseudoMoves, game, color);
+
+	for (i=0; i<pseudoCount; i++) {
+		if (isLegalMove(game, pseudoMoves[i])) {
+			legalCount++;
+		}
+	}
+
+	return legalCount;
+}
+
 // ====== GAME CONTROL =======
 
 BOOL isCheckmate(Game game) {
-	Move moves[MAX_BRANCHING_FACTOR];
-	if (isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
+	if (isCheck(game.board, game.toMove) && legalMovesCount(game, game.toMove) == 0)
 		return TRUE;
 	else
 		return FALSE;
 }
 
 BOOL isStalemate(Game game) {
-	Move moves[MAX_BRANCHING_FACTOR];
-	if (!isCheck(game.board, game.toMove) && legalMoves(moves, game, game.toMove) == 0)
+	if (!isCheck(game.board, game.toMove) && legalMovesCount(game, game.toMove) == 0)
 		return TRUE;
 	else
 		return FALSE;
@@ -1475,6 +1490,7 @@ void printOutcome(Game game) {
 		printf("Draw by insufficient material!\n");
 	if ( isOver75MovesRule(game) )
 		printf("Draw by 75 move rule!\n");
+	fflush(stdout);
 }
 
 // ========== EVAL ===========
@@ -1669,6 +1685,7 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 
 		if (verbose) {
 			printf("%.2f\n", score/100.0);
+			fflush(stdout);
 		}
 
 		if (score == winScore(game.toMove)) {
@@ -1706,6 +1723,7 @@ Move getRandomMove(Game game) {
 
 Move getAIMove(Game game, int depth) {
 	printf("--- AI ---\n");
+	fflush(stdout);
 
 	if ( game.fromInitial && countBookOccurrences(game) > 0 ) {
 		printf("There are %d available book continuations.\n", countBookOccurrences(game));
@@ -1718,6 +1736,7 @@ Move getAIMove(Game game, int depth) {
 
 	time_t startTime, endTime;
 	printf("Searching with base depth = %d\n", depth);
+	fflush(stdout);
 
 	startTime = time(NULL);
 
@@ -1748,10 +1767,17 @@ Move getPlayerMove() {
 	return parseMove(input);
 }
 
+Move suggestMove(char fen[], int depth) {
+	Game game = loadFen(fen);
+	return getAIMove(game, depth);
+}
+
 // ===== PLAY LOOP (TEXT) ====
 
 void playTextWhite(int depth) {
 	printf("Playing as WHITE!\n");
+	fflush(stdout);
+
 	Game game;
 	game = getInitialGame();
 
@@ -1773,6 +1799,8 @@ void playTextWhite(int depth) {
 
 void playTextBlack(int depth) {
 	printf("Playing as BLACK!\n");
+	fflush(stdout);
+
 	Game game;
 	game = getInitialGame();
 
