@@ -106,7 +106,7 @@ SDL_Rect bb2rect(Bitboard bb, char color) {
 }
 
 int xy2index(int x, int y, char color) {
-	int file, rank;
+	int file=0, rank=0;
 	if (color == WHITE) {
 		file = (int) (x/TILE_SIDE);
 		rank = (int) (7 - (y/TILE_SIDE));
