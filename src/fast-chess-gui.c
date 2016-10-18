@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include "fast-chess.h"
 
 int TILE_SIDE = 60;
@@ -303,9 +304,9 @@ BOOL init() {
     return TRUE;
 }
 
-void setEndTitle(Game game) {
+void setEndTitle(Game * game) {
 	if (isCheckmate(game)) {
-		if (game.toMove == BLACK) {
+		if (game->toMove == BLACK) {
 			SDL_SetWindowTitle(window, "Chess Game - WHITE wins!");
 			printf("WHITE wins!\n");
 		} else {
@@ -315,7 +316,7 @@ void setEndTitle(Game game) {
 	} else if (isStalemate(game)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
 		printf("Draw by stalemate!\n");
-	} else if (hasInsufficientMaterial(game.board)) {
+	} else if (hasInsufficientMaterial(game->board)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!");
 		printf("Draw by insufficient material!\n");
 	} else if (isOver75MovesRule(game)) {
@@ -329,7 +330,8 @@ void playAs(char color, int AIdepth) {
 	printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK");
 	fflush(stdout);
 
-	Game game = getInitialGame();
+	Game game, newGame;
+	getInitialGame(&game);
 	renderBoard(game.board, color);
 
 	BOOL run = TRUE, ongoing = TRUE;
@@ -360,17 +362,20 @@ void playAs(char color, int AIdepth) {
 
 				if ( ongoing && game.toMove == color ) {
 					Move moves[MAX_BRANCHING_FACTOR];
-					int moveCount = legalMoves(moves, game, game.toMove);
+					int moveCount = legalMoves(moves, &game, game.toMove);
 
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
-							game = makeMove(game, moves[i]);
+
+							makeMove(&newGame, &game, moves[i]);
+							memcpy(&game, &newGame, sizeof(Game));
+
 							renderBoard(game.board, color);
 
-							if ( hasGameEnded(game) ) {
+							if ( hasGameEnded(&game) ) {
 								ongoing = FALSE;
-								setEndTitle(game);
+								setEndTitle(&game);
 							}
 						}
 				}
@@ -393,19 +398,25 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
+					printf("board evaluation = %.2f\n", evaluateGame(&game)/100.0);
 					fflush(stdout);
 					break;
 
 				case SDLK_p:
-					movelist = movelist2str(game);
-					printf("movelist = %s\n", movelist);
+					movelist = movelist2str(&game);
+					printf("movelist = %s\nposition history:\n", movelist);
+					int i;
+					for (i=0; i<game.moveListLen+1; i++)
+						printf("%s\n", game.positionHistory[i]);
 					fflush(stdout);
 					free(movelist);
 					break;
 
 				case SDLK_u:
-					game = unmakeMove(game);
+					unmakeMove(&newGame, &game);
+					memcpy(&game, &newGame, sizeof(Game));
+					ongoing = TRUE;
+					renderBoard(game.board, color);
 					break;
 
 				default:
@@ -433,13 +444,14 @@ void playAs(char color, int AIdepth) {
 
 		if ( ongoing && game.toMove == opposingColor(color) ) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
-			game = makeMove(game, getAIMove(game, AIdepth));
+			makeMove(&newGame, &game, getAIMove(&game, AIdepth));
+			memcpy(&game, &newGame, sizeof(Game));
 			SDL_SetWindowTitle(window, "Chess Game");
 			renderBoard(game.board, color);
 
-			if ( hasGameEnded(game) ) {
+			if ( hasGameEnded(&game) ) {
 				ongoing = FALSE;
-				setEndTitle(game);
+				setEndTitle(&game);
 			}
 		}
 	}
@@ -452,7 +464,8 @@ void playRandomColor(int depth) {
 }
 
 void playAlone() {
-	Game game = getInitialGame();
+	Game game, newGame;
+	getInitialGame(&game);
 	renderBoard(game.board, WHITE);
 
 	BOOL run = TRUE, ongoing = TRUE;
@@ -483,17 +496,18 @@ void playAlone() {
 
 				if ( ongoing ) {
 					Move moves[MAX_BRANCHING_FACTOR];
-					int moveCount = legalMoves(moves, game, game.toMove);
+					int moveCount = legalMoves(moves, &game, game.toMove);
 
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
-							game = makeMove(game, moves[i]);
+							makeMove(&newGame, &game, moves[i]);
+							memcpy(&game, &newGame, sizeof(Game));
 							renderBoard(game.board, WHITE);
 
-							if ( hasGameEnded(game) ) {
+							if ( hasGameEnded(&game) ) {
 								ongoing = FALSE;
-								setEndTitle(game);
+								setEndTitle(&game);
 							}
 						}
 				}
@@ -516,19 +530,25 @@ void playAlone() {
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", evaluateGame(game)/100.0);
+					printf("board evaluation = %.2f\n", evaluateGame(&game)/100.0);
 					fflush(stdout);
 					break;
 
 				case SDLK_p:
-					movelist = movelist2str(game);
-					printf("movelist = %s\n", movelist);
+					movelist = movelist2str(&game);
+					printf("movelist = %s\nposition history:\n", movelist);
+					int i;
+					for (i=0; i<game.moveListLen+1; i++)
+						printf("%s\n", game.positionHistory[i]);
 					fflush(stdout);
 					free(movelist);
 					break;
 
 				case SDLK_u:
-					game = unmakeMove(game);
+					unmakeMove(&newGame, &game);
+					memcpy(&game, &newGame, sizeof(Game));
+					ongoing = TRUE;
+					renderBoard(game.board, WHITE);
 					break;
 
 				default:

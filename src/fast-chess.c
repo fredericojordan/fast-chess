@@ -30,6 +30,8 @@ int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE
                                    BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,  BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,
                                    BLACK|ROOK, BLACK|KNIGHT, BLACK|BISHOP, BLACK|QUEEN, BLACK|KING, BLACK|BISHOP, BLACK|KNIGHT, BLACK|ROOK };
 
+char INITIAL_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 int PIECE_VALUES[] = { 0, 100, 300, 300, 500, 900, 42000 };
 
 int PAWN_BONUS[] = {0,   0,   0,   0,   0,   0,   0,   0,
@@ -87,25 +89,32 @@ int FLIP[] = {56,  57,  58,  59,  60,  61,  62,  63,
 			   0,   1,   2,   3,   4,   5,   6,   7};
 
 
-Game getInitialGame(void) {
-	Game newGame;
-	memcpy(newGame.board, INITIAL_BOARD, sizeof(newGame.board));
-	newGame.toMove = WHITE;
-	newGame.ep_square = -1;
-	newGame.castling_rights = CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE|CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK;
-	newGame.halfmove_clock = 0;
-	newGame.halfmove_number = 0;
-	newGame.fullmove_number = 1;
-	memset(newGame.moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
-	newGame.fromInitial = TRUE;
-	return newGame;
+void getInitialGame(Game * game) {
+	memcpy(game->board, INITIAL_BOARD, sizeof(game->board));
+	game->toMove = WHITE;
+	game->epSquare = -1;
+	game->castlingRights = CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE|CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK;
+	game->halfmoveClock = 0;
+	game->fullmoveNumber = 1;
+
+	game->moveListLen = 0;
+	memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
+	memset(game->positionHistory, 0, MAX_PLYS_PER_GAME*MAX_FEN_LEN*sizeof(char));
+	memcpy(game->positionHistory[0], INITIAL_FEN, sizeof(INITIAL_FEN));
 }
 
-Game loadFen(char fen[]) {
-	Game newGame;
+void getFenGame(Game * game, char fen[]) {
+	int fenLen = loadFen(game, fen);
 
+	game->moveListLen = 0;
+	memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
+	memset(game->positionHistory, 0, MAX_PLYS_PER_GAME*MAX_FEN_LEN*sizeof(char));
+	memcpy(game->positionHistory[0], fen, fenLen);
+}
+
+int loadFen(Game * game, char fen[]) {
 	// ===== BOARD =====
-	memset(newGame.board, EMPTY, sizeof(newGame.board));
+	memset(game->board, EMPTY, sizeof(game->board));
 
 	int rank = 7;
 	int boardPos = rank*8;
@@ -121,7 +130,7 @@ Game loadFen(char fen[]) {
 			int emptySquares = atoi(charPos);
 			boardPos += emptySquares;
 		} else {
-			newGame.board[boardPos++] = char2piece(pieceCode);
+			game->board[boardPos++] = char2piece(pieceCode);
 		}
 
 		pieceCode = *(++charPos);
@@ -132,9 +141,9 @@ Game loadFen(char fen[]) {
 	char *nextFenField = strchr(fen, ' ') + 1;
 
 	if (*nextFenField == 'b') {
-		newGame.toMove = BLACK;
+		game->toMove = BLACK;
 	} else {
-		newGame.toMove = WHITE;
+		game->toMove = WHITE;
 	}
 
 
@@ -142,16 +151,16 @@ Game loadFen(char fen[]) {
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
 	if (*nextFenField == '-') {
-		newGame.castling_rights = 0;
+		game->castlingRights = 0;
 	} else {
 		if (strchr(nextFenField, 'K'))
-			newGame.castling_rights |= CASTLE_KINGSIDE_WHITE;
+			game->castlingRights |= CASTLE_KINGSIDE_WHITE;
 		if (strchr(nextFenField, 'Q'))
-			newGame.castling_rights |= CASTLE_QUEENSIDE_WHITE;
+			game->castlingRights |= CASTLE_QUEENSIDE_WHITE;
 		if (strchr(nextFenField, 'k'))
-			newGame.castling_rights |= CASTLE_KINGSIDE_BLACK;
+			game->castlingRights |= CASTLE_KINGSIDE_BLACK;
 		if (strchr(nextFenField, 'q'))
-			newGame.castling_rights |= CASTLE_QUEENSIDE_BLACK;
+			game->castlingRights |= CASTLE_QUEENSIDE_BLACK;
 	}
 
 
@@ -159,36 +168,25 @@ Game loadFen(char fen[]) {
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
 	if (*nextFenField == '-') {
-		newGame.ep_square = -1;
+		game->epSquare = -1;
 	} else {
-		newGame.ep_square = str2index(nextFenField);
+		game->epSquare = str2index(nextFenField);
 	}
 
 	// ===== HALF MOVE CLOCK =====
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
-	newGame.halfmove_clock = atoi(nextFenField);
+	game->halfmoveClock = atoi(nextFenField);
 
 	// ===== FULL MOVE NUMBER =====
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
-	newGame.fullmove_number = atoi(nextFenField);
+	game->fullmoveNumber = atoi(nextFenField);
 
-	// ===== HALF MOVE NUMBER =====
-	newGame.halfmove_number = 2*(newGame.fullmove_number-1);
-	if (newGame.toMove == BLACK)
-		newGame.halfmove_number++;
-
-	// ===== MOVE LIST =====
-	memset(newGame.moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
-
-	// ===== INITIAL POSITION =====
-	newGame.fromInitial = FALSE;
-
-	return newGame;
+	return 1+nextFenField-fen;
 }
 
-int toFen(Game game, char * fen) {
+int toFen(char * fen, Game * game) {
 	int charCount = 0;
 
 	// ===== BOARD =====
@@ -197,7 +195,7 @@ int toFen(Game game, char * fen) {
 	int emptySquares = 0;
 
 	while(rank >= 0) {
-		int piece = game.board[8*rank+file];
+		int piece = game->board[8*rank+file];
 
 		if ( piece == EMPTY ) {
 			emptySquares++;
@@ -224,7 +222,7 @@ int toFen(Game game, char * fen) {
 
 
 	// ===== TO MOVE =====
-	if (game.toMove == BLACK) {
+	if (game->toMove == BLACK) {
 		fen[charCount++] = 'b';
 	} else {
 		fen[charCount++] = 'w';
@@ -232,48 +230,48 @@ int toFen(Game game, char * fen) {
 	fen[charCount++] = ' ';
 
 	// ===== CASTLING RIGHTS =====
-	if (game.castling_rights == 0) {
+	if (game->castlingRights == 0) {
 			fen[charCount++] = '-';
 	} else {
-		if (game.castling_rights & CASTLE_KINGSIDE_WHITE) {
+		if (game->castlingRights & CASTLE_KINGSIDE_WHITE) {
 			fen[charCount++] = 'K';
 		}
-		if (game.castling_rights & CASTLE_QUEENSIDE_WHITE) {
+		if (game->castlingRights & CASTLE_QUEENSIDE_WHITE) {
 				fen[charCount++] = 'Q';
 		}
-		if (game.castling_rights & CASTLE_KINGSIDE_BLACK) {
+		if (game->castlingRights & CASTLE_KINGSIDE_BLACK) {
 			fen[charCount++] = 'k';
 		}
-		if (game.castling_rights & CASTLE_QUEENSIDE_BLACK) {
+		if (game->castlingRights & CASTLE_QUEENSIDE_BLACK) {
 			fen[charCount++] = 'q';
 		}
 	}
 	fen[charCount++] = ' ';
 
 	// ===== EN PASSANT =====
-	if (game.ep_square == -1) {
+	if (game->epSquare == -1) {
 			fen[charCount++] = '-';
 	} else {
-		fen[charCount++] = getFile(game.ep_square);
-		fen[charCount++] = getRank(game.ep_square);
+		fen[charCount++] = getFile(game->epSquare);
+		fen[charCount++] = getRank(game->epSquare);
 	}
 	fen[charCount++] = ' ';
 
 	// ===== HALF MOVE CLOCK =====
-	itoa(game.halfmove_clock, &fen[charCount++], 10);
-	if (game.halfmove_clock >= 10) {
+	itoa(game->halfmoveClock, &fen[charCount++], 10);
+	if (game->halfmoveClock >= 10) {
 		charCount++;
-		if (game.halfmove_clock >= 100) {
+		if (game->halfmoveClock >= 100) {
 			charCount++;
 		}
 	}
 	fen[charCount++] = ' ';
 
 	// ===== FULL MOVE NUMBER =====
-	itoa(game.fullmove_number, &fen[charCount++], 10);
-	if (game.fullmove_number >= 10) {
+	itoa(game->fullmoveNumber, &fen[charCount++], 10);
+	if (game->fullmoveNumber >= 10) {
 		charCount++;
-		if (game.fullmove_number >= 100) {
+		if (game->fullmoveNumber >= 100) {
 			charCount++;
 		}
 	}
@@ -282,6 +280,13 @@ int toFen(Game game, char * fen) {
 }
 
 // ========= UTILITY =========
+
+BOOL fromInitial(Game * game) {
+	if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0 )
+		return TRUE;
+	else
+		return FALSE;
+}
 
 Bitboard index2bb(int index) {
 	Bitboard bb = 1;
@@ -340,21 +345,21 @@ int bb2index(Bitboard bb) {
 	return -1;
 }
 
-char * movelist2str(Game game) {
+char * movelist2str(Game * game) {
 	char * movestr = NULL;
 
-	if (game.halfmove_number == 0) {
+	if (game->moveListLen == 0) {
 		movestr = (char*) malloc(sizeof(char));
 		movestr[0] = 0;
 		return movestr;
 	}
 
-	movestr = (char*) malloc (5*game.halfmove_number);
+	movestr = (char*) malloc (5*game->moveListLen);
 
 	int i;
-	for (i=0;i<game.halfmove_number;i++) {
-		int leaving = getFrom(game.moveList[i]);
-		int arriving = getTo(game.moveList[i]);
+	for (i=0;i<game->moveListLen;i++) {
+		int leaving = getFrom(game->moveList[i]);
+		int arriving = getTo(game->moveList[i]);
 		movestr[5*i] = getFile(leaving);
 		movestr[5*i+1] = getRank(leaving);
 		movestr[5*i+2] = getFile(arriving);
@@ -362,7 +367,7 @@ char * movelist2str(Game game) {
 		movestr[5*i+4] = ' ';
 	}
 
-	movestr[5*game.halfmove_number-1] = 0;
+	movestr[5*game->moveListLen-1] = 0;
 
 	return movestr;
 }
@@ -376,7 +381,7 @@ BOOL startsWith(const char *str, const char *pre) {
     return strncmp(pre, str, lenpre) == 0 ? TRUE : FALSE;
 }
 
-int countBookOccurrences(Game game) {
+int countBookOccurrences(Game * game) {
     FILE * fp = fopen("book.txt", "r");
 
     if (fp == NULL)
@@ -411,7 +416,7 @@ int countBookOccurrences(Game game) {
     return occurrences;
 }
 
-Move getBookMove(Game game) {
+Move getBookMove(Game * game) {
 	Move move = 0;
 	int moveNum = rand() % countBookOccurrences(game);
 
@@ -433,7 +438,7 @@ Move getBookMove(Game game) {
 
 			if (startsWith(line, moveList)) {
 				if ( occurrences == moveNum ) {
-					int ind = game.halfmove_number*5;
+					int ind = game->moveListLen*5;
 					move = parseMove(&line[ind]);
 					break;
 				}
@@ -570,6 +575,21 @@ void printBoard(int board[]) {
 		printf("\n");
 	}
 	printf("  a b c d e f g h\n");
+	fflush(stdout);
+}
+
+void printGame(Game * game) {
+	printf("Game -> %p (%u)", game, sizeof(*game));
+	printBoard(game->board);
+	printf("board -> %p (%u)\n", game->board, sizeof(game->board));
+	printf("toMove = %d -> %p (%u)\n", game->toMove, &game->toMove, sizeof(game->toMove));
+	printf("ep = %d -> %p (%u)\n", game->epSquare, &game->epSquare, sizeof(game->epSquare));
+	printf("castle rights = %d -> %p (%u)\n", game->castlingRights, &game->castlingRights, sizeof(game->castlingRights));
+	printf("half clock = %d -> %p (%u)\n", game->halfmoveClock, &game->halfmoveClock, sizeof(game->halfmoveClock));
+	printf("full num = %d -> %p (%u)\n", game->fullmoveNumber, &game->fullmoveNumber, sizeof(game->fullmoveNumber));
+	printf("moveListLen = %d -> %p (%u)\n", game->moveListLen, &game->moveListLen, sizeof(game->moveListLen));
+	printf("moveList -> %p (%u)\n", game->moveList, sizeof(game->moveList));
+	printf("positionHistory -> %p (%u)\n", game->positionHistory, sizeof(game->positionHistory));
 	fflush(stdout);
 }
 
@@ -786,30 +806,30 @@ Bitboard pawnSimpleCaptures(Bitboard moving_piece, int board[], char color) {
 	return pawnAttacks(moving_piece, board, color) & getColoredPieces(board, opposingColor(color));
 }
 
-Bitboard pawnEpCaptures(Bitboard moving_piece, Game game, char color) {
-	if (game.ep_square == -1)
+Bitboard pawnEpCaptures(Bitboard moving_piece, Game * game, char color) {
+	if (game->epSquare == -1)
 		return 0;
 
 	Bitboard valid_ep_square = 0;
 
 	switch(color) {
 	case WHITE:
-		valid_ep_square = index2bb(game.ep_square) & RANK_6;
+		valid_ep_square = index2bb(game->epSquare) & RANK_6;
 		break;
 	case BLACK:
-		valid_ep_square = index2bb(game.ep_square) & RANK_3;
+		valid_ep_square = index2bb(game->epSquare) & RANK_3;
 		break;
 	}
 
-	return pawnAttacks(moving_piece, game.board, color) & valid_ep_square;
+	return pawnAttacks(moving_piece, game->board, color) & valid_ep_square;
 }
 
-Bitboard pawnCaptures(Bitboard moving_piece, Game game, char color) {
-    return pawnSimpleCaptures(moving_piece, game.board, color) | pawnEpCaptures(moving_piece, game, color);
+Bitboard pawnCaptures(Bitboard moving_piece, Game * game, char color) {
+    return pawnSimpleCaptures(moving_piece, game->board, color) | pawnEpCaptures(moving_piece, game, color);
 }
 
-Bitboard pawnMoves(Bitboard moving_piece, Game game, char color) {
-	return pawnPushes(moving_piece, game.board, color) | pawnCaptures(moving_piece, game, color);
+Bitboard pawnMoves(Bitboard moving_piece, Game * game, char color) {
+	return pawnPushes(moving_piece, game->board, color) | pawnCaptures(moving_piece, game, color);
 }
 
 BOOL isDoublePush(int leaving, int arriving) {
@@ -918,27 +938,27 @@ Bitboard kingMoves(Bitboard moving_piece, int board[], char color) {
     return kingAttacks(moving_piece) & not(getColoredPieces(board, color));
 }
 
-BOOL canCastleKingside(Game game, char color) {
+BOOL canCastleKingside(Game * game, char color) {
 	switch(color) {
 
 	case WHITE:
-		if ( (game.castling_rights&CASTLE_KINGSIDE_WHITE) &&
-			 (game.board[str2index("f1")] == EMPTY) &&
-			 (game.board[str2index("g1")] == EMPTY) &&
-			 (!isAttacked(str2bb("e1"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("f1"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("g1"), game.board, opposingColor(color))) )
+		if ( (game->castlingRights&CASTLE_KINGSIDE_WHITE) &&
+			 (game->board[str2index("f1")] == EMPTY) &&
+			 (game->board[str2index("g1")] == EMPTY) &&
+			 (!isAttacked(str2bb("e1"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("f1"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("g1"), game->board, opposingColor(color))) )
 			return TRUE;
 		else
 			return FALSE;
 
 	case BLACK:
-		if ( (game.castling_rights&CASTLE_KINGSIDE_BLACK) &&
-			 (game.board[str2index("f8")] == EMPTY) &&
-			 (game.board[str2index("g8")] == EMPTY) &&
-			 (!isAttacked(str2bb("e8"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("f8"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("g8"), game.board, opposingColor(color))) )
+		if ( (game->castlingRights&CASTLE_KINGSIDE_BLACK) &&
+			 (game->board[str2index("f8")] == EMPTY) &&
+			 (game->board[str2index("g8")] == EMPTY) &&
+			 (!isAttacked(str2bb("e8"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("f8"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("g8"), game->board, opposingColor(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -947,29 +967,29 @@ BOOL canCastleKingside(Game game, char color) {
 	return FALSE;
 }
 
-BOOL canCastleQueenside(Game game, char color) {
+BOOL canCastleQueenside(Game * game, char color) {
 	switch(color) {
 
 	case WHITE:
-		if ( (game.castling_rights&CASTLE_QUEENSIDE_WHITE) &&
-			 (game.board[str2index("b1")] == EMPTY) &&
-			 (game.board[str2index("c1")] == EMPTY) &&
-			 (game.board[str2index("d1")] == EMPTY) &&
-			 (!isAttacked(str2bb("c1"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("d1"), game.board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("e1"), game.board, opposingColor(color))) )
+		if ( (game->castlingRights&CASTLE_QUEENSIDE_WHITE) &&
+			 (game->board[str2index("b1")] == EMPTY) &&
+			 (game->board[str2index("c1")] == EMPTY) &&
+			 (game->board[str2index("d1")] == EMPTY) &&
+			 (!isAttacked(str2bb("c1"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("d1"), game->board, opposingColor(color))) &&
+			 (!isAttacked(str2bb("e1"), game->board, opposingColor(color))) )
 			return TRUE;
 		else
 			return FALSE;
 
 	case BLACK:
-		if ( (game.castling_rights&CASTLE_QUEENSIDE_BLACK) &&
-				 (game.board[str2index("b8")] == EMPTY) &&
-				 (game.board[str2index("c8")] == EMPTY) &&
-				 (game.board[str2index("d8")] == EMPTY) &&
-				 (!isAttacked(str2bb("c8"), game.board, opposingColor(color))) &&
-				 (!isAttacked(str2bb("d8"), game.board, opposingColor(color))) &&
-				 (!isAttacked(str2bb("e8"), game.board, opposingColor(color))) )
+		if ( (game->castlingRights&CASTLE_QUEENSIDE_BLACK) &&
+				 (game->board[str2index("b8")] == EMPTY) &&
+				 (game->board[str2index("c8")] == EMPTY) &&
+				 (game->board[str2index("d8")] == EMPTY) &&
+				 (!isAttacked(str2bb("c8"), game->board, opposingColor(color))) &&
+				 (!isAttacked(str2bb("d8"), game->board, opposingColor(color))) &&
+				 (!isAttacked(str2bb("e8"), game->board, opposingColor(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -1201,131 +1221,143 @@ void movePiece(int board[], Move move) {
 	board[getFrom(move)] = EMPTY;
 }
 
-Game makeMove(Game game, Move move) {
-	Game newGame;
-	memcpy(&newGame, &game, sizeof(Game));
+void makeMove(Game * dstGame, Game * game, Move move) {
+	memcpy(dstGame, game, sizeof(Game));
 	int leavingSquare = getFrom(move);
 	int arrivingSquare = getTo(move);
-	int piece = game.board[leavingSquare];
+	int piece = game->board[leavingSquare];
 
 	// ===== MOVE PIECE =====
-	movePiece(newGame.board, move);
+	movePiece(dstGame->board, move);
 
 	// ===== TO MOVE =====
-	newGame.toMove = opposingColor(game.toMove);
+	dstGame->toMove = opposingColor(game->toMove);
 
 	// ===== MOVE COUNTS =====
-	newGame.halfmove_clock += 1;
-	newGame.halfmove_number += 1;
-	if (game.toMove == BLACK) {
-		newGame.fullmove_number += 1;
+	dstGame->halfmoveClock += 1;
+	dstGame->moveListLen += 1;
+	if (game->toMove == BLACK) {
+		dstGame->fullmoveNumber += 1;
 	}
 
-	if (game.board[arrivingSquare] != EMPTY) {
-		newGame.halfmove_clock = 0;
+	if (game->board[arrivingSquare] != EMPTY) {
+		dstGame->halfmoveClock = 0;
 	}
 
 	// ===== PAWNS =====
-	newGame.ep_square = -1;
+	dstGame->epSquare = -1;
 	if ( (piece&PIECE_MASK) == PAWN ) {
-		newGame.halfmove_clock = 0;
+		dstGame->halfmoveClock = 0;
 
-		if (arrivingSquare == game.ep_square) {
-		    if (index2bb(game.ep_square)&RANK_3) {
-				newGame.board[(int)(game.ep_square+8)] = EMPTY;
+		if (arrivingSquare == game->epSquare) {
+		    if (index2bb(game->epSquare)&RANK_3) {
+				dstGame->board[(int)(game->epSquare+8)] = EMPTY;
 		    }
 
-		    if (index2bb(game.ep_square)&RANK_6) {
-		    	newGame.board[(int)(game.ep_square-8)] = EMPTY;
+		    if (index2bb(game->epSquare)&RANK_6) {
+		    	dstGame->board[(int)(game->epSquare-8)] = EMPTY;
 		    }
 		}
 
 		if (isDoublePush(leavingSquare, arrivingSquare)) {
-			newGame.ep_square = getEpSquare(leavingSquare);
+			dstGame->epSquare = getEpSquare(leavingSquare);
 		}
 
 		if (index2bb(arrivingSquare)&(RANK_1|RANK_8)) {
-			newGame.board[arrivingSquare] = game.toMove|QUEEN;
+			dstGame->board[arrivingSquare] = game->toMove|QUEEN;
 		}
 
 	}
 
 	// ===== CASTLING =====
 	if (leavingSquare == str2index("a1")) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_QUEENSIDE_WHITE);
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, CASTLE_QUEENSIDE_WHITE);
 	}
 	else if (leavingSquare == str2index("h1")) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_WHITE);
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, CASTLE_KINGSIDE_WHITE);
 	}
 	else if (leavingSquare == str2index("a8")) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_QUEENSIDE_BLACK);
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, CASTLE_QUEENSIDE_BLACK);
 	}
 	else if (leavingSquare == str2index("h8")) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_BLACK);
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, CASTLE_KINGSIDE_BLACK);
 	}
 
 	if ( piece == (WHITE|KING) ) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, (CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE));
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, (CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE));
 		if (leavingSquare == str2index("e1")) {
 
 			if (arrivingSquare == str2index("g1"))
-				movePiece(newGame.board, generateMove(str2index("h1"), str2index("f1")));
+				movePiece(dstGame->board, generateMove(str2index("h1"), str2index("f1")));
 
             if (arrivingSquare == str2index("c1"))
-				movePiece(newGame.board, generateMove(str2index("a1"), str2index("d1")));
+				movePiece(dstGame->board, generateMove(str2index("a1"), str2index("d1")));
 		}
 	} else if ( piece == (BLACK|KING) ) {
-		newGame.castling_rights = removeCastlingRights(newGame.castling_rights, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
+		dstGame->castlingRights = removeCastlingRights(dstGame->castlingRights, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
 		if (leavingSquare == str2index("e8")) {
 
 			if (arrivingSquare == str2index("g8"))
-				movePiece(newGame.board, generateMove(str2index("h8"), str2index("f8")));
+				movePiece(dstGame->board, generateMove(str2index("h8"), str2index("f8")));
 
             if (arrivingSquare == str2index("c8"))
-				movePiece(newGame.board, generateMove(str2index("a8"), str2index("d8")));
+				movePiece(dstGame->board, generateMove(str2index("a8"), str2index("d8")));
 		}
 	}
 
 	// ===== MOVE LIST =====
-	newGame.moveList[newGame.halfmove_number-1] = move;
+	dstGame->moveList[dstGame->moveListLen-1] = move;
 
 	// ===== POSITION HISTORY =====
-	// TODO
+	toFen(dstGame->positionHistory[dstGame->moveListLen], dstGame);
 
-	return newGame;
 }
 
-Game unmakeMove(Game game) {
-	return getInitialGame(); // FIXME
+void unmakeMove(Game * dstGame, Game * game) {
+	if (game->moveListLen >= 2) {
+		memcpy(dstGame, game, sizeof(Game));
+		loadFen(dstGame, game->positionHistory[game->moveListLen-2]);
+		dstGame->moveListLen -= 2;
+		dstGame->moveList[game->moveListLen-1] = 0;
+		dstGame->moveList[game->moveListLen-2] = 0;
+		memset(dstGame->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
+		memset(dstGame->positionHistory[game->moveListLen-1], 0, MAX_FEN_LEN*sizeof(char));
+	} else {
+		memcpy(dstGame, game, sizeof(Game));
+		loadFen(dstGame, game->positionHistory[0]);
+		dstGame->moveListLen = 0;
+		memset(dstGame->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
+		memset(&dstGame->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
+	}
 }
 
 // ======== MOVE GEN =========
 
-Bitboard getMoves(Bitboard movingPiece, Game game, char color) {
-	int piece = game.board[bb2index(movingPiece)] & PIECE_MASK;
+Bitboard getMoves(Bitboard movingPiece, Game * game, char color) {
+	int piece = game->board[bb2index(movingPiece)] & PIECE_MASK;
 
 	switch (piece) {
 	case PAWN:
 		return pawnMoves(movingPiece, game, color);
 	case KNIGHT:
-		return knightMoves(movingPiece, game.board, color);
+		return knightMoves(movingPiece, game->board, color);
 	case BISHOP:
-		return bishopMoves(movingPiece, game.board, color);
+		return bishopMoves(movingPiece, game->board, color);
 	case ROOK:
-		return rookMoves(movingPiece, game.board, color);
+		return rookMoves(movingPiece, game->board, color);
 	case QUEEN:
-		return queenMoves(movingPiece, game.board, color);
+		return queenMoves(movingPiece, game->board, color);
 	case KING:
-		return kingMoves(movingPiece, game.board, color);
+		return kingMoves(movingPiece, game->board, color);
 	}
 	return 0;
 }
 
-int pseudoLegalMoves(Move * moves, Game game, char color) {
+int pseudoLegalMoves(Move * moves, Game * game, char color) {
 	int leavingSquare, arrivingSquare, moveCount = 0;
 
 	for (leavingSquare=0; leavingSquare<NUM_SQUARES; leavingSquare++) {
-		int piece = game.board[leavingSquare];
+		int piece = game->board[leavingSquare];
 
 		if (piece != EMPTY && (piece&COLOR_MASK) == color) {
 			Bitboard targets = getMoves(index2bb(leavingSquare), game, color);
@@ -1392,14 +1424,15 @@ BOOL isCheck(int board[], char color) {
 	return isAttacked(getKing(board, color), board, opposingColor(color));
 }
 
-BOOL isLegalMove(Game game, Move move) {
-	Game newGame = makeMove(game, move);
-	if ( isCheck(newGame.board, game.toMove) )
+BOOL isLegalMove(Game * game, Move move) {
+	Game newGame;
+	makeMove(&newGame, game, move);
+	if ( isCheck(newGame.board, game->toMove) )
 		return FALSE;
 	return TRUE;
 }
 
-int legalMoves(Move * legalMoves, Game game, char color) {
+int legalMoves(Move * legalMoves, Game * game, char color) {
 	int i, legalCount = 0;
 
 	Move pseudoMoves[MAX_BRANCHING_FACTOR];
@@ -1414,7 +1447,7 @@ int legalMoves(Move * legalMoves, Game game, char color) {
 	return legalCount;
 }
 
-int legalMovesCount(Game game, char color) {
+int legalMovesCount(Game * game, char color) {
 	int i, legalCount = 0;
 
 	Move pseudoMoves[MAX_BRANCHING_FACTOR];
@@ -1431,15 +1464,15 @@ int legalMovesCount(Game game, char color) {
 
 // ====== GAME CONTROL =======
 
-BOOL isCheckmate(Game game) {
-	if (isCheck(game.board, game.toMove) && legalMovesCount(game, game.toMove) == 0)
+BOOL isCheckmate(Game * game) {
+	if (isCheck(game->board, game->toMove) && legalMovesCount(game, game->toMove) == 0)
 		return TRUE;
 	else
 		return FALSE;
 }
 
-BOOL isStalemate(Game game) {
-	if (!isCheck(game.board, game.toMove) && legalMovesCount(game, game.toMove) == 0)
+BOOL isStalemate(Game * game) {
+	if (!isCheck(game->board, game->toMove) && legalMovesCount(game, game->toMove) == 0)
 		return TRUE;
 	else
 		return FALSE;
@@ -1462,31 +1495,31 @@ BOOL isEndgame(int board[]) {
 	return FALSE;
 }
 
-BOOL isOver75MovesRule(Game game) {
-	if (game.halfmove_clock >= 150)
+BOOL isOver75MovesRule(Game * game) {
+	if (game->halfmoveClock >= 150)
 		return TRUE;
 	else
 		return FALSE;
 }
 
-BOOL hasGameEnded(Game game) {
+BOOL hasGameEnded(Game * game) {
 	if ( isCheckmate(game) ||
 		 isStalemate(game) ||
-		 hasInsufficientMaterial(game.board) ||
+		 hasInsufficientMaterial(game->board) ||
 		 isOver75MovesRule(game) )
 		return TRUE;
 	else
 		return FALSE;
 }
 
-void printOutcome(Game game) {
-	if (isCheckmate(game) && game.toMove == BLACK)
+void printOutcome(Game * game) {
+	if (isCheckmate(game) && game->toMove == BLACK)
 		printf("WHITE wins!\n");
-	if (isCheckmate(game) && game.toMove == WHITE)
+	if (isCheckmate(game) && game->toMove == WHITE)
 		printf("BLACK wins!\n");
 	if (isStalemate(game))
 		printf("Draw by stalemate!\n");
-	if (hasInsufficientMaterial(game.board))
+	if (hasInsufficientMaterial(game->board))
 		printf("Draw by insufficient material!\n");
 	if ( isOver75MovesRule(game) )
 		printf("Draw by 75 move rule!\n");
@@ -1611,43 +1644,44 @@ int positionalBalance(int board[]) {
 	return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
 }
 
-int evaluateEndNode(Game game) {
+int evaluateEndNode(Game * game) {
 	if (isCheckmate(game)) {
-		return winScore(opposingColor(game.toMove));
+		return winScore(opposingColor(game->toMove));
 	}
-	if (isStalemate(game) || hasInsufficientMaterial(game.board) || isOver75MovesRule(game)) {
+	if (isStalemate(game) || hasInsufficientMaterial(game->board) || isOver75MovesRule(game)) {
 		return 0;
 	}
 	return 0;
 }
 
-int evaluateGame(Game game) {
+int evaluateGame(Game * game) {
 	if (hasGameEnded(game))
 		return evaluateEndNode(game);
 	else
-		return materialBalance(game.board) + positionalBalance(game.board);
+		return materialBalance(game->board) + positionalBalance(game->board);
 }
 
 // ========= SEARCH ==========
 
-Node simpleEvaluation(Game game) {
-	int bestScore = winScore(opposingColor(game.toMove));
+Node simpleEvaluation(Game * game) {
+	int bestScore = winScore(opposingColor(game->toMove));
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
-	int moveCount = legalMoves(moves, game, game.toMove);
+	int moveCount = legalMoves(moves, game, game->toMove);
 
+	Game newGame;
 	int i;
 	for (i=0; i<moveCount; i++) {
-		Game newGame = makeMove(game, moves[i]);
-		int score = evaluateGame(newGame);
+		makeMove(&newGame, game, moves[i]);
+		int score = evaluateGame(&newGame);
 
-		if (score == winScore(game.toMove)) {
+		if (score == winScore(game->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
-		if ( (game.toMove == WHITE && score > bestScore) ||
-			 (game.toMove == BLACK && score < bestScore) ) {
+		if ( (game->toMove == WHITE && score > bestScore) ||
+			 (game->toMove == BLACK && score < bestScore) ) {
 			bestScore = score;
 			bestMove = moves[i];
 		}
@@ -1656,23 +1690,24 @@ Node simpleEvaluation(Game game) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
-Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
+Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(game))
 		return (Node) { .score = evaluateEndNode(game) };
 
 	Node simpleNode = simpleEvaluation(game);
 
-	if (depth == 1 || simpleNode.score == winScore(game.toMove))
+	if (depth == 1 || simpleNode.score == winScore(game->toMove))
 		return simpleNode;
 
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
-	int moveCount = legalMoves(moves, game, game.toMove);
+	int moveCount = legalMoves(moves, game, game->toMove);
 
+	Game newGame;
 	int i;
 	for (i=0; i<moveCount; i++) {
-		Game newGame = makeMove(game, moves[i]);
+		makeMove(&newGame, game, moves[i]);
 
 		if (verbose) {
 			int l = getFrom(moves[i]);
@@ -1681,18 +1716,18 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 			fflush(stdout);
 		}
 
-		int score = alpha_beta(newGame, depth-1, alpha, beta, FALSE).score;
+		int score = alpha_beta(&newGame, depth-1, alpha, beta, FALSE).score;
 
 		if (verbose) {
 			printf("%.2f\n", score/100.0);
 			fflush(stdout);
 		}
 
-		if (score == winScore(game.toMove)) {
+		if (score == winScore(game->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
-		if (game.toMove == WHITE) {
+		if (game->toMove == WHITE) {
 			if (score > alpha) {
 				alpha = score;
 				bestMove = moves[i];
@@ -1700,7 +1735,7 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 					break;
 				}
 			}
-		} else if (game.toMove == BLACK) {
+		} else if (game->toMove == BLACK) {
 			if (score < beta) {
 				beta = score;
 				bestMove = moves[i];
@@ -1711,21 +1746,21 @@ Node alpha_beta(Game game, char depth, int alpha, int beta, BOOL verbose) {
 		}
 	}
 
-	return (Node) { .move = bestMove, .score = game.toMove==WHITE?alpha:beta };
+	return (Node) { .move = bestMove, .score = game->toMove==WHITE?alpha:beta };
 }
 
-Move getRandomMove(Game game) {
+Move getRandomMove(Game * game) {
 	Move moves[MAX_BRANCHING_FACTOR];
-	int totalMoves = legalMoves(moves, game, game.toMove);
+	int totalMoves = legalMoves(moves, game, game->toMove);
 	int chosenMove = rand() % totalMoves;
 	return moves[chosenMove];
 }
 
-Move getAIMove(Game game, int depth) {
+Move getAIMove(Game * game, int depth) {
 	printf("--- AI ---\n");
 	fflush(stdout);
 
-	if ( game.fromInitial && countBookOccurrences(game) > 0 ) {
+	if ( fromInitial(game) && countBookOccurrences(game) > 0 ) {
 		printf("There are %d available book continuations.\n", countBookOccurrences(game));
 		fflush(stdout);
 		Move bookMove = getBookMove(game);
@@ -1768,8 +1803,9 @@ Move getPlayerMove() {
 }
 
 Move suggestMove(char fen[], int depth) {
-	Game game = loadFen(fen);
-	return getAIMove(game, depth);
+	Game game;
+	loadFen(&game, fen);
+	return getAIMove(&game, depth);
 }
 
 // ===== PLAY LOOP (TEXT) ====
@@ -1778,46 +1814,50 @@ void playTextWhite(int depth) {
 	printf("Playing as WHITE!\n");
 	fflush(stdout);
 
-	Game game;
-	game = getInitialGame();
+	Game game, newGame;
+	getInitialGame(&game);
 
 	while(TRUE) {
 		printBoard(game.board);
-        if (hasGameEnded(game))
+        if (hasGameEnded(&game))
         	break;
 
-        game = makeMove(game, getPlayerMove(game));
+        makeMove(&newGame, &game, getPlayerMove(game));
+        memcpy(&game, &newGame, sizeof(Game));
 
         printBoard(game.board);
-        if (hasGameEnded(game))
+        if (hasGameEnded(&game))
 			break;
 
-        game = makeMove(game, getAIMove(game, depth));
+        makeMove(&newGame, &game, getAIMove(&game, depth));
+        memcpy(&game, &newGame, sizeof(Game));
 	}
-	printOutcome(game);
+	printOutcome(&game);
 }
 
 void playTextBlack(int depth) {
 	printf("Playing as BLACK!\n");
 	fflush(stdout);
 
-	Game game;
-	game = getInitialGame();
+	Game game, newGame;
+	getInitialGame(&game);
 
 	while(TRUE) {
         printBoard(game.board);
-        if (hasGameEnded(game))
+        if (hasGameEnded(&game))
         	break;
 
-        game = makeMove(game, getAIMove(game, depth));
+        makeMove(&newGame, &game, getAIMove(&game, depth));
+		memcpy(&game, &newGame, sizeof(Game));
 
         printBoard(game.board);
-        if (hasGameEnded(game))
+        if (hasGameEnded(&game))
 			break;
 
-        game = makeMove(game, getPlayerMove(game));
+        makeMove(&newGame, &game, getPlayerMove(game));
+		memcpy(&game, &newGame, sizeof(Game));
 	}
-	printOutcome(game);
+	printOutcome(&game);
 }
 
 void playTextAs(char color, int depth) {
