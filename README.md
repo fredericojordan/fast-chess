@@ -14,6 +14,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 
 - **C** - Change board [c]olor scheme
 - **R** - [R]andom board color
+- **U** - [U]ndo move
 - **Q** - [Q]uit
 - **E** - Static board [e]valuation (debug mode only)
 - **P** - [P]rint move list (debug mode only)
