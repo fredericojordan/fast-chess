@@ -17,7 +17,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **U** - [U]ndo move
 - **Q** - [Q]uit
 - **E** - Static board [e]valuation (debug mode only)
-- **P** - [P]rint move list (debug mode only)
+- **P** - [P]rint game history (debug mode only)
 
 ## Screenshot
 ![chess game](http://i.imgur.com/O6rcSqu.png)
