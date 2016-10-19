@@ -1467,7 +1467,7 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 	int legalCount = legalMoves(moves, game, color);
 
 	Game newGame;
-	Node nodes[legalCount], orderedNodes[legalCount];
+	Node nodes[legalCount], orderedNodes[legalCount], nodeBuffer[legalCount];
 
 	int i, j;
 	BOOL sorted;
@@ -1480,7 +1480,8 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 			if ( (color == WHITE && nodes[i].score > orderedNodes[j].score) ||
 			     (color == BLACK && nodes[i].score < orderedNodes[j].score) ) {
 				sorted = TRUE;
-				memcpy(&orderedNodes[j+1], &orderedNodes[j], (i-j)*sizeof(Node));
+				memcpy(nodeBuffer, &orderedNodes[j], (i-j)*sizeof(Node));
+				memcpy(&orderedNodes[j+1], nodeBuffer, (i-j)*sizeof(Node));
 				orderedNodes[j] = nodes[i];
 				break;
 			}
