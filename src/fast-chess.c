@@ -616,6 +616,35 @@ int countBits(Bitboard bb) {
 	return bitCount;
 }
 
+void sortNodes(Node * sortedNodes, Node * nodes, int len, char color) {
+	Node nodeBuffer[len];
+
+	int i, j;
+	BOOL sorted;
+	for (i=0; i<len; i++) {
+		sorted = FALSE;
+
+		for (j=0; j<i; j++) {
+			if ( (color == WHITE && nodes[i].score > sortedNodes[j].score) ||
+				 (color == BLACK && nodes[i].score < sortedNodes[j].score) ) {
+				sorted = TRUE;
+				memcpy(nodeBuffer, &sortedNodes[j], (i-j)*sizeof(Node));
+				memcpy(&sortedNodes[j+1], nodeBuffer, (i-j)*sizeof(Node));
+				sortedNodes[j] = nodes[i];
+				break;
+			}
+		}
+
+		if ( sorted == FALSE ) {
+			sortedNodes[i] = nodes[i];
+		}
+	}
+}
+
+void printNode(Node node) {
+	printf("%c%c to %c%c: %d\n", getFile(getFrom(node.move)), getRank(getFrom(node.move)), getFile(getTo(node.move)), getRank(getTo(node.move)), node.score );
+}
+
 // ====== BOARD FILTERS ======
 
 Bitboard getColoredPieces(int board[], char color) {
@@ -1467,30 +1496,15 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 	int legalCount = legalMoves(moves, game, color);
 
 	Game newGame;
-	Node nodes[legalCount], orderedNodes[legalCount], nodeBuffer[legalCount];
+	Node nodes[legalCount], orderedNodes[legalCount];
 
-	int i, j;
-	BOOL sorted;
+	int i;
 	for (i=0; i<legalCount; i++) {
-		sorted = FALSE;
 		makeMove(&newGame, game, moves[i]);
 		nodes[i] = (Node) { .move = moves[i], .score = evaluateGame(&newGame) };
-
-		for (j=0; j<i; j++) {
-			if ( (color == WHITE && nodes[i].score > orderedNodes[j].score) ||
-			     (color == BLACK && nodes[i].score < orderedNodes[j].score) ) {
-				sorted = TRUE;
-				memcpy(nodeBuffer, &orderedNodes[j], (i-j)*sizeof(Node));
-				memcpy(&orderedNodes[j+1], nodeBuffer, (i-j)*sizeof(Node));
-				orderedNodes[j] = nodes[i];
-				break;
-			}
-		}
-
-		if ( sorted == FALSE ) {
-			orderedNodes[i] = nodes[i];
-		}
 	}
+
+	sortNodes(orderedNodes, nodes, legalCount, color);
 
 	for (i=0; i<legalCount; i++) {
 		orderedLegalMoves[i] = orderedNodes[i].move;
@@ -1727,7 +1741,7 @@ Node simpleEvaluation(Game * game) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
-Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
+Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(game))
 		return (Node) { .score = evaluateEndNode(game) };
 
@@ -1754,7 +1768,7 @@ Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 			fflush(stdout);
 		}
 
-		int score = alpha_beta(&newGame, depth-1, alpha, beta, FALSE).score;
+		int score = alphaBeta(&newGame, depth-1, alpha, beta, FALSE).score;
 
 		if (verbose) {
 			printf("%.2f\n", score/100.0);
@@ -1777,6 +1791,83 @@ Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 			if (score < beta) {
 				beta = score;
 				bestMove = moves[i];
+				if (alpha > beta) {
+					break;
+				}
+			}
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = game->toMove==WHITE?alpha:beta };
+}
+
+int alphaBetaMoves(Node * nodes, Game * game, char depth) {
+	Move moves[MAX_BRANCHING_FACTOR];
+	int moveCount = legalMoves(moves, game, game->toMove);
+
+	Game newGame;
+	int i;
+	for (i=0; i<moveCount; i++) {
+		makeMove(&newGame, game, moves[i]);
+
+		nodes[i].move = moves[i];
+		nodes[i].score = depth>1?alphaBeta(&newGame, depth-1, -INT32_MAX, INT32_MAX, FALSE).score:evaluateGame(&newGame);
+	}
+
+	return moveCount;
+}
+
+Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
+	if (hasGameEnded(game))
+		return (Node) { .score = evaluateEndNode(game) };
+
+	Node simpleNode = simpleEvaluation(game);
+
+	if (depth == 1 || simpleNode.score == winScore(game->toMove))
+		return simpleNode;
+
+	Move bestMove = 0;
+
+	Node sortedNodes[MAX_BRANCHING_FACTOR], nodes[MAX_BRANCHING_FACTOR];
+
+	int moveCount = alphaBetaMoves(nodes, game, depth-1);
+	sortNodes(sortedNodes, nodes, moveCount, game->toMove);
+
+	Game newGame;
+	int i;
+	for (i=0; i<moveCount; i++) {
+		makeMove(&newGame, game, sortedNodes[i].move);
+
+		if (verbose) {
+			int l = getFrom(sortedNodes[i].move);
+			int a = getTo(sortedNodes[i].move);
+			printf("(%d/%d) evaluating move: %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
+			fflush(stdout);
+		}
+
+		int score = alphaBeta(&newGame, depth-1, alpha, beta, FALSE).score;
+
+		if (verbose) {
+			printf("%.2f\n", score/100.0);
+			fflush(stdout);
+		}
+
+		if (score == winScore(game->toMove)) {
+			return (Node) { .move = sortedNodes[i].move, .score = score };
+		}
+
+		if (game->toMove == WHITE) {
+			if (score > alpha) {
+				alpha = score;
+				bestMove = sortedNodes[i].move;
+				if (alpha > beta) {
+					break;
+				}
+			}
+		} else if (game->toMove == BLACK) {
+			if (score < beta) {
+				beta = score;
+				bestMove = sortedNodes[i].move;
 				if (alpha > beta) {
 					break;
 				}
@@ -1816,7 +1907,8 @@ Move getAIMove(Game * game, int depth) {
 //	Move move = getRandomMove(game);
 //	Move move = simpleEvaluation(game).move;
 //	Move move = minimax(game, AI_DEPTH).move;
-	Node node = alpha_beta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
+//	Node node = alphaBeta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
+	Node node = iterativeDeepeningAlphaBeta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
 
 	endTime = time(NULL);
 

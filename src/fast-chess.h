@@ -140,6 +140,9 @@ void printBoard(int board[]);
 void printGame(Game * game);
 Bitboard not(Bitboard bb);
 char opposingColor(char color);
+int countBits(Bitboard bb);
+void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
+void printNode(Node node);
 
 // ====== BOARD FILTERS ======
 
@@ -287,7 +290,9 @@ int evaluateGame(Game * game);
 // ========= SEARCH ==========
 
 Node simpleEvaluation(Game * game);
-Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose);
+Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
+int alphaBetaMoves(Node * nodes, Game * game, char depth);
+Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
 Move getRandomMove(Game * game);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
