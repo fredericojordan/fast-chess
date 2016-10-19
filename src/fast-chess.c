@@ -1828,8 +1828,12 @@ Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, B
 
 	Move bestMove = 0;
 
-	Node sortedNodes[MAX_BRANCHING_FACTOR], nodes[MAX_BRANCHING_FACTOR];
+	if (verbose) {
+		printf("Ordering moves...\n");
+		fflush(stdout);
+	}
 
+	Node sortedNodes[MAX_BRANCHING_FACTOR], nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaMoves(nodes, game, depth-1);
 	sortNodes(sortedNodes, nodes, moveCount, game->toMove);
 
