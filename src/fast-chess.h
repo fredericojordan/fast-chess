@@ -262,6 +262,7 @@ BOOL isCheck(int board[], char color);
 BOOL isLegalMove(Game * game, Move move);
 int legalMoves(Move * legalMoves, Game * game, char color);
 int legalMovesCount(Game * game, char color);
+int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color);
 
 // ====== GAME CONTROL =======
 

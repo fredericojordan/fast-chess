@@ -1462,6 +1462,41 @@ int legalMovesCount(Game * game, char color) {
 	return legalCount;
 }
 
+int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
+	Move moves[MAX_BRANCHING_FACTOR];
+	int legalCount = legalMoves(moves, game, color);
+
+	Game newGame;
+	Node nodes[legalCount], orderedNodes[legalCount];
+
+	int i, j;
+	BOOL sorted;
+	for (i=0; i<legalCount; i++) {
+		sorted = FALSE;
+		makeMove(&newGame, game, moves[i]);
+		nodes[i] = (Node) { .move = moves[i], .score = evaluateGame(&newGame) };
+
+		for (j=0; j<i; j++) {
+			if ( nodes[i].score > orderedNodes[j].score ) {
+				sorted = TRUE;
+				memcpy(&orderedNodes[j+1], &orderedNodes[j], (i-j)*sizeof(Node));
+				orderedNodes[j] = nodes[i];
+				break;
+			}
+		}
+
+		if ( sorted == FALSE ) {
+			orderedNodes[i] = nodes[i];
+		}
+	}
+
+	for (i=0; i<legalCount; i++) {
+		orderedLegalMoves[i] = orderedNodes[i].move;
+	}
+
+	return legalCount;
+}
+
 // ====== GAME CONTROL =======
 
 BOOL isCheckmate(Game * game) {
@@ -1702,7 +1737,8 @@ Node alpha_beta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
-	int moveCount = legalMoves(moves, game, game->toMove);
+//	int moveCount = legalMoves(moves, game, game->toMove);
+	int moveCount = simplyOrderedLegalMoves(moves, game, game->toMove);
 
 	Game newGame;
 	int i;
