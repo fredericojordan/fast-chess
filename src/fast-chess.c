@@ -1477,7 +1477,8 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 		nodes[i] = (Node) { .move = moves[i], .score = evaluateGame(&newGame) };
 
 		for (j=0; j<i; j++) {
-			if ( nodes[i].score > orderedNodes[j].score ) {
+			if ( (color == WHITE && nodes[i].score > orderedNodes[j].score) ||
+			     (color == BLACK && nodes[i].score < orderedNodes[j].score) ) {
 				sorted = TRUE;
 				memcpy(&orderedNodes[j+1], &orderedNodes[j], (i-j)*sizeof(Node));
 				orderedNodes[j] = nodes[i];
