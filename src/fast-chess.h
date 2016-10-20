@@ -91,6 +91,7 @@ extern char RANKS[8];
 extern Bitboard FILES_BB[8];
 extern Bitboard RANKS_BB[8];
 
+extern char INITIAL_FEN[];
 extern int INITIAL_BOARD[NUM_SQUARES];
 extern int PIECE_VALUES[];
 
@@ -142,6 +143,7 @@ Bitboard not(Bitboard bb);
 char opposingColor(char color);
 int countBits(Bitboard bb);
 void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
+void printMove(Move move);
 void printNode(Node node);
 
 // ====== BOARD FILTERS ======
@@ -265,7 +267,8 @@ BOOL isCheck(int board[], char color);
 BOOL isLegalMove(Game * game, Move move);
 int legalMoves(Move * legalMoves, Game * game, char color);
 int legalMovesCount(Game * game, char color);
-int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color);
+int staticOrderLegalMoves(Move * orderedLegalMoves, Game * game, char color);
+int legalCaptures(Move * legalCaptures, Game * game, char color);
 
 // ====== GAME CONTROL =======
 
@@ -284,14 +287,14 @@ int materialSum(int board[], char color);
 int materialBalance(int board[]);
 int positionalBonus(int board[], char color);
 int positionalBalance(int board[]);
-int evaluateEndNode(Game * game);
-int evaluateGame(Game * game);
+int endNodeEvaluation(Game * game);
+int staticEvaluation(Game * game);
 
 // ========= SEARCH ==========
 
-Node simpleEvaluation(Game * game);
+Node staticSearch(Game * game);
 Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
-int alphaBetaMoves(Node * nodes, Game * game, char depth);
+int alphaBetaNodes(Node * nodes, Game * game, char depth);
 Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
 Move getRandomMove(Game * game);
 Move getAIMove(Game * game, int depth);

@@ -398,7 +398,7 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", evaluateGame(&game)/100.0);
+					printf("board evaluation = %.2f\n", staticEvaluation(&game)/100.0);
 					fflush(stdout);
 					break;
 
@@ -530,7 +530,7 @@ void playAlone() {
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", evaluateGame(&game)/100.0);
+					printf("board evaluation = %.2f\n", staticEvaluation(&game)/100.0);
 					fflush(stdout);
 					break;
 

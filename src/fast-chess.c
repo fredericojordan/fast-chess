@@ -21,6 +21,8 @@ char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
 Bitboard FILES_BB[8] = { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H };
 Bitboard RANKS_BB[8] = { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8 };
 
+char INITIAL_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE|QUEEN, WHITE|KING, WHITE|BISHOP, WHITE|KNIGHT, WHITE|ROOK,
                                    WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,  WHITE|PAWN, WHITE|PAWN,   WHITE|PAWN,   WHITE|PAWN,
                                    EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
@@ -29,8 +31,6 @@ int INITIAL_BOARD[NUM_SQUARES] = { WHITE|ROOK, WHITE|KNIGHT, WHITE|BISHOP, WHITE
                                    EMPTY,      EMPTY,        EMPTY,        EMPTY,       EMPTY,      EMPTY,        EMPTY,        EMPTY,
                                    BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,  BLACK|PAWN, BLACK|PAWN,   BLACK|PAWN,   BLACK|PAWN,
                                    BLACK|ROOK, BLACK|KNIGHT, BLACK|BISHOP, BLACK|QUEEN, BLACK|KING, BLACK|BISHOP, BLACK|KNIGHT, BLACK|ROOK };
-
-char INITIAL_FEN[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 int PIECE_VALUES[] = { 0, 100, 300, 300, 500, 900, 42000 };
 
@@ -641,8 +641,13 @@ void sortNodes(Node * sortedNodes, Node * nodes, int len, char color) {
 	}
 }
 
+void printMove(Move move) {
+	printf("%c%c to %c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
+}
+
 void printNode(Node node) {
-	printf("%c%c to %c%c: %d\n", getFile(getFrom(node.move)), getRank(getFrom(node.move)), getFile(getTo(node.move)), getRank(getTo(node.move)), node.score );
+	printMove(node.move);
+	printf(": %d", node.score);
 }
 
 // ====== BOARD FILTERS ======
@@ -1491,7 +1496,7 @@ int legalMovesCount(Game * game, char color) {
 	return legalCount;
 }
 
-int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
+int staticOrderLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 	Move moves[MAX_BRANCHING_FACTOR];
 	int legalCount = legalMoves(moves, game, color);
 
@@ -1501,7 +1506,7 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 	int i;
 	for (i=0; i<legalCount; i++) {
 		makeMove(&newGame, game, moves[i]);
-		nodes[i] = (Node) { .move = moves[i], .score = evaluateGame(&newGame) };
+		nodes[i] = (Node) { .move = moves[i], .score = staticEvaluation(&newGame) };
 	}
 
 	sortNodes(orderedNodes, nodes, legalCount, color);
@@ -1511,6 +1516,22 @@ int simplyOrderedLegalMoves(Move * orderedLegalMoves, Game * game, char color) {
 	}
 
 	return legalCount;
+}
+
+int legalCaptures(Move * legalCaptures, Game * game, char color) {
+	int i, captureCount = 0;
+
+	Move moves[MAX_BRANCHING_FACTOR];
+	int legalCount = legalMoves(moves, game, color);
+
+	for (i=0; i<legalCount; i++) {
+		int arrivingSquare = getTo(moves[i]);
+		if ( index2bb(arrivingSquare) & getColoredPieces(game->board, opposingColor(color)) ) {
+			legalCaptures[captureCount++] = moves[i];
+		}
+	}
+
+	return captureCount;
 }
 
 // ====== GAME CONTROL =======
@@ -1695,7 +1716,7 @@ int positionalBalance(int board[]) {
 	return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
 }
 
-int evaluateEndNode(Game * game) {
+int endNodeEvaluation(Game * game) {
 	if (isCheckmate(game)) {
 		return winScore(opposingColor(game->toMove));
 	}
@@ -1705,16 +1726,16 @@ int evaluateEndNode(Game * game) {
 	return 0;
 }
 
-int evaluateGame(Game * game) {
+int staticEvaluation(Game * game) {
 	if (hasGameEnded(game))
-		return evaluateEndNode(game);
+		return endNodeEvaluation(game);
 	else
 		return materialBalance(game->board) + positionalBalance(game->board);
 }
 
 // ========= SEARCH ==========
 
-Node simpleEvaluation(Game * game) {
+Node staticSearch(Game * game) {
 	int bestScore = winScore(opposingColor(game->toMove));
 	Move bestMove = 0;
 
@@ -1725,7 +1746,7 @@ Node simpleEvaluation(Game * game) {
 	int i;
 	for (i=0; i<moveCount; i++) {
 		makeMove(&newGame, game, moves[i]);
-		int score = evaluateGame(&newGame);
+		int score = staticEvaluation(&newGame);
 
 		if (score == winScore(game->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
@@ -1743,18 +1764,18 @@ Node simpleEvaluation(Game * game) {
 
 Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(game))
-		return (Node) { .score = evaluateEndNode(game) };
+		return (Node) { .score = endNodeEvaluation(game) };
 
-	Node simpleNode = simpleEvaluation(game);
+	Node staticNode = staticSearch(game);
 
-	if (depth == 1 || simpleNode.score == winScore(game->toMove))
-		return simpleNode;
+	if (depth == 1 || staticNode.score == winScore(game->toMove))
+		return staticNode;
 
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
 //	int moveCount = legalMoves(moves, game, game->toMove);
-	int moveCount = simplyOrderedLegalMoves(moves, game, game->toMove);
+	int moveCount = staticOrderLegalMoves(moves, game, game->toMove);
 
 	Game newGame;
 	int i;
@@ -1801,7 +1822,7 @@ Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	return (Node) { .move = bestMove, .score = game->toMove==WHITE?alpha:beta };
 }
 
-int alphaBetaMoves(Node * nodes, Game * game, char depth) {
+int alphaBetaNodes(Node * nodes, Game * game, char depth) {
 	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = legalMoves(moves, game, game->toMove);
 
@@ -1811,7 +1832,7 @@ int alphaBetaMoves(Node * nodes, Game * game, char depth) {
 		makeMove(&newGame, game, moves[i]);
 
 		nodes[i].move = moves[i];
-		nodes[i].score = depth>1?alphaBeta(&newGame, depth-1, -INT32_MAX, INT32_MAX, FALSE).score:evaluateGame(&newGame);
+		nodes[i].score = depth>1?iterativeDeepeningAlphaBeta(&newGame, depth-1, INT32_MIN, INT32_MAX, FALSE).score:staticEvaluation(&newGame);
 	}
 
 	return moveCount;
@@ -1819,12 +1840,12 @@ int alphaBetaMoves(Node * nodes, Game * game, char depth) {
 
 Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(game))
-		return (Node) { .score = evaluateEndNode(game) };
+		return (Node) { .score = endNodeEvaluation(game) };
 
-	Node simpleNode = simpleEvaluation(game);
+	Node staticNode = staticSearch(game);
 
-	if (depth == 1 || simpleNode.score == winScore(game->toMove))
-		return simpleNode;
+	if (depth == 1 || staticNode.score == winScore(game->toMove))
+		return staticNode;
 
 	Move bestMove = 0;
 
@@ -1834,7 +1855,7 @@ Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, B
 	}
 
 	Node sortedNodes[MAX_BRANCHING_FACTOR], nodes[MAX_BRANCHING_FACTOR];
-	int moveCount = alphaBetaMoves(nodes, game, depth-1);
+	int moveCount = alphaBetaNodes(nodes, game, depth-1);
 	sortNodes(sortedNodes, nodes, moveCount, game->toMove);
 
 	Game newGame;
@@ -1849,7 +1870,7 @@ Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, B
 			fflush(stdout);
 		}
 
-		int score = alphaBeta(&newGame, depth-1, alpha, beta, FALSE).score;
+		int score = iterativeDeepeningAlphaBeta(&newGame, depth-1, alpha, beta, FALSE).score;
 
 		if (verbose) {
 			printf("%.2f\n", score/100.0);
@@ -1911,14 +1932,14 @@ Move getAIMove(Game * game, int depth) {
 //	Move move = getRandomMove(game);
 //	Move move = simpleEvaluation(game).move;
 //	Move move = minimax(game, AI_DEPTH).move;
-//	Node node = alphaBeta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
-	Node node = iterativeDeepeningAlphaBeta(game, depth, -INT32_MAX, INT32_MAX, TRUE);
+//	Node node = alphaBeta(game, depth, INT32_MIN, INT32_MAX, TRUE);
+	Node node = iterativeDeepeningAlphaBeta(game, depth, INT32_MIN, INT32_MAX, TRUE);
 
 	endTime = time(NULL);
 
 	int l = getFrom(node.move);
 	int a = getTo(node.move);
-	printf("CHOSEN move: %c%c to %c%c in %d seconds [%.2f,%.2f]\n", getFile(l), getRank(l), getFile(a), getRank(a), (int) (endTime-startTime), evaluateGame(game)/100.0, node.score/100.0);
+	printf("CHOSEN move: %c%c to %c%c in %d seconds [%.2f,%.2f]\n", getFile(l), getRank(l), getFile(a), getRank(a), (int) (endTime-startTime), staticEvaluation(game)/100.0, node.score/100.0);
 	fflush(stdout);
 
 	return node.move;
