@@ -64,6 +64,7 @@ typedef int Move;
 #define MAX_PLYS_PER_GAME (1024)
 #define MAX_FEN_LEN (100)
 #define MAX_BRANCHING_FACTOR (100)
+#define MAX_ATTACKING_PIECES (12)
 
 #define DEFAULT_AI_DEPTH (3)
 
@@ -144,7 +145,7 @@ void printBitboard(Bitboard bitboard);
 void printBoard(int board[]);
 void printGame(Game * game);
 Bitboard not(Bitboard bb);
-char opposingColor(char color);
+char opponent(char color);
 int countBits(Bitboard bb);
 void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
 void printMove(Move move);
@@ -294,10 +295,12 @@ int positionalBonus(int board[], char color);
 int positionalBalance(int board[]);
 int endNodeEvaluation(Position * position);
 int staticEvaluation(Position * position);
+int quiescenceEvaluation(Position * position);
 
 // ========= SEARCH ==========
 
 Node staticSearch(Position * position);
+Node quiescenceSearch(Position * position);
 Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);

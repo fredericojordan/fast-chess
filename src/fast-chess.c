@@ -598,14 +598,14 @@ Bitboard not(Bitboard bb) {
 	return ~bb & ALL_SQUARES;
 }
 
-char opposingColor(char color) {
+char opponent(char color) {
 	switch(color) {
 	case WHITE:
 		return BLACK;
 	case BLACK:
 		return WHITE;
 	}
-	return 0;
+	return -1;
 }
 
 int countBits(Bitboard bb) {
@@ -838,7 +838,7 @@ Bitboard pawnAttacks(Bitboard moving_piece, int board[], char color) {
 }
 
 Bitboard pawnSimpleCaptures(Bitboard moving_piece, int board[], char color) {
-	return pawnAttacks(moving_piece, board, color) & getColoredPieces(board, opposingColor(color));
+	return pawnAttacks(moving_piece, board, color) & getColoredPieces(board, opponent(color));
 }
 
 Bitboard pawnEpCaptures(Bitboard moving_piece, Position * position, char color) {
@@ -925,7 +925,7 @@ BOOL isPassedPawn(Bitboard position, int board[]) {
 		squaresFilter |= northRay(east(position)) | northRay(west(position)) | northRay(position);
 	}
 
-	if (countPieces( getPawns(board)&getColoredPieces(board, opposingColor(pieceColor))&squaresFilter ) == 0)
+	if (countPieces( getPawns(board)&getColoredPieces(board, opponent(pieceColor))&squaresFilter ) == 0)
 		return TRUE;
 	return FALSE;
 }
@@ -980,9 +980,9 @@ BOOL canCastleKingside(Position * position, char color) {
 		if ( (position->castlingRights&CASTLE_KINGSIDE_WHITE) &&
 			 (position->board[str2index("f1")] == EMPTY) &&
 			 (position->board[str2index("g1")] == EMPTY) &&
-			 (!isAttacked(str2bb("e1"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("f1"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("g1"), position->board, opposingColor(color))) )
+			 (!isAttacked(str2bb("e1"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("f1"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("g1"), position->board, opponent(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -991,9 +991,9 @@ BOOL canCastleKingside(Position * position, char color) {
 		if ( (position->castlingRights&CASTLE_KINGSIDE_BLACK) &&
 			 (position->board[str2index("f8")] == EMPTY) &&
 			 (position->board[str2index("g8")] == EMPTY) &&
-			 (!isAttacked(str2bb("e8"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("f8"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("g8"), position->board, opposingColor(color))) )
+			 (!isAttacked(str2bb("e8"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("f8"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("g8"), position->board, opponent(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -1010,9 +1010,9 @@ BOOL canCastleQueenside(Position * position, char color) {
 			 (position->board[str2index("b1")] == EMPTY) &&
 			 (position->board[str2index("c1")] == EMPTY) &&
 			 (position->board[str2index("d1")] == EMPTY) &&
-			 (!isAttacked(str2bb("c1"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("d1"), position->board, opposingColor(color))) &&
-			 (!isAttacked(str2bb("e1"), position->board, opposingColor(color))) )
+			 (!isAttacked(str2bb("c1"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("d1"), position->board, opponent(color))) &&
+			 (!isAttacked(str2bb("e1"), position->board, opponent(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -1022,9 +1022,9 @@ BOOL canCastleQueenside(Position * position, char color) {
 				 (position->board[str2index("b8")] == EMPTY) &&
 				 (position->board[str2index("c8")] == EMPTY) &&
 				 (position->board[str2index("d8")] == EMPTY) &&
-				 (!isAttacked(str2bb("c8"), position->board, opposingColor(color))) &&
-				 (!isAttacked(str2bb("d8"), position->board, opposingColor(color))) &&
-				 (!isAttacked(str2bb("e8"), position->board, opposingColor(color))) )
+				 (!isAttacked(str2bb("c8"), position->board, opponent(color))) &&
+				 (!isAttacked(str2bb("d8"), position->board, opponent(color))) &&
+				 (!isAttacked(str2bb("e8"), position->board, opponent(color))) )
 			return TRUE;
 		else
 			return FALSE;
@@ -1266,7 +1266,7 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 	movePiece(newPosition->board, move);
 
 	// ===== TO MOVE =====
-	newPosition->toMove = opposingColor(position->toMove);
+	newPosition->toMove = opponent(position->toMove);
 
 	// ===== MOVE COUNTS =====
 	newPosition->halfmoveClock += 1;
@@ -1466,7 +1466,7 @@ BOOL isAttacked(Bitboard target, int board[], char color) {
 }
 
 BOOL isCheck(int board[], char color) {
-	return isAttacked(getKing(board, color), board, opposingColor(color));
+	return isAttacked(getKing(board, color), board, opponent(color));
 }
 
 BOOL isLegalMove(Position * position, Move move) {
@@ -1537,7 +1537,7 @@ int legalCaptures(Move * legalCaptures, Position * position, char color) {
 
 	for (i=0; i<legalCount; i++) {
 		int arrivingSquare = getTo(moves[i]);
-		if ( index2bb(arrivingSquare) & getColoredPieces(position->board, opposingColor(color)) ) {
+		if ( index2bb(arrivingSquare) & getColoredPieces(position->board, opponent(color)) ) {
 			legalCaptures[captureCount++] = moves[i];
 		}
 	}
@@ -1729,7 +1729,7 @@ int positionalBalance(int board[]) {
 
 int endNodeEvaluation(Position * position) {
 	if (isCheckmate(position)) {
-		return winScore(opposingColor(position->toMove));
+		return winScore(opponent(position->toMove));
 	}
 	if (isStalemate(position) || hasInsufficientMaterial(position->board) || isOver75MovesRule(position)) {
 		return 0;
@@ -1744,10 +1744,40 @@ int staticEvaluation(Position * position) {
 		return materialBalance(position->board) + positionalBalance(position->board);
 }
 
+int quiescenceEvaluation(Position * position) {
+	int staticScore = staticEvaluation(position);
+
+	if (hasGameEnded(position))
+		return staticScore;
+
+	Move captures[MAX_BRANCHING_FACTOR];
+	int captureCount = legalCaptures(captures, position, position->toMove);
+
+	if (captureCount == 0) {
+		return staticScore;
+	} else {
+		Position newPosition;
+		int i, bestScore = staticScore;
+
+		for (i=0; i<captureCount; i++) {
+
+			updatePosition(&newPosition, position, captures[i]);
+			int score = quiescenceEvaluation(&newPosition);
+
+			if ( (position->toMove == WHITE && score > bestScore) ||
+				 (position->toMove == BLACK && score < bestScore) ) {
+				bestScore = score;
+			}
+		}
+
+		return bestScore;
+	}
+}
+
 // ========= SEARCH ==========
 
 Node staticSearch(Position * position) {
-	int bestScore = winScore(opposingColor(position->toMove));
+	int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
@@ -1773,13 +1803,43 @@ Node staticSearch(Position * position) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
+Node quiescenceSearch(Position * position) {
+	int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
+	Move bestMove = 0;
+
+	Move moves[MAX_BRANCHING_FACTOR];
+	int moveCount = legalMoves(moves, position, position->toMove);
+
+	Position newPosition;
+	int i;
+	for (i=0; i<moveCount; i++) {
+		updatePosition(&newPosition, position, moves[i]);
+		int score = quiescenceEvaluation(&newPosition);
+
+		if (score == winScore(position->toMove)) {
+			return (Node) { .move = moves[i], .score = score };
+		}
+
+		if ( (position->toMove == WHITE && score > bestScore) ||
+			 (position->toMove == BLACK && score < bestScore) ) {
+			bestScore = score;
+			bestMove = moves[i];
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = bestScore };
+}
+
 Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose) {
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
-	Node staticNode = staticSearch(position);
+	if (depth == 1)
+		return staticSearch(position);
 
-	if (depth == 1 || staticNode.score == winScore(position->toMove))
+	// Mate in 1
+	Node staticNode = staticSearch(position);
+	if (staticNode.score == winScore(position->toMove))
 		return staticNode;
 
 	Move bestMove = 0;
@@ -1794,9 +1854,9 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbos
 		updatePosition(&newPosition, position, moves[i]);
 
 		if (verbose) {
-			int l = getFrom(moves[i]);
-			int a = getTo(moves[i]);
-			printf("(%d/%d) evaluating move: %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
+			printf("(%d/%d) evaluating move: ", i+1, moveCount);
+			printMove(moves[i]);
+			printf(" = ");
 			fflush(stdout);
 		}
 
@@ -1853,9 +1913,13 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
-	Node staticNode = staticSearch(position);
+	if (depth == 1)
+//		return quiescenceSearch(position);
+		return staticSearch(position);
 
-	if (depth == 1 || staticNode.score == winScore(position->toMove))
+	// Mate in 1
+	Node staticNode = staticSearch(position);
+	if (staticNode.score == winScore(position->toMove))
 		return staticNode;
 
 	Move bestMove = 0;
@@ -1875,9 +1939,9 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		updatePosition(&newPosition, position, sortedNodes[i].move);
 
 		if (verbose) {
-			int l = getFrom(sortedNodes[i].move);
-			int a = getTo(sortedNodes[i].move);
-			printf("(%d/%d) evaluating move: %c%c to %c%c = ", i+1, moveCount, getFile(l), getRank(l), getFile(a), getRank(a));
+			printf("(%d/%d) evaluating move: ", i+1, moveCount);
+			printMove(sortedNodes[i].move);
+			printf(" = ");
 			fflush(stdout);
 		}
 

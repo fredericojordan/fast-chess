@@ -441,7 +441,7 @@ void playAs(char color, int AIdepth) {
 			}
 		}
 
-		if ( ongoing && game.position.toMove == opposingColor(color) ) {
+		if ( ongoing && game.position.toMove == opponent(color) ) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
 			makeMove(&game, getAIMove(&game, AIdepth));
 			SDL_SetWindowTitle(window, "Chess Game");
