@@ -304,22 +304,22 @@ BOOL init() {
     return TRUE;
 }
 
-void setEndTitle(Game * game) {
-	if (isCheckmate(game)) {
-		if (game->toMove == BLACK) {
+void setEndTitle(Position * position) {
+	if (isCheckmate(position)) {
+		if (position->toMove == BLACK) {
 			SDL_SetWindowTitle(window, "Chess Game - WHITE wins!");
 			printf("WHITE wins!\n");
 		} else {
 			SDL_SetWindowTitle(window, "Chess Game - BLACK wins!");
 			printf("BLACK wins!\n");
 		}
-	} else if (isStalemate(game)) {
+	} else if (isStalemate(position)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
 		printf("Draw by stalemate!\n");
-	} else if (hasInsufficientMaterial(game->board)) {
+	} else if (hasInsufficientMaterial(position->board)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!");
 		printf("Draw by insufficient material!\n");
-	} else if (isOver75MovesRule(game)) {
+	} else if (isOver75MovesRule(position)) {
 		SDL_SetWindowTitle(window, "Chess Game - Draw by 75-move rule!");
 		printf("Draw by 75-move rule!\n");
 	}
@@ -330,9 +330,9 @@ void playAs(char color, int AIdepth) {
 	printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK");
 	fflush(stdout);
 
-	Game game, newGame;
+	Game game;
 	getInitialGame(&game);
-	renderBoard(game.board, color);
+	renderBoard(game.position.board, color);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
@@ -341,7 +341,7 @@ void playAs(char color, int AIdepth) {
 	int leavingPos = -1, arrivingPos = -1;
 
 	while( run ) {
-		renderBoard(game.board, color);
+		renderBoard(game.position.board, color);
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -360,22 +360,21 @@ void playAs(char color, int AIdepth) {
 			case SDL_MOUSEBUTTONUP:
 				arrivingPos = xy2index(event.motion.x, event.motion.y, color);
 
-				if ( ongoing && game.toMove == color ) {
+				if ( ongoing && game.position.toMove == color ) {
 					Move moves[MAX_BRANCHING_FACTOR];
-					int moveCount = legalMoves(moves, &game, game.toMove);
+					int moveCount = legalMoves(moves, &game.position, game.position.toMove);
 
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 
-							makeMove(&newGame, &game, moves[i]);
-							memcpy(&game, &newGame, sizeof(Game));
+							makeMove(&game, moves[i]);
 
-							renderBoard(game.board, color);
+							renderBoard(game.position.board, color);
 
-							if ( hasGameEnded(&game) ) {
+							if ( hasGameEnded(&game.position) ) {
 								ongoing = FALSE;
-								setEndTitle(&game);
+								setEndTitle(&game.position);
 							}
 						}
 				}
@@ -389,16 +388,16 @@ void playAs(char color, int AIdepth) {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.board, color);
+					renderBoard(game.position.board, color);
 					break;
 
 				case SDLK_r:
 					loadRandomTintedBackground();
-					renderBoard(game.board, color);
+					renderBoard(game.position.board, color);
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", staticEvaluation(&game)/100.0);
+					printf("board evaluation = %.2f\n", staticEvaluation(&game.position)/100.0);
 					fflush(stdout);
 					break;
 
@@ -413,10 +412,10 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				case SDLK_u:
-					unmakeMove(&newGame, &game);
-					memcpy(&game, &newGame, sizeof(Game));
+					unmakeMove(&game);
+					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
-					renderBoard(game.board, color);
+					renderBoard(game.position.board, color);
 					break;
 
 				default:
@@ -435,23 +434,22 @@ void playAs(char color, int AIdepth) {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.board, color);
+					renderBoard(game.position.board, color);
 					fflush(stdout);
 					break;
 				}
 			}
 		}
 
-		if ( ongoing && game.toMove == opposingColor(color) ) {
+		if ( ongoing && game.position.toMove == opposingColor(color) ) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
-			makeMove(&newGame, &game, getAIMove(&game, AIdepth));
-			memcpy(&game, &newGame, sizeof(Game));
+			makeMove(&game, getAIMove(&game, AIdepth));
 			SDL_SetWindowTitle(window, "Chess Game");
-			renderBoard(game.board, color);
+			renderBoard(game.position.board, color);
 
-			if ( hasGameEnded(&game) ) {
+			if ( hasGameEnded(&game.position) ) {
 				ongoing = FALSE;
-				setEndTitle(&game);
+				setEndTitle(&game.position);
 			}
 		}
 	}
@@ -464,9 +462,9 @@ void playRandomColor(int depth) {
 }
 
 void playAlone() {
-	Game game, newGame;
+	Game game;
 	getInitialGame(&game);
-	renderBoard(game.board, WHITE);
+	renderBoard(game.position.board, WHITE);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
@@ -475,7 +473,7 @@ void playAlone() {
 	int leavingPos = -1, arrivingPos = -1;
 
 	while( run ) {
-		renderBoard(game.board, WHITE);
+		renderBoard(game.position.board, WHITE);
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -496,18 +494,17 @@ void playAlone() {
 
 				if ( ongoing ) {
 					Move moves[MAX_BRANCHING_FACTOR];
-					int moveCount = legalMoves(moves, &game, game.toMove);
+					int moveCount = legalMoves(moves, &game.position, game.position.toMove);
 
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
-							makeMove(&newGame, &game, moves[i]);
-							memcpy(&game, &newGame, sizeof(Game));
-							renderBoard(game.board, WHITE);
+							makeMove(&game, moves[i]);
+							renderBoard(game.position.board, WHITE);
 
-							if ( hasGameEnded(&game) ) {
+							if ( hasGameEnded(&game.position) ) {
 								ongoing = FALSE;
-								setEndTitle(&game);
+								setEndTitle(&game.position);
 							}
 						}
 				}
@@ -521,16 +518,16 @@ void playAlone() {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.board, WHITE);
+					renderBoard(game.position.board, WHITE);
 					break;
 
 				case SDLK_r:
 					loadRandomTintedBackground();
-					renderBoard(game.board, WHITE);
+					renderBoard(game.position.board, WHITE);
 					break;
 
 				case SDLK_e:
-					printf("board evaluation = %.2f\n", staticEvaluation(&game)/100.0);
+					printf("board evaluation = %.2f\n", staticEvaluation(&game.position)/100.0);
 					fflush(stdout);
 					break;
 
@@ -545,10 +542,10 @@ void playAlone() {
 					break;
 
 				case SDLK_u:
-					unmakeMove(&newGame, &game);
-					memcpy(&game, &newGame, sizeof(Game));
+					unmakeMove(&game);
+					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
-					renderBoard(game.board, WHITE);
+					renderBoard(game.position.board, WHITE);
 					break;
 
 				default:
@@ -567,7 +564,7 @@ void playAlone() {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.board, WHITE);
+					renderBoard(game.position.board, WHITE);
 					fflush(stdout);
 					break;
 				}

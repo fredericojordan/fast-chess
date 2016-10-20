@@ -74,10 +74,14 @@ typedef struct {
    char castlingRights;
    unsigned int halfmoveClock;
    unsigned int fullmoveNumber;
+} Position;
 
-   unsigned int moveListLen;
-   Move moveList[MAX_PLYS_PER_GAME];
-   char positionHistory[MAX_PLYS_PER_GAME][MAX_FEN_LEN];
+typedef struct {
+	Position position;
+
+	unsigned int moveListLen;
+	Move moveList[MAX_PLYS_PER_GAME];
+	char positionHistory[MAX_PLYS_PER_GAME][MAX_FEN_LEN];
 } Game;
 
 typedef struct {
@@ -112,8 +116,8 @@ extern int FLIP[];
 
 void getInitialGame(Game * game);
 void getFenGame(Game * game, char fen[]);
-int loadFen(Game * game, char fen[]);
-int toFen(char * fen, Game * game);
+int loadFen(Position * position, char fen[]);
+int toFen(char * fen, Position * position);
 
 // ========= UTILITY =========
 
@@ -185,9 +189,9 @@ Bitboard pawnEastAttacks(Bitboard moving_piece, int board[], char color);
 Bitboard pawnWestAttacks(Bitboard moving_piece, int board[], char color);
 Bitboard pawnAttacks(Bitboard moving_piece, int board[], char color);
 Bitboard pawnSimpleCaptures(Bitboard moving_piece, int board[], char color);
-Bitboard pawnEpCaptures(Bitboard moving_piece, Game * game, char color);
-Bitboard pawnCaptures(Bitboard moving_piece, Game * game, char color);
-Bitboard pawnMoves(Bitboard moving_piece, Game * game, char color);
+Bitboard pawnEpCaptures(Bitboard moving_piece, Position * position, char color);
+Bitboard pawnCaptures(Bitboard moving_piece, Position * position, char color);
+Bitboard pawnMoves(Bitboard moving_piece, Position * position, char color);
 BOOL isDoublePush(int leaving, int arriving);
 char getEpSquare(int leaving);
 BOOL isDoubledPawn(Bitboard position, int board[]);
@@ -208,8 +212,8 @@ Bitboard knightMoves(Bitboard moving_piece, int board[], char color);
 Bitboard getKing(int board[], char color);
 Bitboard kingAttacks(Bitboard moving_piece);
 Bitboard kingMoves(Bitboard moving_piece, int board[], char color) ;
-BOOL canCastleKingside(Game * game, char color);
-BOOL canCastleQueenside(Game * game, char color);
+BOOL canCastleKingside(Position * position, char color);
+BOOL canCastleQueenside(Position * position, char color);
 char removeCastlingRights(char original_rights, char removed_rights);
 
 // ========== BISHOP =========
@@ -253,32 +257,33 @@ Bitboard queenMoves(Bitboard moving_piece, int board[], char color);
 // ======== MAKE MOVE ========
 
 void movePiece(int board[], Move move);
-void makeMove(Game * dstGame, Game * game, Move move);
-void unmakeMove(Game * dstGame, Game * game);
+void updatePosition(Position * newPosition, Position * position, Move move);
+void makeMove(Game * game, Move move);
+void unmakeMove(Game * game);
 
 // ======== MOVE GEN =========
 
-Bitboard getMoves(Bitboard movingPiece, Game * game, char color);
-int pseudoLegalMoves(Move * moves, Game * game, char color);
+Bitboard getMoves(Bitboard movingPiece, Position * position, char color);
+int pseudoLegalMoves(Move * moves, Position * position, char color);
 Bitboard getAttacks(Bitboard movingPiece, int board[], char color);
 int countAttacks(Bitboard target, int board[], char color);
 BOOL isAttacked(Bitboard target, int board[], char color);
 BOOL isCheck(int board[], char color);
-BOOL isLegalMove(Game * game, Move move);
-int legalMoves(Move * legalMoves, Game * game, char color);
-int legalMovesCount(Game * game, char color);
-int staticOrderLegalMoves(Move * orderedLegalMoves, Game * game, char color);
-int legalCaptures(Move * legalCaptures, Game * game, char color);
+BOOL isLegalMove(Position * position, Move move);
+int legalMoves(Move * legalMoves, Position * position, char color);
+int legalMovesCount(Position * position, char color);
+int staticOrderLegalMoves(Move * orderedLegalMoves, Position * position, char color);
+int legalCaptures(Move * legalCaptures, Position * position, char color);
 
 // ====== GAME CONTROL =======
 
-BOOL isCheckmate(Game * game);
-BOOL isStalemate(Game * game);
+BOOL isCheckmate(Position * position);
+BOOL isStalemate(Position * position);
 BOOL hasInsufficientMaterial(int board[]);
 BOOL isEndgame(int board[]);
-BOOL isOver75MovesRule(Game * game);
-BOOL hasGameEnded(Game * game);
-void printOutcome(Game * game);
+BOOL isOver75MovesRule(Position * position);
+BOOL hasGameEnded(Position * position);
+void printOutcome(Position * position);
 
 // ========== EVAL ===========
 
@@ -287,16 +292,16 @@ int materialSum(int board[], char color);
 int materialBalance(int board[]);
 int positionalBonus(int board[], char color);
 int positionalBalance(int board[]);
-int endNodeEvaluation(Game * game);
-int staticEvaluation(Game * game);
+int endNodeEvaluation(Position * position);
+int staticEvaluation(Position * position);
 
 // ========= SEARCH ==========
 
-Node staticSearch(Game * game);
-Node alphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
-int alphaBetaNodes(Node * nodes, Game * game, char depth);
-Node iterativeDeepeningAlphaBeta(Game * game, char depth, int alpha, int beta, BOOL verbose);
-Move getRandomMove(Game * game);
+Node staticSearch(Position * position);
+Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
+int alphaBetaNodes(Node * nodes, Position * position, char depth);
+Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
+Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
 Move getPlayerMove();
