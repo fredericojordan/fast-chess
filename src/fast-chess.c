@@ -1744,6 +1744,59 @@ int staticEvaluation(Position * position) {
 		return materialBalance(position->board) + positionalBalance(position->board);
 }
 
+int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
+	Move allCaptures[MAX_BRANCHING_FACTOR], targetCaptures[MAX_ATTACKING_PIECES];
+	int captureCount = legalCaptures(allCaptures, position, position->toMove);
+	int i, j, targetCount = 0;
+
+	for (i=0; i<captureCount; i++) {
+		if ( getTo(allCaptures[i]) == targetSquare ) {
+			targetCaptures[targetCount++] = allCaptures[i];
+		}
+	}
+
+	Move captureBuffer[targetCount];
+
+	BOOL sorted;
+	for (i=0; i<targetCount; i++) {
+		sorted = FALSE;
+		int piece = position->board[getFrom(targetCaptures[i])] & PIECE_MASK;
+
+		for (j=0; j<i; j++) {
+			int pieceB = position->board[getFrom(captures[j])] & PIECE_MASK;
+
+			if ( PIECE_VALUES[piece] < PIECE_VALUES[pieceB] ) {
+				sorted = TRUE;
+				memcpy(captureBuffer, &captures[j], (i-j)*sizeof(Move));
+				memcpy(&captures[j+1], captureBuffer, (i-j)*sizeof(Move));
+				captures[j] = targetCaptures[i];
+				break;
+			}
+		}
+
+		if ( sorted == FALSE ) {
+			captures[i] = targetCaptures[i];
+		}
+	}
+
+	return targetCount;
+}
+
+int staticExchangeEvaluation(Position * position, int targetSquare) {
+	Move captures[MAX_ATTACKING_PIECES];
+	int attackCount = getCaptureSequence(captures, position, targetSquare);
+
+	if ( attackCount == 0 ) {
+		return 0;
+	} else {
+		Position newPosition;
+		updatePosition(&newPosition, position, captures[0]);
+		int capturedPiece = position->board[targetSquare] & PIECE_MASK;
+		int pieceValue = PIECE_VALUES[capturedPiece];
+		return pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
+	}
+}
+
 int quiescenceEvaluation(Position * position) {
 	int staticScore = staticEvaluation(position);
 
@@ -1760,6 +1813,8 @@ int quiescenceEvaluation(Position * position) {
 		int i, bestScore = staticScore;
 
 		for (i=0; i<captureCount; i++) {
+			if (staticExchangeEvaluation(position, getTo(captures[i])) < 0) // FIXME
+				break;
 
 			updatePosition(&newPosition, position, captures[i]);
 			int score = quiescenceEvaluation(&newPosition);
@@ -1914,8 +1969,8 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		return (Node) { .score = endNodeEvaluation(position) };
 
 	if (depth == 1)
-//		return quiescenceSearch(position);
-		return staticSearch(position);
+		return quiescenceSearch(position);
+//		return staticSearch(position);
 
 	// Mate in 1
 	Node staticNode = staticSearch(position);

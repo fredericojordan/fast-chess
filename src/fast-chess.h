@@ -295,6 +295,8 @@ int positionalBonus(int board[], char color);
 int positionalBalance(int board[]);
 int endNodeEvaluation(Position * position);
 int staticEvaluation(Position * position);
+int getCaptureSequence(Move * captures, Position * position, int targetSquare);
+int staticExchangeEvaluation(Position * position, int targetSquare);
 int quiescenceEvaluation(Position * position);
 
 // ========= SEARCH ==========
