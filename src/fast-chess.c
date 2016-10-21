@@ -1959,7 +1959,7 @@ int alphaBetaNodes(Node * nodes, Position * position, char depth) {
 		updatePosition(&newPosition, position, moves[i]);
 
 		nodes[i].move = moves[i];
-		nodes[i].score = depth>1?iterativeDeepeningAlphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX, FALSE).score:staticEvaluation(&newPosition);
+		nodes[i].score = depth>1?alphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX, FALSE).score:staticEvaluation(&newPosition);
 	}
 
 	return moveCount;
@@ -2157,18 +2157,11 @@ void playTextRandomColor(int depth) {
 
 // ===========================
 
-// /*
+ /*
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
-//	playTextRandomColor(DEFAULT_AI_DEPTH);
-
-	Game game;
-	getFenGame(&game, "7k/2nr4/8/3b4/4P3/8/8/K2R4 w - - 0 1");
-	printBoard(game.position.board);
-
-	int see = staticExchangeEvaluation(&game.position, str2index("d5"));
-	printf("see = %d\n", see);
+	playTextRandomColor(DEFAULT_AI_DEPTH);
 
 	return EXIT_SUCCESS;
 }
