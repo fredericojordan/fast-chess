@@ -57,6 +57,7 @@ d2d4 d7d5 c2c4 c7c6 b1c3 g8f6 g1f3 d5c4 a2a4 c8f5 e2e3 e7e6 f1c4
 d2d4 d7d5 c2c4 c7c6 b1c3 g8f6 g1f3 e7e6 c1g5
 d2d4 d7d5 c2c4 c7c6 b1c3 g8f6 g1f3 e7e6 e2e3 b8d7 d1c2 f8d6
 d2d4 d7d5 c2c4 c7c6 b1c3 g8f6 g1f3 e7e6 e2e3 b8d7 f1d3 d5c4 d3c4 b7b5 c4d3
+d2d4 d7d5 c2c4 c7c6 c4d5 c6d5
 d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 d5c4 a2a4 c8f5 e2e3 e7e6 f1c4
 d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 e7e6 c1g5
 d2d4 d7d5 c2c4 c7c6 g1f3 g8f6 b1c3 e7e6 e2e3 b8d7 d1c2 f8d6
