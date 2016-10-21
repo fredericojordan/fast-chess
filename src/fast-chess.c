@@ -1763,9 +1763,9 @@ int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
 		int piece = position->board[getFrom(targetCaptures[i])] & PIECE_MASK;
 
 		for (j=0; j<i; j++) {
-			int pieceB = position->board[getFrom(captures[j])] & PIECE_MASK;
+			int sortedPiece = position->board[getFrom(captures[j])] & PIECE_MASK;
 
-			if ( PIECE_VALUES[piece] < PIECE_VALUES[pieceB] ) {
+			if ( PIECE_VALUES[piece] < PIECE_VALUES[sortedPiece] ) {
 				sorted = TRUE;
 				memcpy(captureBuffer, &captures[j], (i-j)*sizeof(Move));
 				memcpy(&captures[j+1], captureBuffer, (i-j)*sizeof(Move));
@@ -1785,16 +1785,17 @@ int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
 int staticExchangeEvaluation(Position * position, int targetSquare) {
 	Move captures[MAX_ATTACKING_PIECES];
 	int attackCount = getCaptureSequence(captures, position, targetSquare);
+	int value = 0;
 
-	if ( attackCount == 0 ) {
-		return 0;
-	} else {
+	if ( attackCount > 0 ) {
 		Position newPosition;
 		updatePosition(&newPosition, position, captures[0]);
 		int capturedPiece = position->board[targetSquare] & PIECE_MASK;
 		int pieceValue = PIECE_VALUES[capturedPiece];
-		return pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
+		value = pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
 	}
+
+	return value>0?value:0;
 }
 
 int quiescenceEvaluation(Position * position) {
@@ -1813,7 +1814,7 @@ int quiescenceEvaluation(Position * position) {
 		int i, bestScore = staticScore;
 
 		for (i=0; i<captureCount; i++) {
-			if (staticExchangeEvaluation(position, getTo(captures[i])) < 0) // FIXME
+			if (staticExchangeEvaluation(position, getTo(captures[i])) <= 0)
 				break;
 
 			updatePosition(&newPosition, position, captures[i]);
@@ -2156,11 +2157,18 @@ void playTextRandomColor(int depth) {
 
 // ===========================
 
- /*
+// /*
 int main(int argc, char *argv[]) {
 	srand(time(NULL));
 
-	playTextRandomColor(DEFAULT_AI_DEPTH);
+//	playTextRandomColor(DEFAULT_AI_DEPTH);
+
+	Game game;
+	getFenGame(&game, "7k/2nr4/8/3b4/4P3/8/8/K2R4 w - - 0 1");
+	printBoard(game.position.board);
+
+	int see = staticExchangeEvaluation(&game.position, str2index("d5"));
+	printf("see = %d\n", see);
 
 	return EXIT_SUCCESS;
 }
