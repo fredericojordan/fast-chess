@@ -131,6 +131,7 @@ Bitboard lsb(Bitboard bb);
 Bitboard msb(Bitboard bb);
 int bb2index(Bitboard bb);
 char * movelist2str(Game * game);
+Move getLastMove(Game * game);
 BOOL startsWith(const char *str, const char *pre);
 int countBookOccurrences(Game * game);
 Move getBookMove(Game * game);

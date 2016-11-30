@@ -32,11 +32,14 @@ int bgColorNum = -1;
 int checkRed = 0xFF0000;
 int checkTransparency = 0x80;
 
+int lastMoveColor = 0x22FFAA;
+int lastMoveTransparency = 0x80;
+
 SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
 SDL_Renderer* renderer = NULL;      // The main renderer
 
-SDL_Texture *bgTexture, *checkSquare;
+SDL_Texture *bgTexture, *checkSquare, *lastMoveSquare;
 SDL_Texture *bPawn, *bKnight, *bBishop, *bRook, *bQueen, *bKing;
 SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
@@ -144,7 +147,7 @@ void paintBoard(SDL_Surface * destSurface, char colors[]) {
 			paintTile(destSurface, i, &colors[3], WHITE);
 }
 
-void renderBoard(int board[], char color) {
+void renderBoard(int board[], char color, Move lastMove) {
 	SDL_Rect boardRect;
 	boardRect.x = 0;
 	boardRect.y = 0;
@@ -160,6 +163,13 @@ void renderBoard(int board[], char color) {
 		Bitboard kingPos = getKing(board, BLACK);
 		SDL_Rect checkRect = bb2rect(kingPos, color);
 		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
+	}
+
+	if ( lastMove != 0 ) {
+		SDL_Rect to_Rect = bb2rect(index2bb(getTo(lastMove)), color);
+		SDL_Rect from_Rect = bb2rect(index2bb(getFrom(lastMove)), color);
+		SDL_RenderCopy(renderer, lastMoveSquare, NULL, &to_Rect);
+		SDL_RenderCopy(renderer, lastMoveSquare, NULL, &from_Rect);
 	}
 
 	int i;
@@ -242,6 +252,16 @@ void loadCheckSquare(void) {
 	SDL_FreeSurface( checkSurf );
 }
 
+void loadLastMoveSquare(void) {
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * lastMoveSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	SDL_FillRect( lastMoveSurf, NULL, lastMoveColor );
+	lastMoveSquare = SDL_CreateTextureFromSurface(renderer, lastMoveSurf);
+	SDL_SetTextureBlendMode( lastMoveSquare, SDL_BLENDMODE_BLEND );
+	SDL_SetTextureAlphaMod( lastMoveSquare, lastMoveTransparency );
+	SDL_FreeSurface( lastMoveSurf );
+}
+
 void changeColors(void) {
 	int colorCount = (int) (sizeof(COLOR_SQUEMES)/6);
 	int newColor = rand() % colorCount;
@@ -299,6 +319,7 @@ BOOL init() {
 	changeColors();
 	loadBackground();
 	loadCheckSquare();
+	loadLastMoveSquare();
 	loadImages();
 
     return TRUE;
@@ -332,16 +353,16 @@ void playAs(char color, int AIdepth) {
 
 	Game game;
 	getInitialGame(&game);
-	renderBoard(game.position.board, color);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
 	char * movelist;
 
 	int leavingPos = -1, arrivingPos = -1;
+	Move lastMove = 0;
 
 	while( run ) {
-		renderBoard(game.position.board, color);
+		renderBoard(game.position.board, color, lastMove);
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -370,7 +391,8 @@ void playAs(char color, int AIdepth) {
 
 							makeMove(&game, moves[i]);
 
-							renderBoard(game.position.board, color);
+							lastMove = moves[i];
+							renderBoard(game.position.board, color, lastMove);
 
 							if ( hasGameEnded(&game.position) ) {
 								ongoing = FALSE;
@@ -388,12 +410,12 @@ void playAs(char color, int AIdepth) {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.position.board, color);
+					renderBoard(game.position.board, color, lastMove);
 					break;
 
 				case SDLK_r:
 					loadRandomTintedBackground();
-					renderBoard(game.position.board, color);
+					renderBoard(game.position.board, color, lastMove);
 					break;
 
 				case SDLK_e:
@@ -415,7 +437,8 @@ void playAs(char color, int AIdepth) {
 					unmakeMove(&game);
 					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
-					renderBoard(game.position.board, color);
+					lastMove = getLastMove(&game);
+					renderBoard(game.position.board, color, lastMove);
 					break;
 
 				default:
@@ -434,7 +457,7 @@ void playAs(char color, int AIdepth) {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.position.board, color);
+					renderBoard(game.position.board, color, lastMove);
 					fflush(stdout);
 					break;
 				}
@@ -443,9 +466,10 @@ void playAs(char color, int AIdepth) {
 
 		if ( ongoing && game.position.toMove == opponent(color) ) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
-			makeMove(&game, getAIMove(&game, AIdepth));
+			lastMove = getAIMove(&game, AIdepth);
+			makeMove(&game, lastMove);
 			SDL_SetWindowTitle(window, "Chess Game");
-			renderBoard(game.position.board, color);
+			renderBoard(game.position.board, color, lastMove);
 
 			if ( hasGameEnded(&game.position) ) {
 				ongoing = FALSE;
@@ -464,16 +488,17 @@ void playRandomColor(int depth) {
 void playAlone() {
 	Game game;
 	getInitialGame(&game);
-	renderBoard(game.position.board, WHITE);
+	renderBoard(game.position.board, WHITE, 0);
 
 	BOOL run = TRUE, ongoing = TRUE;
 	SDL_Event event;
 	char * movelist;
 
 	int leavingPos = -1, arrivingPos = -1;
+	Move lastMove = 0;
 
 	while( run ) {
-		renderBoard(game.position.board, WHITE);
+		renderBoard(game.position.board, WHITE, lastMove);
 
 		while( SDL_PollEvent( &event ) != 0 ) {
 
@@ -499,8 +524,9 @@ void playAlone() {
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
-							makeMove(&game, moves[i]);
-							renderBoard(game.position.board, WHITE);
+							lastMove = moves[i];
+							makeMove(&game, lastMove);
+							renderBoard(game.position.board, WHITE, lastMove);
 
 							if ( hasGameEnded(&game.position) ) {
 								ongoing = FALSE;
@@ -518,12 +544,12 @@ void playAlone() {
 
 				case SDLK_c:
 					changeColors();
-					renderBoard(game.position.board, WHITE);
+					renderBoard(game.position.board, WHITE, lastMove);
 					break;
 
 				case SDLK_r:
 					loadRandomTintedBackground();
-					renderBoard(game.position.board, WHITE);
+					renderBoard(game.position.board, WHITE, lastMove);
 					break;
 
 				case SDLK_e:
@@ -545,7 +571,8 @@ void playAlone() {
 					unmakeMove(&game);
 					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
-					renderBoard(game.position.board, WHITE);
+					lastMove = getLastMove(&game);
+					renderBoard(game.position.board, WHITE, lastMove);
 					break;
 
 				default:
@@ -564,7 +591,7 @@ void playAlone() {
 						TILE_SIDE = (int) (event.window.data2/8);
 					}
 					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.position.board, WHITE);
+					renderBoard(game.position.board, WHITE, lastMove);
 					fflush(stdout);
 					break;
 				}

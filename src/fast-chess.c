@@ -372,6 +372,13 @@ char * movelist2str(Game * game) {
 	return movestr;
 }
 
+Move getLastMove(Game * game) {
+	if (game->moveListLen == 0)
+		return 0;
+	else
+		return game->moveList[game->moveListLen-1];
+}
+
 BOOL startsWith(const char *str, const char *pre) {
     size_t lenpre = strlen(pre), lenstr = strlen(str);
 
