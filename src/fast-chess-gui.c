@@ -389,9 +389,8 @@ void playAs(char color, int AIdepth) {
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
 
-							makeMove(&game, moves[i]);
-
 							lastMove = moves[i];
+							makeMove(&game, lastMove);
 							renderBoard(game.position.board, color, lastMove);
 
 							if ( hasGameEnded(&game.position) ) {
@@ -524,6 +523,7 @@ void playAlone() {
 					int i;
 					for (i=0; i<moveCount; i++)
 						if (generateMove(leavingPos, arrivingPos) == moves[i]) {
+
 							lastMove = moves[i];
 							makeMove(&game, lastMove);
 							renderBoard(game.position.board, WHITE, lastMove);
