@@ -32,6 +32,11 @@ int bgColorNum = -1;
 int checkRed = 0xFF0000;
 int checkTransparency = 0x80;
 
+BOOL heatmap = FALSE;
+int atkColor = 0xFF0000;
+int defColor = 0x00FF00;
+int heatmapTransparency = 0x30;
+
 int lastMoveColor = 0x22FFAA;
 int lastMoveTransparency = 0x80;
 
@@ -39,7 +44,7 @@ SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
 SDL_Renderer* renderer = NULL;      // The main renderer
 
-SDL_Texture *bgTexture, *checkSquare, *lastMoveSquare;
+SDL_Texture *bgTexture, *whiteBgTexture, *checkSquare, *lastMoveSquare, *heatmapAtkSquare, *heatmapDefSquare;
 SDL_Texture *bPawn, *bKnight, *bBishop, *bRook, *bQueen, *bKing;
 SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
@@ -138,23 +143,117 @@ void paintTile(SDL_Surface * destSurface, int position, char color[], char toMov
 	SDL_FillRect( destSurface, &tile, SDL_MapRGB( destSurface->format, color[0], color[1], color[2] ) );
 }
 
-void paintBoard(SDL_Surface * destSurface, char colors[]) {
-	SDL_FillRect( destSurface, NULL, SDL_MapRGB( destSurface->format, colors[0], colors[1], colors[2] ) );
+SDL_Surface * createBoardSurface(char colors[]) {
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+
+	SDL_FillRect( bgSurface, NULL, SDL_MapRGB( bgSurface->format, colors[0], colors[1], colors[2] ) );
 
 	int i;
 	for ( i=0; i<NUM_SQUARES; i++)
 		if ( index2bb(i) & DARK_SQUARES )
-			paintTile(destSurface, i, &colors[3], WHITE);
+			paintTile(bgSurface, i, &colors[3], WHITE);
+
+	return bgSurface;
 }
 
-void renderBoard(int board[], char color, Move lastMove) {
+void loadBackground(void) {
+	SDL_Surface * bgSurface = createBoardSurface(COLOR_SQUEMES[bgColorNum]);
+
+	SDL_DestroyTexture(bgTexture);
+	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+
+	SDL_FreeSurface( bgSurface );
+}
+
+void loadWhiteBackground(void) {
+	const SDL_PixelFormat fmt = *(screenSurface->format);
+	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	SDL_FillRect( bgSurface, NULL, SDL_MapRGB( bgSurface->format, 255, 255, 255 ) );
+	whiteBgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+	SDL_FreeSurface( bgSurface );
+}
+
+void renderWhiteBackground(void) {
+	SDL_Rect boardRect;
+	boardRect.x = 0;
+	boardRect.y = 0;
+	boardRect.w = 8*TILE_SIDE;
+	boardRect.h = 8*TILE_SIDE;
+	SDL_RenderCopy(renderer, whiteBgTexture, NULL, &boardRect);
+}
+
+void renderBackground(void) {
 	SDL_Rect boardRect;
 	boardRect.x = 0;
 	boardRect.y = 0;
 	boardRect.w = 8*TILE_SIDE;
 	boardRect.h = 8*TILE_SIDE;
 	SDL_RenderCopy(renderer, bgTexture, NULL, &boardRect);
+}
 
+void renderPieces(int board[], char color) {
+	int i;
+		for (i=0; i<NUM_SQUARES; i++) {
+			int piece = board[i];
+
+			if ( piece != EMPTY ) {
+				SDL_Rect squareRect = index2rect(i, color);
+
+				switch(piece) {
+				case BLACK|PAWN:
+					SDL_RenderCopy(renderer, bPawn, NULL, &squareRect);
+					break;
+
+				case BLACK|KNIGHT:
+					SDL_RenderCopy(renderer, bKnight, NULL, &squareRect);
+					break;
+
+				case BLACK|BISHOP:
+					SDL_RenderCopy(renderer, bBishop, NULL, &squareRect);
+					break;
+
+				case BLACK|ROOK:
+					SDL_RenderCopy(renderer, bRook, NULL, &squareRect);
+					break;
+
+				case BLACK|QUEEN:
+					SDL_RenderCopy(renderer, bQueen, NULL, &squareRect);
+					break;
+
+				case BLACK|KING:
+					SDL_RenderCopy(renderer, bKing, NULL, &squareRect);
+					break;
+
+				case WHITE|PAWN:
+					SDL_RenderCopy(renderer, wPawn, NULL, &squareRect);
+					break;
+
+				case WHITE|KNIGHT:
+					SDL_RenderCopy(renderer, wKnight, NULL, &squareRect);
+					break;
+
+				case WHITE|BISHOP:
+					SDL_RenderCopy(renderer, wBishop, NULL, &squareRect);
+					break;
+
+				case WHITE|ROOK:
+					SDL_RenderCopy(renderer, wRook, NULL, &squareRect);
+					break;
+
+				case WHITE|QUEEN:
+					SDL_RenderCopy(renderer, wQueen, NULL, &squareRect);
+					break;
+
+				case WHITE|KING:
+					SDL_RenderCopy(renderer, wKing, NULL, &squareRect);
+					break;
+				}
+			}
+		}
+}
+
+void renderCheck(int board[], char color) {
 	if (isCheck(board, WHITE)) {
 		Bitboard kingPos = getKing(board, WHITE);
 		SDL_Rect checkRect = bb2rect(kingPos, color);
@@ -164,82 +263,79 @@ void renderBoard(int board[], char color, Move lastMove) {
 		SDL_Rect checkRect = bb2rect(kingPos, color);
 		SDL_RenderCopy(renderer, checkSquare, NULL, &checkRect);
 	}
+}
 
+void renderLastMove(int lastMove, char color) {
 	if ( lastMove != 0 ) {
 		SDL_Rect to_Rect = bb2rect(index2bb(getTo(lastMove)), color);
 		SDL_Rect from_Rect = bb2rect(index2bb(getFrom(lastMove)), color);
 		SDL_RenderCopy(renderer, lastMoveSquare, NULL, &to_Rect);
 		SDL_RenderCopy(renderer, lastMoveSquare, NULL, &from_Rect);
 	}
+}
 
-	int i;
-	for (i=0; i<NUM_SQUARES; i++) {
-		int piece = board[i];
-
-		if ( piece != EMPTY ) {
-			SDL_Rect squareRect = index2rect(i, color);
-
-			switch(piece) {
-			case BLACK|PAWN:
-				SDL_RenderCopy(renderer, bPawn, NULL, &squareRect);
-				break;
-
-			case BLACK|KNIGHT:
-				SDL_RenderCopy(renderer, bKnight, NULL, &squareRect);
-				break;
-
-			case BLACK|BISHOP:
-				SDL_RenderCopy(renderer, bBishop, NULL, &squareRect);
-				break;
-
-			case BLACK|ROOK:
-				SDL_RenderCopy(renderer, bRook, NULL, &squareRect);
-				break;
-
-			case BLACK|QUEEN:
-				SDL_RenderCopy(renderer, bQueen, NULL, &squareRect);
-				break;
-
-			case BLACK|KING:
-				SDL_RenderCopy(renderer, bKing, NULL, &squareRect);
-				break;
-
-			case WHITE|PAWN:
-				SDL_RenderCopy(renderer, wPawn, NULL, &squareRect);
-				break;
-
-			case WHITE|KNIGHT:
-				SDL_RenderCopy(renderer, wKnight, NULL, &squareRect);
-				break;
-
-			case WHITE|BISHOP:
-				SDL_RenderCopy(renderer, wBishop, NULL, &squareRect);
-				break;
-
-			case WHITE|ROOK:
-				SDL_RenderCopy(renderer, wRook, NULL, &squareRect);
-				break;
-
-			case WHITE|QUEEN:
-				SDL_RenderCopy(renderer, wQueen, NULL, &squareRect);
-				break;
-
-			case WHITE|KING:
-				SDL_RenderCopy(renderer, wKing, NULL, &squareRect);
-				break;
-			}
-		}
-	}
-
+void renderRegularBoard(int board[], char color, Move lastMove) {
+	renderBackground();
+	renderCheck(board, color);
+	renderLastMove(lastMove, color);
+	renderPieces(board, color);
 	SDL_RenderPresent(renderer);
 }
 
-void loadBackground(void) {
+void renderHeatTiles(int board[], char color) {
+	int atkValue, i, j;
+
+	for (i=0; i<NUM_SQUARES; i++) {
+		Bitboard target = index2bb(i);
+		atkValue = countAttacks(target, board, color) - countAttacks(target, board, opponent(color));
+
+		SDL_Rect targetRect = bb2rect(target, color);
+
+		if ( atkValue < 0 ) {
+			for (j=0; j<-atkValue; j++)
+				SDL_RenderCopy(renderer, heatmapAtkSquare, NULL, &targetRect);
+		} else if ( atkValue > 0 ) {
+			for (j=0; j<atkValue; j++)
+				SDL_RenderCopy(renderer, heatmapDefSquare, NULL, &targetRect);
+		}
+	}
+}
+
+
+
+void renderHeatmapBoard(int board[], char color, Move lastMove) {
+	renderWhiteBackground();
+	renderHeatTiles(board, color);
+//	renderCheck(board, color);
+//	renderLastMove(lastMove, color);
+	renderPieces(board, color);
+	SDL_RenderPresent(renderer);
+}
+
+void renderBoard(int board[], char color, Move lastMove) {
+	if (heatmap) {
+		renderHeatmapBoard(board, color, lastMove);
+	} else {
+		renderRegularBoard(board, color, lastMove);
+	}
+}
+
+void loadHeatTiles(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
-	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	paintBoard(bgSurface, COLOR_SQUEMES[bgColorNum]);
-	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
-	SDL_FreeSurface( bgSurface );
+
+	SDL_Surface * atkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	SDL_FillRect( atkSurf, NULL, atkColor );
+	heatmapAtkSquare = SDL_CreateTextureFromSurface(renderer, atkSurf);
+	SDL_SetTextureBlendMode( heatmapAtkSquare, SDL_BLENDMODE_BLEND );
+	SDL_SetTextureAlphaMod( heatmapAtkSquare, heatmapTransparency );
+	SDL_FreeSurface( atkSurf );
+
+	SDL_Surface * defSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
+	SDL_FillRect( defSurf, NULL, defColor );
+	heatmapDefSquare = SDL_CreateTextureFromSurface(renderer, defSurf);
+	SDL_SetTextureBlendMode( heatmapDefSquare, SDL_BLENDMODE_BLEND );
+	SDL_SetTextureAlphaMod( heatmapDefSquare, heatmapTransparency );
+	SDL_FreeSurface( defSurf );
 }
 
 void loadCheckSquare(void) {
@@ -273,9 +369,6 @@ void changeColors(void) {
 }
 
 void loadRandomTintedBackground(void) {
-	const SDL_PixelFormat fmt = *(screenSurface->format);
-	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-
 	unsigned char bgColor[6];
 	int i;
 	for (i=0; i<3; i++) {
@@ -284,8 +377,11 @@ void loadRandomTintedBackground(void) {
 		bgColor[i+3] = (unsigned char) value;
 	}
 
-	paintBoard(bgSurface, bgColor);
+	SDL_Surface * bgSurface = createBoardSurface(bgColor);
+
+	SDL_DestroyTexture(bgTexture);
 	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+
 	SDL_FreeSurface( bgSurface );
 }
 
@@ -318,9 +414,11 @@ BOOL init() {
 
 	changeColors();
 	loadBackground();
+	loadWhiteBackground();
 	loadCheckSquare();
 	loadLastMoveSquare();
 	loadImages();
+	loadHeatTiles();
 
     return TRUE;
 }
@@ -408,11 +506,13 @@ void playAs(char color, int AIdepth) {
 					break;
 
 				case SDLK_c:
+					heatmap = FALSE;
 					changeColors();
 					renderBoard(game.position.board, color, lastMove);
 					break;
 
 				case SDLK_r:
+					heatmap = FALSE;
 					loadRandomTintedBackground();
 					renderBoard(game.position.board, color, lastMove);
 					break;
@@ -437,6 +537,11 @@ void playAs(char color, int AIdepth) {
 					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
 					lastMove = getLastMove(&game);
+					renderBoard(game.position.board, color, lastMove);
+					break;
+
+				case SDLK_h:
+					heatmap = heatmap?FALSE:TRUE;
 					renderBoard(game.position.board, color, lastMove);
 					break;
 
@@ -543,11 +648,13 @@ void playAlone() {
 					break;
 
 				case SDLK_c:
+					heatmap = FALSE;
 					changeColors();
 					renderBoard(game.position.board, WHITE, lastMove);
 					break;
 
 				case SDLK_r:
+					heatmap = FALSE;
 					loadRandomTintedBackground();
 					renderBoard(game.position.board, WHITE, lastMove);
 					break;
@@ -572,6 +679,11 @@ void playAlone() {
 					SDL_SetWindowTitle(window, "Chess Game");
 					ongoing = TRUE;
 					lastMove = getLastMove(&game);
+					renderBoard(game.position.board, WHITE, lastMove);
+					break;
+
+				case SDLK_h:
+					heatmap = heatmap?FALSE:TRUE;
 					renderBoard(game.position.board, WHITE, lastMove);
 					break;
 
