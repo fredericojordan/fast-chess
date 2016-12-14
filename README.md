@@ -15,6 +15,8 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
  - Material Balance
  - Piece-Square Tables
  - Pawn Structure
+- Graphical User Interface
+ - Attack Heatmap
 
 ## Instructions
 1. Download [latest release](https://github.com/fredericojordan/fast-chess/releases)
