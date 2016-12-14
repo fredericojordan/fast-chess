@@ -30,6 +30,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **Q** - [Q]uit
 - **E** - Static board [e]valuation (debug mode only)
 - **P** - [P]rint game history (debug mode only)
+- **H** - Toggle attack [H]eatmap
 
 ## Screenshot
 ![chess game](http://i.imgur.com/O6rcSqu.png)
