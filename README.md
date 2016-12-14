@@ -35,6 +35,6 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **H** - Toggle attack [H]eatmap
 
 ## Screenshots
-![chess game](http://i.imgur.com/O6rcSqu.png)
+![Chess Game](http://i.imgur.com/O6rcSqu.png)
 
-![chess heatmap](http://tinyurl.com/heatmapchess)
+![Chess Heatmap](http://i.imgur.com/qvwbINN.png)
