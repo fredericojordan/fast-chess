@@ -34,5 +34,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **P** - [P]rint game history (debug mode only)
 - **H** - Toggle attack [H]eatmap
 
-## Screenshot
+## Screenshots
 ![chess game](http://i.imgur.com/O6rcSqu.png)
+
+![chess heatmap](http://tinyurl.com/heatmapchess)
