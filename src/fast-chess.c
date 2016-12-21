@@ -550,6 +550,26 @@ char piece2char(int piece) {
 	return 0;
 }
 
+char * piece2str(int piece) {
+	switch(piece&PIECE_MASK) {
+	case PAWN:
+		return "Pawn";
+	case KNIGHT:
+		return "Knight";
+	case BISHOP:
+		return "Bishop";
+	case ROOK:
+		return "Rook";
+	case QUEEN:
+		return "Queen";
+	case KING:
+		return "King";
+	case EMPTY:
+		return "none";
+	}
+	return "";
+}
+
 void printBitboard(Bitboard bitboard) {
 	int rank, file;
 
@@ -1363,24 +1383,22 @@ void makeMove(Game * game, Move move) {
 
 void unmakeMove(Game * game) {
 	Position newPosition;
-	if (game->moveListLen >= 2) {
-		loadFen(&newPosition, game->positionHistory[game->moveListLen-2]);
-		memcpy(&(game->position), &newPosition, sizeof(Position));
+	if (game->moveListLen >= 1) {
+			loadFen(&newPosition, game->positionHistory[game->moveListLen-1]);
+			memcpy(&(game->position), &newPosition, sizeof(Position));
 
-		game->moveList[game->moveListLen-1] = 0;
-		game->moveList[game->moveListLen-2] = 0;
-		memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
-		memset(game->positionHistory[game->moveListLen-1], 0, MAX_FEN_LEN*sizeof(char));
+			game->moveList[game->moveListLen-1] = 0;
+			memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
 
-		game->moveListLen -= 2;
-	} else {
-		loadFen(&newPosition, game->positionHistory[0]);
-		memcpy(&(game->position), &newPosition, sizeof(Position));
+			game->moveListLen -= 1;
+		} else { // return to initial game
+			loadFen(&newPosition, game->positionHistory[0]);
+			memcpy(&(game->position), &newPosition, sizeof(Position));
 
-		game->moveListLen = 0;
-		memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
-		memset(&game->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
-	}
+			game->moveListLen = 0;
+			memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
+			memset(&game->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
+		}
 }
 
 // ======== MOVE GEN =========
@@ -2002,9 +2020,9 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		updatePosition(&newPosition, position, sortedNodes[i].move);
 
 		if (verbose) {
-			printf("(%d/%d) evaluating move: ", i+1, moveCount);
+			printf("(%d/%d) evaluating move: %s from ", i+1, moveCount, piece2str(position->board[getFrom(sortedNodes[i].move)]));
 			printMove(sortedNodes[i].move);
-			printf(" = ");
+			printf("\t= ");
 			fflush(stdout);
 		}
 
@@ -2075,7 +2093,7 @@ Move getAIMove(Game * game, int depth) {
 
 	endTime = time(NULL);
 
-	printf("CHOSEN move: ");
+	printf("CHOSEN move: %s from ", piece2str(game->position.board[getFrom(node.move)]));
 	printMove(node.move);
 	printf(" in %d seconds [%.2f,%.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
 	fflush(stdout);

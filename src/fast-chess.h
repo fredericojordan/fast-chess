@@ -142,6 +142,7 @@ int getFrom(Move move);
 int getTo(Move move);
 int char2piece(char pieceCode);
 char piece2char(int piece);
+char * piece2str(int piece);
 void printBitboard(Bitboard bitboard);
 void printBoard(int board[]);
 void printGame(Game * game);
