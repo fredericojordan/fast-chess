@@ -26,13 +26,14 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 5. Profit
 
 ## GUI Hotkeys
-- **C** - Change board [c]olor scheme
-- **R** - [R]andom board color
 - **U** - [U]ndo move
 - **Q** - [Q]uit
-- **E** - Static board [e]valuation (debug mode only)
-- **P** - [P]rint game history (debug mode only)
+- **D** - [D]ump game info to file
 - **H** - Toggle attack [H]eatmap
+- **C** - Change board [c]olor scheme
+- **R** - [R]andom board color
+- **T** - Random [t]inted board color
+- **E** - Static board [e]valuation (debug mode only)
 
 ## Screenshots
 ![Chess Game](http://i.imgur.com/O6rcSqu.png)
