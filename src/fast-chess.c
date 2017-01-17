@@ -79,14 +79,14 @@ int KING_ENDGAME_BONUS[] = { 0,  10,  20,  30,  30,  20,  10,   0,
 							10,  20,  30,  40,  40,  30,  20,  10,
 							 0,  10,  20,  30,  30,  20,  10,   0};
 
-int FLIP[] = {56,  57,  58,  59,  60,  61,  62,  63,
-			  48,  49,  50,  51,  52,  53,  54,  55,
-			  40,  41,  42,  43,  44,  45,  46,  47,
-			  32,  33,  34,  35,  36,  37,  38,  39,
-			  24,  25,  26,  27,  28,  29,  30,  31,
-			  16,  17,  18,  19,  20,  21,  22,  23,
-			   8,   9,  10,  11,  12,  13,  14,  15,
-			   0,   1,   2,   3,   4,   5,   6,   7};
+int FLIP_VERTICAL[] = {56,  57,  58,  59,  60,  61,  62,  63,
+			           48,  49,  50,  51,  52,  53,  54,  55,
+			           40,  41,  42,  43,  44,  45,  46,  47,
+			           32,  33,  34,  35,  36,  37,  38,  39,
+			           24,  25,  26,  27,  28,  29,  30,  31,
+			           16,  17,  18,  19,  20,  21,  22,  23,
+			            8,   9,  10,  11,  12,  13,  14,  15,
+			            0,   1,   2,   3,   4,   5,   6,   7};
 
 
 void getInitialGame(Game * game) {
@@ -1675,7 +1675,7 @@ int positionalBonus(int board[], char color) {
 				if (color == WHITE) {
 					bonus += PAWN_BONUS[i];
 				} else {
-					bonus += PAWN_BONUS[FLIP[i]];
+					bonus += PAWN_BONUS[FLIP_VERTICAL[i]];
 				}
 
 				if (isDoubledPawn(index2bb(i), board)) {
@@ -1697,7 +1697,7 @@ int positionalBonus(int board[], char color) {
 				if (color == WHITE) {
 					bonus += KNIGHT_BONUS[i];
 				} else {
-					bonus += KNIGHT_BONUS[FLIP[i]];
+					bonus += KNIGHT_BONUS[FLIP_VERTICAL[i]];
 				}
 				break;
 
@@ -1705,7 +1705,7 @@ int positionalBonus(int board[], char color) {
 				if (color == WHITE) {
 					bonus += BISHOP_BONUS[i];
 				} else {
-					bonus += BISHOP_BONUS[FLIP[i]];
+					bonus += BISHOP_BONUS[FLIP_VERTICAL[i]];
 				}
 				break;
 
@@ -1732,13 +1732,13 @@ int positionalBonus(int board[], char color) {
 					if (color == WHITE) {
 						bonus += KING_ENDGAME_BONUS[i];
 					} else {
-						bonus += KING_ENDGAME_BONUS[FLIP[i]];
+						bonus += KING_ENDGAME_BONUS[FLIP_VERTICAL[i]];
 					}
 				} else {
 					if (color == WHITE) {
 						bonus += KING_BONUS[i];
 					} else {
-						bonus += KING_BONUS[FLIP[i]];
+						bonus += KING_BONUS[FLIP_VERTICAL[i]];
 					}
 				}
 			}

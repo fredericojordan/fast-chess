@@ -100,20 +100,20 @@ extern char INITIAL_FEN[];
 extern int INITIAL_BOARD[NUM_SQUARES];
 extern int PIECE_VALUES[];
 
-#define DOUBLED_PAWN_PENALTY      10
-#define ISOLATED_PAWN_PENALTY     20
-#define BACKWARDS_PAWN_PENALTY    8
-#define PASSED_PAWN_BONUS         20
-#define ROOK_SEMI_OPEN_FILE_BONUS 10
-#define ROOK_OPEN_FILE_BONUS      15
-#define ROOK_ON_SEVENTH_BONUS     20
+#define DOUBLED_PAWN_PENALTY      (10)
+#define ISOLATED_PAWN_PENALTY     (20)
+#define BACKWARDS_PAWN_PENALTY    (8)
+#define PASSED_PAWN_BONUS         (20)
+#define ROOK_SEMI_OPEN_FILE_BONUS (10)
+#define ROOK_OPEN_FILE_BONUS      (15)
+#define ROOK_ON_SEVENTH_BONUS     (20)
 
 extern int PAWN_BONUS[];
 extern int KNIGHT_BONUS[];
 extern int BISHOP_BONUS[];
 extern int KING_BONUS[];
 extern int KING_ENDGAME_BONUS[];
-extern int FLIP[];
+extern int FLIP_VERTICAL[];
 
 void getInitialGame(Game * game);
 void getFenGame(Game * game, char fen[]);

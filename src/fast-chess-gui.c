@@ -385,6 +385,21 @@ void loadRandomTintedBackground(void) {
 	SDL_FreeSurface( bgSurface );
 }
 
+void loadRandomBackground(void) {
+	unsigned char bgColor[6];
+	int i;
+	for (i=0; i<6; i++) {
+		bgColor[i]   = (unsigned char) (rand() % 256);
+	}
+
+	SDL_Surface * bgSurface = createBoardSurface(bgColor);
+
+	SDL_DestroyTexture(bgTexture);
+	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
+
+	SDL_FreeSurface( bgSurface );
+}
+
 BOOL init() {
 	srand(time(NULL));
 
@@ -563,9 +578,15 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				renderBoard(game.position.board, color, lastMove);
 				break;
 
-			case SDLK_r:
+			case SDLK_t:
 				heatmap = FALSE;
 				loadRandomTintedBackground();
+				renderBoard(game.position.board, color, lastMove);
+				break;
+
+			case SDLK_r:
+				heatmap = FALSE;
+				loadRandomBackground();
 				renderBoard(game.position.board, color, lastMove);
 				break;
 
@@ -574,7 +595,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				fflush(stdout);
 				break;
 
-			case SDLK_p:
+			case SDLK_d:
 				dumpContent(&game);
 				break;
 
@@ -632,6 +653,15 @@ int main( int argc, char* args[] ) {
 
 	playAIRandomColor(DEFAULT_AI_DEPTH);
 //	playAlone();
+
+//	printf("Position\t%d bytes\n", sizeof(Position));
+//	printf("Board\t\t%d bytes\n", NUM_SQUARES*sizeof(int));
+//	printf("To move\t\t%d bytes\n", sizeof(char));
+//	printf("En passant\t%d bytes\n", sizeof(char));
+//	printf("Castling\t%d bytes\n", sizeof(char));
+//	printf("Half move\t%d bytes\n", sizeof(int));
+//	printf("Full move\t%d bytes\n", sizeof(int));
+//	fflush(stdout);
 
 	close();
 
