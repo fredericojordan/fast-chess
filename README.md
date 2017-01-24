@@ -9,6 +9,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - Search
  - Iterative Deepening
  - Alpha-Beta Pruning
+ - Parallel Processing
  - Quiescence Search
  - Static Exchange Evaluation
 - Evaluation
