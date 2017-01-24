@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <conio.h>
+
 #include "fast-chess.h"
 
 char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
@@ -553,19 +555,19 @@ char piece2char(int piece) {
 char * piece2str(int piece) {
 	switch(piece&PIECE_MASK) {
 	case PAWN:
-		return "Pawn";
+		return "Pawn  ";
 	case KNIGHT:
 		return "Knight";
 	case BISHOP:
 		return "Bishop";
 	case ROOK:
-		return "Rook";
+		return "Rook  ";
 	case QUEEN:
-		return "Queen";
+		return "Queen ";
 	case KING:
-		return "King";
+		return "King  ";
 	case EMPTY:
-		return "none";
+		return "none  ";
 	}
 	return "";
 }
@@ -1974,7 +1976,8 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbos
 	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
 }
 
-int alphaBetaNodes(Node * nodes, Position * position, char depth) {
+int alphaBetaNodes(Node * sortedNodes, Position * position, char depth) {
+	Node nodes[MAX_BRANCHING_FACTOR];
 	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = legalMoves(moves, position, position->toMove);
 
@@ -1986,6 +1989,8 @@ int alphaBetaNodes(Node * nodes, Position * position, char depth) {
 		nodes[i].move = moves[i];
 		nodes[i].score = depth>1?alphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX, FALSE).score:staticEvaluation(&newPosition);
 	}
+
+	sortNodes(sortedNodes, nodes, moveCount, position->toMove);
 
 	return moveCount;
 }
@@ -2010,19 +2015,18 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		fflush(stdout);
 	}
 
-	Node sortedNodes[MAX_BRANCHING_FACTOR], nodes[MAX_BRANCHING_FACTOR];
+	Node nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
-	sortNodes(sortedNodes, nodes, moveCount, position->toMove);
 
 	Position newPosition;
 	int i;
 	for (i=0; i<moveCount; i++) {
-		updatePosition(&newPosition, position, sortedNodes[i].move);
+		updatePosition(&newPosition, position, nodes[i].move);
 
 		if (verbose) {
-			printf("(%d/%d) evaluating move: %s from ", i+1, moveCount, piece2str(position->board[getFrom(sortedNodes[i].move)]));
-			printMove(sortedNodes[i].move);
-			printf("\t= ");
+			printf("(Move %2d/%d) %s from ", i+1, moveCount, piece2str(position->board[getFrom(nodes[i].move)]));
+			printMove(nodes[i].move);
+			printf(" = ");
 			fflush(stdout);
 		}
 
@@ -2034,29 +2038,151 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		}
 
 		if (score == winScore(position->toMove)) {
-			return (Node) { .move = sortedNodes[i].move, .score = score };
+			return (Node) { .move = nodes[i].move, .score = score };
+		}
+
+		if (position->toMove == WHITE && score > alpha) {
+			alpha = score;
+			bestMove = nodes[i].move;
+		} else if (position->toMove == BLACK && score < beta) {
+			beta = score;
+			bestMove = nodes[i].move;
+		}
+
+		if (alpha > beta) {
+			break;
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
+}
+
+Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
+
+	if (hasGameEnded(position))
+		return (Node) { .score = endNodeEvaluation(position) };
+
+	if (depth == 1)
+		return quiescenceSearch(position);
+
+	// Mate in 1
+	Node staticNode = staticSearch(position);
+	if (staticNode.score == winScore(position->toMove))
+		return staticNode;
+
+	Move bestMove = 0;
+
+	Node nodes[MAX_BRANCHING_FACTOR];
+	int moveCount = alphaBetaNodes(nodes, position, depth-1);
+
+	Position newPosition;
+	int i;
+	int alpha = *p_alpha;
+	int beta = *p_beta;
+	for (i=0; i<moveCount; i++) {
+		updatePosition(&newPosition, position, nodes[i].move);
+
+		int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
+
+		if (score == winScore(position->toMove)) {
+			return (Node) { .move = nodes[i].move, .score = score };
 		}
 
 		if (position->toMove == WHITE) {
 			if (score > alpha) {
 				alpha = score;
-				bestMove = sortedNodes[i].move;
-				if (alpha > beta) {
-					break;
-				}
+				bestMove = nodes[i].move;
 			}
 		} else if (position->toMove == BLACK) {
 			if (score < beta) {
 				beta = score;
-				bestMove = sortedNodes[i].move;
-				if (alpha > beta) {
-					break;
-				}
+				bestMove = nodes[i].move;
 			}
+		}
+
+		if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
+			break;
 		}
 	}
 
 	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
+
+}
+
+DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam) {
+	ThreadInfo * tInfo = (ThreadInfo *) lpParam;
+	Position * pos = &tInfo->pos;
+
+	Node node = pIDAB(pos, tInfo->depth, tInfo->alpha, tInfo->beta);
+
+	if ( pos->toMove == BLACK && node.score > *tInfo->alpha ) {
+		*tInfo->alpha = node.score;
+	} else if ( pos->toMove == WHITE && node.score < *tInfo->beta ) {
+		*tInfo->beta = node.score;
+	}
+
+	printf("-");
+	fflush(stdout);
+
+	return node.score;
+}
+
+Node idabThreaded(Position * position, int depth) {
+	if (hasGameEnded(position))
+		return (Node) { .score = endNodeEvaluation(position) };
+
+	Node nodes[MAX_BRANCHING_FACTOR];
+	int moveCount = alphaBetaNodes(nodes, position, depth-1);
+
+	printf("Analyzing %d possible moves with base depth %d:\n[", moveCount, depth);
+	int i;
+	for (i=0; i<moveCount; i++)
+		printf(" ");
+	printf("]\r[");
+	fflush(stdout);
+
+	HANDLE threadHandles[MAX_BRANCHING_FACTOR];
+	ThreadInfo threadInfo[MAX_BRANCHING_FACTOR];
+	int alpha = INT32_MIN;
+	int beta = INT32_MAX;
+
+	for (i=0; i<moveCount; i++) {
+		threadInfo[i].depth = depth-1;
+		updatePosition(&threadInfo[i].pos, position, nodes[i].move);
+		threadInfo[i].alpha = &alpha;
+		threadInfo[i].beta = &beta;
+
+		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunction, (LPVOID) &threadInfo[i], 0, NULL);
+
+		if ( threadHandles[i] == NULL ) {
+//			printf("Error launching process on move #%d!\n", i);
+			printf("!");
+			fflush(stdout);
+		}
+	}
+
+	WaitForMultipleObjects((DWORD) moveCount, threadHandles, TRUE, INFINITE);
+	printf("]\n");
+
+	Move bestMove = 0;
+	int bestMoveScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
+	long int retVal;
+	for (i=0; i<moveCount; i++) {
+		GetExitCodeThread(threadHandles[i], &retVal);
+
+		if ( (position->toMove == WHITE && retVal > bestMoveScore) || (position->toMove == BLACK && retVal < bestMoveScore) ) {
+			bestMove = nodes[i].move;
+			bestMoveScore = retVal;
+		}
+
+		if (CloseHandle(threadHandles[i]) == 0) {
+//			printf("Error on closing thread #%d!\n", i);
+			printf("x");
+			fflush(stdout);
+		}
+	}
+
+	return (Node) { .move = bestMove, .score = bestMoveScore };
 }
 
 Move getRandomMove(Position * position) {
@@ -2080,16 +2206,14 @@ Move getAIMove(Game * game, int depth) {
 	}
 
 	time_t startTime, endTime;
-	printf("Searching with base depth = %d\n", depth);
-	fflush(stdout);
-
 	startTime = time(NULL);
 
 //	Move move = getRandomMove(&game->position);
 //	Move move = simpleEvaluation(&game->position).move;
 //	Move move = minimax(&game->position, AI_DEPTH).move;
 //	Node node = alphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
-	Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
+//	Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
+	Node node = idabThreaded(&game->position, depth);
 
 	endTime = time(NULL);
 

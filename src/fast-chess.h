@@ -9,6 +9,7 @@
 #define FAST_CHESS_H_
 
 #include <stdint.h>
+#include <windows.h>
 
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
@@ -54,8 +55,11 @@
 #define CASTLE_QUEENSIDE_BLACK (1<<3)
 
 #define BOOL  char
+
+#ifndef FALSE
 #define TRUE  (1)
 #define FALSE (0)
+#endif
 
 typedef uint_fast64_t Bitboard;
 typedef int Move;
@@ -89,6 +93,13 @@ typedef struct {
 	Move move;
 	int score;
 } Node;
+
+typedef struct {
+	int depth;
+	Position pos;
+	int * alpha;
+	int * beta;
+} ThreadInfo;
 
 extern char FILES[8];
 extern char RANKS[8];
@@ -308,6 +319,9 @@ Node quiescenceSearch(Position * position);
 Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
+Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
+DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
+Node idabThreaded(Position * position, int depth);
 Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
