@@ -986,6 +986,26 @@ Bitboard knightMoves(Bitboard moving_piece, int board[], char color) {
     return knightAttacks(moving_piece) & not(getColoredPieces(board, color));
 }
 
+Bitboard knightFill(Bitboard moving_piece, int jumps) {
+	Bitboard fill = moving_piece;
+	int i;
+	for (i=0; i<jumps; i++) {
+		fill |= knightAttacks(fill);
+	}
+	return fill;
+}
+
+int knightDistance(Bitboard leaving_square, Bitboard arriving_square) {
+	Bitboard fill = leaving_square;
+	int dist = 0;
+
+	while ((fill & arriving_square) == 0) {
+		dist++;
+		fill |= knightAttacks(fill);
+	}
+	return dist;
+}
+
 // ========== KING ===========
 
 Bitboard getKing(int board[], char color) {
