@@ -8,12 +8,26 @@
  ============================================================================
  */
 
-#include <SDL.h>
-#include <SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <SDL.h>
+#include <SDL_blendmode.h>
+#include <SDL_error.h>
+#include <SDL_events.h>
+#include <SDL_image.h>
+#include <SDL_keyboard.h>
+#include <SDL_keycode.h>
+#include <SDL_main.h>
+#include <SDL_pixels.h>
+#include <SDL_rect.h>
+#include <SDL_render.h>
+#include <SDL_surface.h>
+#include <SDL_video.h>
+#include <SDL_ttf.h>
+#include <time.h>
+
 #include "fast-chess.h"
 
 int TILE_SIDE = 60;
@@ -28,6 +42,7 @@ char COLOR_SQUEMES[][6] = {
 							{ 212, 202, 190, 100,  92,  89 }, // CHESSWEBSITE
 						  };
 int bgColorNum = -1;
+char BG_COLOR[6];
 
 int checkRed = 0xFF0000;
 int checkTransparency = 0x80;
@@ -158,7 +173,7 @@ SDL_Surface * createBoardSurface(char colors[]) {
 }
 
 void loadBackground(void) {
-	SDL_Surface * bgSurface = createBoardSurface(COLOR_SQUEMES[bgColorNum]);
+	SDL_Surface * bgSurface = createBoardSurface(BG_COLOR);
 
 	SDL_DestroyTexture(bgTexture);
 	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -192,65 +207,108 @@ void renderBackground(void) {
 	SDL_RenderCopy(renderer, bgTexture, NULL, &boardRect);
 }
 
+void renderAlgebricNotation(char color) {
+	if ( TILE_SIDE < 40 )
+		return;
+
+	TTF_Font* font = TTF_OpenFont("OpenSans-Regular.ttf", 36);
+	if ( font == NULL ) {
+		return;
+	}
+
+	const char * const FILES_STR[8] = {"a", "b", "c", "d", "e", "f", "g", "h" };
+	const char * const RANKS_STR[8] = {"1", "2", "3", "4", "5", "6", "7", "8" };
+	int i;
+
+	for (i=0; i<8; i++) {
+		SDL_Color text_color = {BG_COLOR[0+3*(i%2)], BG_COLOR[1+3*(i%2)], BG_COLOR[2+3*(i%2)]};
+		SDL_Surface* messageSurface = TTF_RenderText_Solid(font, color==WHITE?RANKS_STR[i]:RANKS_STR[7-i], text_color);
+		if ( messageSurface == NULL )
+			continue;
+
+		SDL_Texture* messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
+		SDL_FreeSurface( messageSurface );
+
+		SDL_Rect tile = index2rect(8*i, WHITE);
+		tile.w /= 6;
+		tile.h /= 4;
+		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+
+		messageSurface = TTF_RenderText_Solid(font, color==WHITE?FILES_STR[i]:FILES_STR[7-i], text_color);
+		if ( messageSurface == NULL )
+			continue;
+
+		messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
+		SDL_FreeSurface( messageSurface );
+
+		tile = index2rect(i, WHITE);
+		tile.x += 1;
+		tile.y += tile.h*3/4;
+		tile.w /= 6;
+		tile.h /= 4;
+		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+	}
+}
+
 void renderPieces(int board[], char color) {
 	int i;
-		for (i=0; i<NUM_SQUARES; i++) {
-			int piece = board[i];
+	for (i=0; i<NUM_SQUARES; i++) {
+		int piece = board[i];
 
-			if ( piece != EMPTY ) {
-				SDL_Rect squareRect = index2rect(i, color);
+		if ( piece != EMPTY ) {
+			SDL_Rect squareRect = index2rect(i, color);
 
-				switch(piece) {
-				case BLACK|PAWN:
-					SDL_RenderCopy(renderer, bPawn, NULL, &squareRect);
-					break;
+			switch(piece) {
+			case BLACK|PAWN:
+				SDL_RenderCopy(renderer, bPawn, NULL, &squareRect);
+				break;
 
-				case BLACK|KNIGHT:
-					SDL_RenderCopy(renderer, bKnight, NULL, &squareRect);
-					break;
+			case BLACK|KNIGHT:
+				SDL_RenderCopy(renderer, bKnight, NULL, &squareRect);
+				break;
 
-				case BLACK|BISHOP:
-					SDL_RenderCopy(renderer, bBishop, NULL, &squareRect);
-					break;
+			case BLACK|BISHOP:
+				SDL_RenderCopy(renderer, bBishop, NULL, &squareRect);
+				break;
 
-				case BLACK|ROOK:
-					SDL_RenderCopy(renderer, bRook, NULL, &squareRect);
-					break;
+			case BLACK|ROOK:
+				SDL_RenderCopy(renderer, bRook, NULL, &squareRect);
+				break;
 
-				case BLACK|QUEEN:
-					SDL_RenderCopy(renderer, bQueen, NULL, &squareRect);
-					break;
+			case BLACK|QUEEN:
+				SDL_RenderCopy(renderer, bQueen, NULL, &squareRect);
+				break;
 
-				case BLACK|KING:
-					SDL_RenderCopy(renderer, bKing, NULL, &squareRect);
-					break;
+			case BLACK|KING:
+				SDL_RenderCopy(renderer, bKing, NULL, &squareRect);
+				break;
 
-				case WHITE|PAWN:
-					SDL_RenderCopy(renderer, wPawn, NULL, &squareRect);
-					break;
+			case WHITE|PAWN:
+				SDL_RenderCopy(renderer, wPawn, NULL, &squareRect);
+				break;
 
-				case WHITE|KNIGHT:
-					SDL_RenderCopy(renderer, wKnight, NULL, &squareRect);
-					break;
+			case WHITE|KNIGHT:
+				SDL_RenderCopy(renderer, wKnight, NULL, &squareRect);
+				break;
 
-				case WHITE|BISHOP:
-					SDL_RenderCopy(renderer, wBishop, NULL, &squareRect);
-					break;
+			case WHITE|BISHOP:
+				SDL_RenderCopy(renderer, wBishop, NULL, &squareRect);
+				break;
 
-				case WHITE|ROOK:
-					SDL_RenderCopy(renderer, wRook, NULL, &squareRect);
-					break;
+			case WHITE|ROOK:
+				SDL_RenderCopy(renderer, wRook, NULL, &squareRect);
+				break;
 
-				case WHITE|QUEEN:
-					SDL_RenderCopy(renderer, wQueen, NULL, &squareRect);
-					break;
+			case WHITE|QUEEN:
+				SDL_RenderCopy(renderer, wQueen, NULL, &squareRect);
+				break;
 
-				case WHITE|KING:
-					SDL_RenderCopy(renderer, wKing, NULL, &squareRect);
-					break;
-				}
+			case WHITE|KING:
+				SDL_RenderCopy(renderer, wKing, NULL, &squareRect);
+				break;
 			}
 		}
+	}
 }
 
 void renderCheck(int board[], char color) {
@@ -276,6 +334,7 @@ void renderLastMove(int lastMove, char color) {
 
 void renderRegularBoard(int board[], char color, Move lastMove) {
 	renderBackground();
+	renderAlgebricNotation(color);
 	renderCheck(board, color);
 	renderLastMove(lastMove, color);
 	renderPieces(board, color);
@@ -365,19 +424,22 @@ void changeColors(void) {
 	while ( newColor == bgColorNum ) { newColor = rand() % colorCount; }
 
 	bgColorNum = newColor;
+	int i;
+	for (i=0;i<6;i++)
+		BG_COLOR[i] = COLOR_SQUEMES[bgColorNum][i];
+
 	loadBackground();
 }
 
 void loadRandomTintedBackground(void) {
-	unsigned char bgColor[6];
 	int i;
 	for (i=0; i<3; i++) {
 		int value = (rand() % 256);
-		bgColor[i]   = (unsigned char) (value + 0.5*(255-value));
-		bgColor[i+3] = (unsigned char) value;
+		BG_COLOR[i]   = (unsigned char) (value + 0.5*(255-value));
+		BG_COLOR[i+3] = (unsigned char) value;
 	}
 
-	SDL_Surface * bgSurface = createBoardSurface(bgColor);
+	SDL_Surface * bgSurface = createBoardSurface(BG_COLOR);
 
 	SDL_DestroyTexture(bgTexture);
 	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -386,13 +448,12 @@ void loadRandomTintedBackground(void) {
 }
 
 void loadRandomBackground(void) {
-	unsigned char bgColor[6];
 	int i;
 	for (i=0; i<6; i++) {
-		bgColor[i]   = (unsigned char) (rand() % 256);
+		BG_COLOR[i]   = (unsigned char) (rand() % 256);
 	}
 
-	SDL_Surface * bgSurface = createBoardSurface(bgColor);
+	SDL_Surface * bgSurface = createBoardSurface(BG_COLOR);
 
 	SDL_DestroyTexture(bgTexture);
 	bgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -420,6 +481,11 @@ BOOL init() {
 	if( !( IMG_Init( imgFlags ) & imgFlags ) ) {
 		printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
 		return FALSE;
+	}
+
+	if( TTF_Init() == -1 ) {
+	    printf("TTF_Init error: %s\n", TTF_GetError());
+	    return FALSE;
 	}
 
 	screenSurface = SDL_GetWindowSurface( window );
@@ -648,8 +714,10 @@ void playAIRandomColor(int depth) {
 void playAlone() { play(WHITE, FALSE, 0); }
 
 int main( int argc, char* args[] ) {
-	if ( !init() )
+	if ( !init() ) {
+		fflush(stdout);
 		return EXIT_FAILURE;
+	}
 
 	playAIRandomColor(DEFAULT_AI_DEPTH);
 //	playAlone();
