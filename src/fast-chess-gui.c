@@ -211,8 +211,6 @@ void renderAlgebricNotation(char color) {
 	if ( TILE_SIDE < 40 )
 		return;
 
-//	TTF_Font* font = TTF_OpenFont("OpenSans-Regular.ttf", 36);
-//	TTF_Font* font = TTF_OpenFont("OpenSans-Semibold.ttf", 36);
 	TTF_Font* font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
 	if ( font == NULL ) {
 		return;
@@ -419,19 +417,33 @@ void loadLastMoveSquare(void) {
 	SDL_FreeSurface( lastMoveSurf );
 }
 
-void changeColors(void) {
+void nextColorScheme(void) {
 	int colorCount = (int) (sizeof(COLOR_SQUEMES)/6);
-	int newColor = rand() % colorCount;
 
-	while ( newColor == bgColorNum ) { newColor = rand() % colorCount; }
+	bgColorNum++;
+	bgColorNum %= colorCount;
 
-	bgColorNum = newColor;
 	int i;
 	for (i=0;i<6;i++)
 		BG_COLOR[i] = COLOR_SQUEMES[bgColorNum][i];
 
 	loadBackground();
 }
+
+void randomColorScheme(void) {
+	int colorCount = (int) (sizeof(COLOR_SQUEMES)/6);
+
+	int newColor = rand() % colorCount;
+	while ( newColor == bgColorNum ) { newColor = rand() % colorCount; }
+	bgColorNum = newColor;
+
+	int i;
+	for (i=0;i<6;i++)
+		BG_COLOR[i] = COLOR_SQUEMES[bgColorNum][i];
+
+	loadBackground();
+}
+
 
 void loadRandomTintedBackground(void) {
 	int i;
@@ -495,7 +507,7 @@ BOOL init() {
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-	changeColors();
+	randomColorScheme();
 	loadBackground();
 	loadWhiteBackground();
 	loadCheckSquare();
@@ -642,7 +654,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 
 			case SDLK_c:
 				heatmap = FALSE;
-				changeColors();
+				nextColorScheme();
 				renderBoard(game.position.board, color, lastMove);
 				break;
 
