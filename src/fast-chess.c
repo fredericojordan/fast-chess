@@ -1933,7 +1933,7 @@ Node quiescenceSearch(Position * position) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
-Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose) {
+Node alphaBeta(Position * position, char depth, int alpha, int beta) {
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
@@ -1948,7 +1948,6 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbos
 	Move bestMove = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
-//	int moveCount = legalMoves(moves, position, position->toMove);
 	int moveCount = staticOrderLegalMoves(moves, position, position->toMove);
 
 	Position newPosition;
@@ -1956,40 +1955,22 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbos
 	for (i=0; i<moveCount; i++) {
 		updatePosition(&newPosition, position, moves[i]);
 
-		if (verbose) {
-			printf("(%d/%d) evaluating move: ", i+1, moveCount);
-			printMove(moves[i]);
-			printf(" = ");
-			fflush(stdout);
-		}
-
-		int score = alphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
-
-		if (verbose) {
-			printf("%.2f\n", score/100.0);
-			fflush(stdout);
-		}
+		int score = alphaBeta(&newPosition, depth-1, alpha, beta).score;
 
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
-		if (position->toMove == WHITE) {
-			if (score > alpha) {
-				alpha = score;
-				bestMove = moves[i];
-				if (alpha > beta) {
-					break;
-				}
-			}
-		} else if (position->toMove == BLACK) {
-			if (score < beta) {
-				beta = score;
-				bestMove = moves[i];
-				if (alpha > beta) {
-					break;
-				}
-			}
+		if (position->toMove == WHITE && score > alpha) {
+			alpha = score;
+			bestMove = moves[i];
+		} else if (position->toMove == BLACK && score < beta) {
+			beta = score;
+			bestMove = moves[i];
+		}
+
+		if (alpha > beta) {
+			break;
 		}
 	}
 
@@ -2007,7 +1988,7 @@ int alphaBetaNodes(Node * sortedNodes, Position * position, char depth) {
 		updatePosition(&newPosition, position, moves[i]);
 
 		nodes[i].move = moves[i];
-		nodes[i].score = depth>1?alphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX, FALSE).score:staticEvaluation(&newPosition);
+		nodes[i].score = depth>1?alphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX).score:staticEvaluation(&newPosition);
 	}
 
 	sortNodes(sortedNodes, nodes, moveCount, position->toMove);
@@ -2108,16 +2089,12 @@ Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
 			return (Node) { .move = nodes[i].move, .score = score };
 		}
 
-		if (position->toMove == WHITE) {
-			if (score > alpha) {
-				alpha = score;
-				bestMove = nodes[i].move;
-			}
-		} else if (position->toMove == BLACK) {
-			if (score < beta) {
-				beta = score;
-				bestMove = nodes[i].move;
-			}
+		if (position->toMove == WHITE && score > alpha) {
+			alpha = score;
+			bestMove = nodes[i].move;
+		} else if (position->toMove == BLACK && score < beta) {
+			beta = score;
+			bestMove = nodes[i].move;
 		}
 
 		if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {

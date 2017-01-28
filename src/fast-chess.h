@@ -316,7 +316,7 @@ int quiescenceEvaluation(Position * position);
 
 Node staticSearch(Position * position);
 Node quiescenceSearch(Position * position);
-Node alphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
+Node alphaBeta(Position * position, char depth, int alpha, int beta);
 int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
