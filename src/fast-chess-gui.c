@@ -213,7 +213,7 @@ void renderAlgebricNotation(char color) {
 
 //	TTF_Font* font = TTF_OpenFont("OpenSans-Regular.ttf", 36);
 //	TTF_Font* font = TTF_OpenFont("OpenSans-Semibold.ttf", 36);
-	TTF_Font* font = TTF_OpenFont("OpenSans-Bold.ttf", 48);
+	TTF_Font* font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
 	if ( font == NULL ) {
 		return;
 	}
