@@ -211,7 +211,9 @@ void renderAlgebricNotation(char color) {
 	if ( TILE_SIDE < 40 )
 		return;
 
-	TTF_Font* font = TTF_OpenFont("OpenSans-Regular.ttf", 36);
+//	TTF_Font* font = TTF_OpenFont("OpenSans-Regular.ttf", 36);
+//	TTF_Font* font = TTF_OpenFont("OpenSans-Semibold.ttf", 36);
+	TTF_Font* font = TTF_OpenFont("OpenSans-Bold.ttf", 48);
 	if ( font == NULL ) {
 		return;
 	}
@@ -676,6 +678,27 @@ void play(char color, BOOL hasAI, int AIdepth) {
 
 			case SDLK_h:
 				heatmap = heatmap?FALSE:TRUE;
+				renderBoard(game.position.board, color, lastMove);
+				break;
+
+			case SDLK_UP:
+				AIdepth++;
+				printf("Search base depth increased to %d.\n", AIdepth);
+				fflush(stdout);
+				break;
+
+			case SDLK_DOWN:
+				if (AIdepth==1) {
+					printf("Search base depth is 1.\n");
+				} else {
+					AIdepth--;
+					printf("Search base depth decreased to %d.\n", AIdepth);
+				}
+				fflush(stdout);
+				break;
+
+			case SDLK_i:
+				color = opponent(color);
 				renderBoard(game.position.board, color, lastMove);
 				break;
 

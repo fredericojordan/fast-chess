@@ -2151,6 +2151,9 @@ Node idabThreaded(Position * position, int depth) {
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	if (depth <= 1)
+		return quiescenceSearch(position);
+
 	Node nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
@@ -2186,13 +2189,15 @@ Node idabThreaded(Position * position, int depth) {
 
 	Move bestMove = 0;
 	int bestMoveScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
-	long int retVal;
+	long unsigned int retVal;
+	int score;
 	for (i=0; i<moveCount; i++) {
 		GetExitCodeThread(threadHandles[i], &retVal);
+		score = (int) retVal;
 
-		if ( (position->toMove == WHITE && retVal > bestMoveScore) || (position->toMove == BLACK && retVal < bestMoveScore) ) {
+		if ( (position->toMove == WHITE && score > bestMoveScore) || (position->toMove == BLACK && score < bestMoveScore) ) {
 			bestMove = nodes[i].move;
-			bestMoveScore = retVal;
+			bestMoveScore = score;
 		}
 
 		if (CloseHandle(threadHandles[i]) == 0) {
