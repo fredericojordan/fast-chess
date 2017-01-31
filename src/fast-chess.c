@@ -713,7 +713,7 @@ void dumpContent(Game * game) {
 	fflush(stdout);
 }
 
-void dumpPGN(Game * game, char color) {
+void dumpPGN(Game * game, char color, BOOL hasAI) {
 	char filename[50];
 	sprintf(filename, "chess_game_");
 	getTimestamp(&filename[strlen(filename)]);
@@ -734,12 +734,17 @@ void dumpPGN(Game * game, char color) {
 	fprintf(file, "[Date \"%s\"]\n", date);
 	fprintf(file, "[Round \"Friendly\"]\n");
 
-	if ( color == WHITE ) {
-		fprintf(file, "[White \"Player\"]\n");
-		fprintf(file, "[Black \"Fast Chess Engine\"]\n");
+	if  ( hasAI ) {
+		if ( color == WHITE ) {
+			fprintf(file, "[White \"Human Player\"]\n");
+			fprintf(file, "[Black \"Fast Chess Engine\"]\n");
+		} else {
+			fprintf(file, "[White \"Fast Chess Engine\"]\n");
+			fprintf(file, "[Black \"Human Player\"]\n");
+		}
 	} else {
-		fprintf(file, "[White \"Fast Chess Engine\"]\n");
-		fprintf(file, "[Black \"Player\"]\n");
+		fprintf(file, "[White \"Human Player\"]\n");
+		fprintf(file, "[Black \"Human Player\"]\n");
 	}
 
 	if ( hasGameEnded(&game->position) ) {

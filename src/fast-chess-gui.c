@@ -653,7 +653,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				break;
 
 			case SDLK_p:
-				dumpPGN(&game, color);
+				dumpPGN(&game, color, hasAI);
 				break;
 
 			case SDLK_u:

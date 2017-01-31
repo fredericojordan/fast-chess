@@ -165,7 +165,7 @@ void printMove(Move move);
 void printNode(Node node);
 void getTimestamp(char * timestamp);
 void dumpContent(Game * game);
-void dumpPGN(Game * game, char color);
+void dumpPGN(Game * game, char color, BOOL hasAI);
 void move2str(char * str, Game * game, int moveNumber);
 BOOL isAmbiguous(Position * posBefore, Move move);
 
