@@ -680,6 +680,166 @@ void printNode(Node node) {
 	printf(": %d", node.score);
 }
 
+void getTimestamp(char * timestamp) {
+    time_t timer;
+    struct tm* tm_info;
+
+    time(&timer);
+    tm_info = localtime(&timer);
+
+    strftime(timestamp, 20, "%Y-%m-%d_%H.%M.%S", tm_info);
+}
+
+void dumpContent(Game * game) {
+	char * movelist = movelist2str(game);
+
+	char filename[50];
+	sprintf(filename, "chess_game_");
+	getTimestamp(&filename[strlen(filename)]);
+	sprintf(&filename[strlen(filename)], ".txt");
+
+	FILE * file = fopen(filename, "w+");
+
+	fprintf(file, "movelist = %s\nposition history:\n", movelist);
+
+	int i;
+	for (i=0; i<game->moveListLen+1; i++)
+		fprintf(file, "%s\n", game->positionHistory[i]);
+
+	free(movelist);
+	fclose(file);
+
+	printf("Dumped game content to: %s\n", filename);
+	fflush(stdout);
+}
+
+void dumpPGN(Game * game, char color) {
+	char filename[50];
+	sprintf(filename, "chess_game_");
+	getTimestamp(&filename[strlen(filename)]);
+	sprintf(&filename[strlen(filename)], ".pgn");
+
+	FILE * file = fopen(filename, "w+");
+
+	char date[12];
+    time_t timer;
+    struct tm* tm_info;
+    time(&timer);
+    tm_info = localtime(&timer);
+    strftime(date, 11, "%Y.%m.%d", tm_info);
+
+
+	fprintf(file, "[Event \"Fast Chess Friendly Game\"]\n");
+	fprintf(file, "[Site \"??\"]\n");
+	fprintf(file, "[Date \"%s\"]\n", date);
+	fprintf(file, "[Round \"Friendly\"]\n");
+
+	if ( color == WHITE ) {
+		fprintf(file, "[White \"Player\"]\n");
+		fprintf(file, "[Black \"Fast Chess Engine\"]\n");
+	} else {
+		fprintf(file, "[White \"Fast Chess Engine\"]\n");
+		fprintf(file, "[Black \"Player\"]\n");
+	}
+
+	if ( hasGameEnded(&game->position) ) {
+		if ( endNodeEvaluation(&game->position) == winScore(WHITE) ) {
+			fprintf(file, "[Result \"1-0\"]\n");
+		} else if ( endNodeEvaluation(&game->position) == winScore(BLACK) ) {
+			fprintf(file, "[Result \"0-1\"]\n");
+		} else if ( endNodeEvaluation(&game->position) == 0 ) {
+			fprintf(file, "[Result \"1/2-1/2\"]\n");
+		}
+	} else {
+		fprintf(file, "[Result \"*\"]\n");
+	}
+
+	fprintf(file, "[PlyCount \"%d\"]\n\n", game->moveListLen);
+
+
+	int i;
+	char ply[8];
+	for (i=0;i<game->moveListLen;i++) {
+		if (i%2==0) fprintf(file, "%d. ", 1+(i/2));
+		move2str(ply, game, i);
+		fprintf(file, "%s ", ply);
+	}
+
+	fclose(file);
+
+	printf("Dumped game pgn to: %s\n", filename);
+	fflush(stdout);
+}
+
+void move2str(char * str, Game * game, int moveNumber) { // TODO: refactor
+	Position posBefore, posAfter;
+	loadFen(&posBefore, game->positionHistory[moveNumber]);
+	loadFen(&posAfter, game->positionHistory[moveNumber+1]);
+	Move move = game->moveList[moveNumber];
+	int leavingSquare = getFrom(move);
+	int arrivingSquare = getTo(move);
+	int movingPiece = posBefore.board[leavingSquare];
+	int capturedPiece = posBefore.board[arrivingSquare];
+
+	int length = 0;
+	if ( (movingPiece&PIECE_MASK) == KING && abs(leavingSquare-arrivingSquare) == 2 ) { // if castling
+		if ( index2bb(arrivingSquare)&FILE_G ) {
+			sprintf(str, "O-O");
+			length += 3;
+		} else if ( index2bb(arrivingSquare)&FILE_C ) {
+			sprintf(str, "O-O-O");
+			length += 5;
+		}
+	} else { // if not castling
+		if ( (movingPiece&PIECE_MASK) == PAWN ) {
+			if ( capturedPiece != EMPTY ) {
+				str[length++] = getFile(leavingSquare);
+			}
+		} else {
+			str[length++] = piece2char(movingPiece&PIECE_MASK);
+		}
+
+		if( isAmbiguous(&posBefore, move) ) {
+			if ( countBits( getColoredPieces(posBefore.board, movingPiece&COLOR_MASK)&getPieces(posBefore.board, movingPiece&PIECE_MASK)&fileFilter(index2bb(leavingSquare)) ) == 1 ) {
+				str[length++] = getFile(leavingSquare);
+			} else {
+				str[length++] = getRank(leavingSquare);
+			}
+		}
+
+		if ( capturedPiece != EMPTY ) {
+			str[length++] = 'x';
+		}
+
+		str[length++] = getFile(arrivingSquare);
+		str[length++] = getRank(arrivingSquare);
+	}
+
+	if ( isCheckmate(&posAfter) ) {
+		str[length++] = '#';
+	} else if (isCheck(posAfter.board, posAfter.toMove)) {
+		str[length++] = '+';
+	}
+
+	str[length++] = 0;
+}
+
+BOOL isAmbiguous(Position * posBefore, Move move) {
+	int piece = posBefore->board[getFrom(move)];
+	char color = piece&COLOR_MASK;
+	int arrivingSquare = getTo(move);
+
+	int i, attackCount = 0;
+
+	for (i=0; i<NUM_SQUARES; i++)
+		if (posBefore->board[i] == piece)
+			if ( getAttacks(index2bb(i), posBefore->board, color) & index2bb(arrivingSquare) )
+				attackCount += 1;
+
+	return attackCount > 1;
+
+}
+
 // ====== BOARD FILTERS ======
 
 Bitboard getColoredPieces(int board[], char color) {

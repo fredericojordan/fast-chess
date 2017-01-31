@@ -540,39 +540,6 @@ void setEndTitle(Position * position) {
 	fflush(stdout);
 }
 
-void getTimestamp(char * timestamp) {
-    time_t timer;
-    struct tm* tm_info;
-
-    time(&timer);
-    tm_info = localtime(&timer);
-
-    strftime(timestamp, 20, "%Y-%m-%d_%H.%M.%S", tm_info);
-}
-
-void dumpContent(Game * game) {
-	char * movelist = movelist2str(game);
-
-	char filename[50];
-	sprintf(filename, "chess_game_");
-	getTimestamp(&filename[strlen(filename)]);
-	sprintf(&filename[strlen(filename)], ".txt");
-
-	FILE * file = fopen(filename, "w+");
-
-	fprintf(file, "movelist = %s\nposition history:\n", movelist);
-
-	int i;
-	for (i=0; i<game->moveListLen+1; i++)
-		fprintf(file, "%s\n", game->positionHistory[i]);
-
-	free(movelist);
-	fclose(file);
-
-	printf("Dumped game content to: %s\n", filename);
-	fflush(stdout);
-}
-
 void play(char color, BOOL hasAI, int AIdepth) {
 	hasAI?printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK"):printf("Playing as both colors!\n");
 	fflush(stdout);
@@ -652,6 +619,12 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				run = FALSE;
 				break;
 
+			case SDLK_a:
+				hasAI = hasAI?FALSE:TRUE;
+				printf("AI opponent is now %s.\n", hasAI?"ENABLED":"DISABLED");
+				fflush(stdout);
+				break;
+
 			case SDLK_c:
 				heatmap = FALSE;
 				nextColorScheme();
@@ -677,6 +650,10 @@ void play(char color, BOOL hasAI, int AIdepth) {
 
 			case SDLK_d:
 				dumpContent(&game);
+				break;
+
+			case SDLK_p:
+				dumpPGN(&game, color);
 				break;
 
 			case SDLK_u:
