@@ -825,19 +825,18 @@ void move2str(char * str, Game * game, int moveNumber) { // TODO: refactor
 }
 
 BOOL isAmbiguous(Position * posBefore, Move move) {
-	int piece = posBefore->board[getFrom(move)];
-	char color = piece&COLOR_MASK;
-	int arrivingSquare = getTo(move);
-
 	int i, attackCount = 0;
+	Move moves[MAX_BRANCHING_FACTOR];
+	int moveCount = legalMoves(moves, posBefore, posBefore->toMove);
 
-	for (i=0; i<NUM_SQUARES; i++)
-		if (posBefore->board[i] == piece)
-			if ( getAttacks(index2bb(i), posBefore->board, color) & index2bb(arrivingSquare) )
-				attackCount += 1;
+	for (i=0; i<moveCount; i++) {
+		if ( getTo(moves[i]) == getTo(move) &&
+				posBefore->board[getFrom(moves[i])] == posBefore->board[getFrom(move)] ) {
+			attackCount++;
+		}
+	}
 
 	return attackCount > 1;
-
 }
 
 // ====== BOARD FILTERS ======
