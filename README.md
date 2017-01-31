@@ -27,14 +27,23 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 5. Profit
 
 ## GUI Hotkeys
-- **U** - [U]ndo move
-- **Q** - [Q]uit
-- **D** - [D]ump game info to file
+### AI
+- **\<UP\>/\<DOWN\>** - Change AI difficulty
+- **A** - Toggle [A]I opponent
+- **I** - [I]nvert player's colors
+
+### Colors
 - **H** - Toggle attack [H]eatmap
 - **C** - Change board [c]olor scheme
 - **R** - [R]andom board color
 - **T** - Random [t]inted board color
+
+### Miscelaneous
+- **P** - Export to [P]GN
+- **D** - [D]ump game info to file
 - **E** - Static board [e]valuation (debug mode only)
+- **Q** - [Q]uit
+- **U** - [U]ndo move
 
 ## Screenshots
 ![Chess Game](http://i.imgur.com/O6rcSqu.png)
