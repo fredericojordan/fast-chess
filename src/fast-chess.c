@@ -675,6 +675,18 @@ void printMove(Move move) {
 	printf("%c%c to %c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
 }
 
+void printLegalMoves(Position * position) {
+	int i;
+	Move moves[MAX_BRANCHING_FACTOR];
+	int moveCount = legalMoves(moves, position, position->toMove);
+	for (i=0; i<moveCount; i++) {
+		printf("%2d. ", i+1);
+		printMove(moves[i]);
+		printf("\n");
+	}
+	fflush(stdout);
+}
+
 void printNode(Node node) {
 	printMove(node.move);
 	printf(": %d", node.score);

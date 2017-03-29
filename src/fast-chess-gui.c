@@ -656,6 +656,10 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				dumpPGN(&game, color, hasAI);
 				break;
 
+			case SDLK_m:
+				printLegalMoves(&game.position);
+				break;
+
 			case SDLK_u:
 				unmakeMove(&game);
 				if ( hasAI ) unmakeMove(&game);
@@ -663,11 +667,15 @@ void play(char color, BOOL hasAI, int AIdepth) {
 				ongoing = TRUE;
 				lastMove = getLastMove(&game);
 				renderBoard(game.position.board, color, lastMove);
+				printf("Last move was undone.\n");
+				fflush(stdout);
 				break;
 
 			case SDLK_h:
 				heatmap = heatmap?FALSE:TRUE;
 				renderBoard(game.position.board, color, lastMove);
+				printf("Heatmap %s.\n", heatmap?"enabled":"disabled");
+				fflush(stdout);
 				break;
 
 			case SDLK_UP:
@@ -689,6 +697,8 @@ void play(char color, BOOL hasAI, int AIdepth) {
 			case SDLK_i:
 				color = opponent(color);
 				renderBoard(game.position.board, color, lastMove);
+				printf("Now playing as %s.\n", color==WHITE?"WHITE":"BLACK");
+				fflush(stdout);
 				break;
 
 			default:

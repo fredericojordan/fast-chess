@@ -67,7 +67,7 @@ typedef int Move;
 #define MAX_BOOK_ENTRY_LEN (300)
 #define MAX_PLYS_PER_GAME (1024)
 #define MAX_FEN_LEN (100)
-#define MAX_BRANCHING_FACTOR (100)
+#define MAX_BRANCHING_FACTOR (218) /* R6R/3Q4/1Q4Q1/4Q3/2Q4Q/Q4Q2/pp1Q4/kBNN1KB1 w - - 0 1                  3Q4/1Q4Q1/4Q3/2Q4R/Q4Q2/3Q4/1Q4Rp/1K1BBNNk w - - 0 1 */
 #define MAX_ATTACKING_PIECES (12)
 
 #define DEFAULT_AI_DEPTH (3)
@@ -162,6 +162,7 @@ char opponent(char color);
 int countBits(Bitboard bb);
 void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
 void printMove(Move move);
+void printLegalMoves(Position * position);
 void printNode(Node node);
 void getTimestamp(char * timestamp);
 void dumpContent(Game * game);
