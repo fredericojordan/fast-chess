@@ -65,7 +65,6 @@ SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
 SDL_Texture * loadImage(char * fileLocation) {
 	SDL_Surface* imgSurface = NULL;
-
     imgSurface = IMG_Load( fileLocation );
 
     if( imgSurface == NULL ) {
@@ -185,6 +184,7 @@ void loadWhiteBackground(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 	SDL_Surface * bgSurface = SDL_CreateRGBSurface(0, 8*TILE_SIDE, 8*TILE_SIDE, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
 	SDL_FillRect( bgSurface, NULL, SDL_MapRGB( bgSurface->format, 255, 255, 255 ) );
+	SDL_DestroyTexture(whiteBgTexture);
 	whiteBgTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
 	SDL_FreeSurface( bgSurface );
 }
@@ -226,6 +226,7 @@ void renderAlgebricNotation(char color) {
 		if ( messageSurface == NULL )
 			continue;
 
+
 		SDL_Texture* messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
 		SDL_FreeSurface( messageSurface );
 
@@ -233,6 +234,7 @@ void renderAlgebricNotation(char color) {
 		tile.w /= 6;
 		tile.h /= 4;
 		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+		SDL_DestroyTexture(messageTexture);
 
 		messageSurface = TTF_RenderText_Solid(font, color==WHITE?FILES_STR[i]:FILES_STR[7-i], text_color);
 		if ( messageSurface == NULL )
@@ -247,7 +249,50 @@ void renderAlgebricNotation(char color) {
 		tile.w /= 6;
 		tile.h /= 4;
 		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+		SDL_DestroyTexture(messageTexture);
 	}
+}
+
+SDL_Texture * getPieceTexture(int piece) {
+	switch(piece) {
+	case BLACK|PAWN:
+		return bPawn;
+
+	case BLACK|KNIGHT:
+		return bKnight;
+
+	case BLACK|BISHOP:
+		return bBishop;
+
+	case BLACK|ROOK:
+		return bRook;
+
+	case BLACK|QUEEN:
+		return bQueen;
+
+	case BLACK|KING:
+		return bKing;
+
+	case WHITE|PAWN:
+		return wPawn;
+
+	case WHITE|KNIGHT:
+		return wKnight;
+
+	case WHITE|BISHOP:
+		return wBishop;
+
+	case WHITE|ROOK:
+		return wRook;
+
+	case WHITE|QUEEN:
+	return wQueen;
+
+	case WHITE|KING:
+		return wKing;
+	}
+
+	return NULL;
 }
 
 void renderPieces(int board[], char color) {
@@ -257,56 +302,7 @@ void renderPieces(int board[], char color) {
 
 		if ( piece != EMPTY ) {
 			SDL_Rect squareRect = index2rect(i, color);
-
-			switch(piece) {
-			case BLACK|PAWN:
-				SDL_RenderCopy(renderer, bPawn, NULL, &squareRect);
-				break;
-
-			case BLACK|KNIGHT:
-				SDL_RenderCopy(renderer, bKnight, NULL, &squareRect);
-				break;
-
-			case BLACK|BISHOP:
-				SDL_RenderCopy(renderer, bBishop, NULL, &squareRect);
-				break;
-
-			case BLACK|ROOK:
-				SDL_RenderCopy(renderer, bRook, NULL, &squareRect);
-				break;
-
-			case BLACK|QUEEN:
-				SDL_RenderCopy(renderer, bQueen, NULL, &squareRect);
-				break;
-
-			case BLACK|KING:
-				SDL_RenderCopy(renderer, bKing, NULL, &squareRect);
-				break;
-
-			case WHITE|PAWN:
-				SDL_RenderCopy(renderer, wPawn, NULL, &squareRect);
-				break;
-
-			case WHITE|KNIGHT:
-				SDL_RenderCopy(renderer, wKnight, NULL, &squareRect);
-				break;
-
-			case WHITE|BISHOP:
-				SDL_RenderCopy(renderer, wBishop, NULL, &squareRect);
-				break;
-
-			case WHITE|ROOK:
-				SDL_RenderCopy(renderer, wRook, NULL, &squareRect);
-				break;
-
-			case WHITE|QUEEN:
-				SDL_RenderCopy(renderer, wQueen, NULL, &squareRect);
-				break;
-
-			case WHITE|KING:
-				SDL_RenderCopy(renderer, wKing, NULL, &squareRect);
-				break;
-			}
+			SDL_RenderCopy(renderer, getPieceTexture(piece), NULL, &squareRect);
 		}
 	}
 }
@@ -333,6 +329,7 @@ void renderLastMove(int lastMove, char color) {
 }
 
 void renderRegularBoard(int board[], char color, Move lastMove) {
+	SDL_RenderClear(renderer);
 	renderBackground();
 	renderAlgebricNotation(color);
 	renderCheck(board, color);
@@ -363,6 +360,7 @@ void renderHeatTiles(int board[], char color) {
 
 
 void renderHeatmapBoard(int board[], char color, Move lastMove) {
+	SDL_RenderClear(renderer);
 	renderWhiteBackground();
 	renderHeatTiles(board, color);
 //	renderCheck(board, color);
@@ -384,6 +382,7 @@ void loadHeatTiles(void) {
 
 	SDL_Surface * atkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
 	SDL_FillRect( atkSurf, NULL, atkColor );
+	SDL_DestroyTexture(heatmapAtkSquare);
 	heatmapAtkSquare = SDL_CreateTextureFromSurface(renderer, atkSurf);
 	SDL_SetTextureBlendMode( heatmapAtkSquare, SDL_BLENDMODE_BLEND );
 	SDL_SetTextureAlphaMod( heatmapAtkSquare, heatmapTransparency );
@@ -391,6 +390,7 @@ void loadHeatTiles(void) {
 
 	SDL_Surface * defSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
 	SDL_FillRect( defSurf, NULL, defColor );
+	SDL_DestroyTexture(heatmapDefSquare);
 	heatmapDefSquare = SDL_CreateTextureFromSurface(renderer, defSurf);
 	SDL_SetTextureBlendMode( heatmapDefSquare, SDL_BLENDMODE_BLEND );
 	SDL_SetTextureAlphaMod( heatmapDefSquare, heatmapTransparency );
@@ -401,6 +401,7 @@ void loadCheckSquare(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 	SDL_Surface * checkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
 	SDL_FillRect( checkSurf, NULL, checkRed );
+	SDL_DestroyTexture(checkSquare);
 	checkSquare = SDL_CreateTextureFromSurface(renderer, checkSurf);
 	SDL_SetTextureBlendMode( checkSquare, SDL_BLENDMODE_BLEND );
 	SDL_SetTextureAlphaMod( checkSquare, checkTransparency );
@@ -411,6 +412,7 @@ void loadLastMoveSquare(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 	SDL_Surface * lastMoveSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
 	SDL_FillRect( lastMoveSurf, NULL, lastMoveColor );
+	SDL_DestroyTexture(lastMoveSquare);
 	lastMoveSquare = SDL_CreateTextureFromSurface(renderer, lastMoveSurf);
 	SDL_SetTextureBlendMode( lastMoveSquare, SDL_BLENDMODE_BLEND );
 	SDL_SetTextureAlphaMod( lastMoveSquare, lastMoveTransparency );

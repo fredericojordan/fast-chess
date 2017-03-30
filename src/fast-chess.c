@@ -555,19 +555,19 @@ char piece2char(int piece) {
 char * piece2str(int piece) {
 	switch(piece&PIECE_MASK) {
 	case PAWN:
-		return "Pawn  ";
+		return "Pawn";
 	case KNIGHT:
 		return "Knight";
 	case BISHOP:
 		return "Bishop";
 	case ROOK:
-		return "Rook  ";
+		return "Rook";
 	case QUEEN:
-		return "Queen ";
+		return "Queen";
 	case KING:
-		return "King  ";
+		return "King";
 	case EMPTY:
-		return "none  ";
+		return "none";
 	}
 	return "";
 }
@@ -2335,6 +2335,7 @@ Node idabThreaded(Position * position, int depth, BOOL verbose) {
 		updatePosition(&threadInfo[i].pos, position, nodes[i].move);
 		threadInfo[i].alpha = &alpha;
 		threadInfo[i].beta = &beta;
+		threadInfo[i].verbose = verbose;
 
 		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunction, (LPVOID) &threadInfo[i], 0, NULL);
 
@@ -2395,7 +2396,7 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 
 	if (verbose) {
 		printf("First move had score %.2f.\n", firstReply.score/100.0);
-		printf("Analyzing other %d possible moves with minimum depth %d:\n[", moveCount-1, depth);
+		printf("Analyzing other %d possible moves with minimum depth of %d plies:\n[", moveCount-1, depth);
 		for (i=0; i<moveCount-1; i++)
 			printf(" ");
 		printf("]\r[");
