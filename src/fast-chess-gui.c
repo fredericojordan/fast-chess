@@ -63,6 +63,8 @@ SDL_Texture *bgTexture, *whiteBgTexture, *checkSquare, *lastMoveSquare, *heatmap
 SDL_Texture *bPawn, *bKnight, *bBishop, *bRook, *bQueen, *bKing;
 SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
+TTF_Font *font;
+
 SDL_Texture * loadImage(char * fileLocation) {
 	SDL_Surface* imgSurface = NULL;
     imgSurface = IMG_Load( fileLocation );
@@ -210,11 +212,6 @@ void renderBackground(void) {
 void renderAlgebricNotation(char color) {
 	if ( TILE_SIDE < 40 )
 		return;
-
-	TTF_Font* font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
-	if ( font == NULL ) {
-		return;
-	}
 
 	const char * const FILES_STR[8] = {"a", "b", "c", "d", "e", "f", "g", "h" };
 	const char * const RANKS_STR[8] = {"1", "2", "3", "4", "5", "6", "7", "8" };
@@ -477,6 +474,10 @@ void loadRandomBackground(void) {
 	SDL_FreeSurface( bgSurface );
 }
 
+void loadFont() {
+	font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
+}
+
 BOOL init() {
 	srand(time(NULL));
 
@@ -516,6 +517,7 @@ BOOL init() {
 	loadLastMoveSquare();
 	loadImages();
 	loadHeatTiles();
+	loadFont();
 
     return TRUE;
 }
