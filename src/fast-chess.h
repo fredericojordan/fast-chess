@@ -99,6 +99,7 @@ typedef struct {
 	Position pos;
 	int * alpha;
 	int * beta;
+	BOOL verbose;
 } ThreadInfo;
 
 extern char FILES[8];
@@ -327,7 +328,8 @@ int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
 DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
-Node idabThreaded(Position * position, int depth);
+Node idabThreaded(Position * position, int depth, BOOL verbose);
+Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
 Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
