@@ -41,6 +41,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 ### Miscelaneous
 - **P** - Export to [P]GN
 - **D** - [D]ump game info to file
+- **M** - List legal [M]oves (debug mode only)
 - **E** - Static board [e]valuation (debug mode only)
 - **Q** - [Q]uit
 - **U** - [U]ndo move
