@@ -163,6 +163,7 @@ char opponent(char color);
 int countBits(Bitboard bb);
 void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
 void printMove(Move move);
+void printFullMove(Move move, int board[]);
 void printLegalMoves(Position * position);
 void printNode(Node node);
 void getTimestamp(char * timestamp);

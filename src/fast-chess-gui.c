@@ -600,8 +600,8 @@ void play(char color, BOOL hasAI, int AIdepth) {
 
 						lastMove = moves[i];
 
-						printf("Player made move as %s: %s from ", game.position.toMove==WHITE?"white":"black", piece2str(game.position.board[getFrom(lastMove)]));
-						printMove(lastMove);
+						printf("Player made move as %s: ", game.position.toMove==WHITE?"white":"black");
+						printFullMove(lastMove, game.position.board);
 						printf(".\n");
 						fflush(stdout);
 

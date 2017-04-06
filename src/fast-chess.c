@@ -675,13 +675,21 @@ void printMove(Move move) {
 	printf("%c%c to %c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
 }
 
+void printFullMove(Move move, int board[]) {
+	int from = getFrom(move);
+	int piece = board[from];
+	printf("%s from ", piece2str(piece));
+	printMove(move);
+}
+
 void printLegalMoves(Position * position) {
 	int i;
 	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = legalMoves(moves, position, position->toMove);
 	for (i=0; i<moveCount; i++) {
 		printf("%2d. ", i+1);
-		printMove(moves[i]);
+		printFullMove(moves[i], position->board);
+//		printMove(moves[i]);
 		printf("\n");
 	}
 	fflush(stdout);
@@ -2201,8 +2209,8 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		updatePosition(&newPosition, position, nodes[i].move);
 
 		if (verbose) {
-			printf("(Move %2d/%d) %s from ", i+1, moveCount, piece2str(position->board[getFrom(nodes[i].move)]));
-			printMove(nodes[i].move);
+			printf("(Move %2d/%d) ", i+1, moveCount);
+			printFullMove(nodes[i].move, position->board);
 			printf(" = ");
 			fflush(stdout);
 		}
@@ -2394,8 +2402,19 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 	updatePosition(&firstPos, position, nodes[0].move);
 	Node firstReply = idabThreaded(&firstPos, depth-1, FALSE);
 
+	if ( firstReply.score == winScore(position->toMove) ) {
+		if (verbose) {
+				printf("Playing checkmate move: ");
+				printFullMove(nodes[0].move, position->board);
+				printf(".\n");
+		}
+		return (Node) { .move = nodes[0].move, .score = firstReply.score };
+	}
+
 	if (verbose) {
-		printf("First move had score %.2f.\n", firstReply.score/100.0);
+		printf("Move ");
+		printFullMove(nodes[0].move, position->board);
+		printf(" had score of %+.2f.\n", firstReply.score/100.0);
 		printf("Analyzing other %d possible moves with minimum depth of %d plies:\n[", moveCount-1, depth);
 		for (i=0; i<moveCount-1; i++)
 			printf(" ");
@@ -2474,7 +2493,8 @@ Move getAIMove(Game * game, int depth) {
 		printf("There are %d available book continuations.\n", countBookOccurrences(game));
 		fflush(stdout);
 		Move bookMove = getBookMove(game);
-		printf("CHOSEN book move: %c%c to %c%c\n", getFile(getFrom(bookMove)), getRank(getFrom(bookMove)), getFile(getTo(bookMove)), getRank(getTo(bookMove)));
+		printf("CHOSEN book move: ");
+		printFullMove(bookMove, game->position.board);
 		fflush(stdout);
 		return bookMove;
 	}
@@ -2492,9 +2512,9 @@ Move getAIMove(Game * game, int depth) {
 
 	endTime = time(NULL);
 
-	printf("CHOSEN move: %s from ", piece2str(game->position.board[getFrom(node.move)]));
-	printMove(node.move);
-	printf(" in %d seconds [%.2f,%.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
+	printf("CHOSEN move: ");
+	printFullMove(node.move, game->position.board);
+	printf(" in %d seconds [%+.2f, %+.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
 	fflush(stdout);
 
 	return node.move;
