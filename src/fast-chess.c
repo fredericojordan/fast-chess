@@ -2495,6 +2495,7 @@ Move getAIMove(Game * game, int depth) {
 		Move bookMove = getBookMove(game);
 		printf("CHOSEN book move: ");
 		printFullMove(bookMove, game->position.board);
+		printf(".\n");
 		fflush(stdout);
 		return bookMove;
 	}
