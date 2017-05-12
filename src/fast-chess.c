@@ -189,6 +189,33 @@ int loadFen(Position * position, char fen[]) {
 }
 
 int toFen(char * fen, Position * position) {
+	int charCount = toMinFen(fen, position);
+	fen[charCount-1] = ' ';
+
+	// ===== HALF MOVE CLOCK =====
+	itoa(position->halfmoveClock, &fen[charCount++], 10);
+	if (position->halfmoveClock >= 10) {
+		charCount++;
+		if (position->halfmoveClock >= 100) {
+			charCount++;
+		}
+	}
+	fen[charCount++] = ' ';
+
+	// ===== FULL MOVE NUMBER =====
+	itoa(position->fullmoveNumber, &fen[charCount++], 10);
+	if (position->fullmoveNumber >= 10) {
+		charCount++;
+		if (position->fullmoveNumber >= 100) {
+			charCount++;
+		}
+	}
+	fen[charCount++] = '\0';
+
+	return charCount;
+}
+
+int toMinFen(char * fen, Position * position) {
 	int charCount = 0;
 
 	// ===== BOARD =====
@@ -257,26 +284,7 @@ int toFen(char * fen, Position * position) {
 		fen[charCount++] = getFile(position->epSquare);
 		fen[charCount++] = getRank(position->epSquare);
 	}
-	fen[charCount++] = ' ';
-
-	// ===== HALF MOVE CLOCK =====
-	itoa(position->halfmoveClock, &fen[charCount++], 10);
-	if (position->halfmoveClock >= 10) {
-		charCount++;
-		if (position->halfmoveClock >= 100) {
-			charCount++;
-		}
-	}
-	fen[charCount++] = ' ';
-
-	// ===== FULL MOVE NUMBER =====
-	itoa(position->fullmoveNumber, &fen[charCount++], 10);
-	if (position->fullmoveNumber >= 10) {
-		charCount++;
-		if (position->fullmoveNumber >= 100) {
-			charCount++;
-		}
-	}
+	fen[charCount++] = '\0';
 
 	return charCount;
 }
@@ -862,6 +870,20 @@ BOOL isAmbiguous(Position * posBefore, Move move) {
 	}
 
 	return attackCount > 1;
+}
+
+unsigned long hashPosition(Position * position) {
+	unsigned char fen[MAX_FEN_LEN];
+	toMinFen(fen, position);
+
+    unsigned long hash = 5381;
+    int c, i=0;
+
+    while ((c = fen[i++])) {
+    	hash = ((hash << 5) + hash) + c;
+    }
+
+    return hash;
 }
 
 // ====== BOARD FILTERS ======

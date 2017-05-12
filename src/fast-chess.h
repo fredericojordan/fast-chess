@@ -131,6 +131,7 @@ void getInitialGame(Game * game);
 void getFenGame(Game * game, char fen[]);
 int loadFen(Position * position, char fen[]);
 int toFen(char * fen, Position * position);
+int toMinFen(char * fen, Position * position);
 
 // ========= UTILITY =========
 
@@ -171,6 +172,7 @@ void dumpContent(Game * game);
 void dumpPGN(Game * game, char color, BOOL hasAI);
 void move2str(char * str, Game * game, int moveNumber);
 BOOL isAmbiguous(Position * posBefore, Move move);
+unsigned long hashPosition(Position * position);
 
 // ====== BOARD FILTERS ======
 
