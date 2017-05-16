@@ -11,31 +11,39 @@ if __name__ == '__main__':
     line_number = 0
     for line in hashfile.readlines():
         line_number += 1
-        l = line.strip().split()
+        entry = line.strip().split()
         
-        if len(l) < 7:
+        if len(entry) < 7:
             print('Bad entry on line ' + str(line_number) + ' (ignored): ' + line.strip())
             continue
         
-        if l[0] in content:
-            old = content[l[0]].split()
-            if l[3:] == old[3:]:
-                if l[1] > old[1]:
-                    content[l[0]] = line
+        hash = entry[0]
+        depth = int(entry[1])
+        score = int(entry[2])
+        fen = ' '.join(entry[3:])
+        
+        if hash in content:
+            old_entry = content[hash].split()
+            old_depth = int(old_entry[1]) 
+            old_fen = ' '.join(old_entry[3:]) 
+            
+            if fen == old_fen:
+                if depth > old_depth:
+                    content[hash] = line
             else:
                 print('Colision!')
-                print(content[l[0]].strip())
+                print(content[hash].strip())
                 print(line.strip())
                 sys.exit(-1)
         else:
-            content[l[0]] = line
+            content[hash] = line
     
     hashfile.seek(0)
     hashfile.truncate()
       
     for entry in sorted(content.items(), key=lambda x: x[0]):
-        e = entry[1].split()
-        sanitized_str = '{} {} {} {} {} {} {}\n'.format(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) 
+        field = entry[1].split()
+        sanitized_str = '{} {} {} {} {} {} {}\n'.format(field[0], field[1], field[2], field[3], field[4], field[5], field[6]) 
         hashfile.write(sanitized_str)
      
     hashfile.close()
