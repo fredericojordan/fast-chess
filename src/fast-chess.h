@@ -173,6 +173,7 @@ void dumpPGN(Game * game, char color, BOOL hasAI);
 void move2str(char * str, Game * game, int moveNumber);
 BOOL isAmbiguous(Position * posBefore, Move move);
 unsigned long hashPosition(Position * position);
+void writeToHashFile(Position * position, int evaluation, int depth);
 
 // ====== BOARD FILTERS ======
 
@@ -330,9 +331,12 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta);
 int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
+Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta);
 DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
+DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam);
 Node idabThreaded(Position * position, int depth, BOOL verbose);
 Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
+Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
 Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);

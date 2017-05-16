@@ -152,19 +152,15 @@ int loadFen(Position * position, char fen[]) {
 	// ===== CASTLING RIGHTS =====
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
-	if (*nextFenField == '-') {
-		position->castlingRights = 0;
-	} else {
-		if (strchr(nextFenField, 'K'))
-			position->castlingRights |= CASTLE_KINGSIDE_WHITE;
-		if (strchr(nextFenField, 'Q'))
-			position->castlingRights |= CASTLE_QUEENSIDE_WHITE;
-		if (strchr(nextFenField, 'k'))
-			position->castlingRights |= CASTLE_KINGSIDE_BLACK;
-		if (strchr(nextFenField, 'q'))
-			position->castlingRights |= CASTLE_QUEENSIDE_BLACK;
-	}
-
+	position->castlingRights = 0;
+	if (strchr(nextFenField, 'K'))
+		position->castlingRights |= CASTLE_KINGSIDE_WHITE;
+	if (strchr(nextFenField, 'Q'))
+		position->castlingRights |= CASTLE_QUEENSIDE_WHITE;
+	if (strchr(nextFenField, 'k'))
+		position->castlingRights |= CASTLE_KINGSIDE_BLACK;
+	if (strchr(nextFenField, 'q'))
+		position->castlingRights |= CASTLE_QUEENSIDE_BLACK;
 
 	// ===== EN PASSANT =====
 	nextFenField = strchr(nextFenField, ' ') + 1;
@@ -176,11 +172,20 @@ int loadFen(Position * position, char fen[]) {
 	}
 
 	// ===== HALF MOVE CLOCK =====
+	if (!strchr(nextFenField, ' ')) {
+		position->halfmoveClock = 0;
+		position->fullmoveNumber = 1;
+		return 1+nextFenField-fen;
+	}
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
 	position->halfmoveClock = atoi(nextFenField);
 
 	// ===== FULL MOVE NUMBER =====
+	if (!strchr(nextFenField, ' ')) {
+		position->fullmoveNumber = 0;
+		return 1+nextFenField-fen;
+	}
 	nextFenField = strchr(nextFenField, ' ') + 1;
 
 	position->fullmoveNumber = atoi(nextFenField);
@@ -266,7 +271,7 @@ int toMinFen(char * fen, Position * position) {
 			fen[charCount++] = 'K';
 		}
 		if (position->castlingRights & CASTLE_QUEENSIDE_WHITE) {
-				fen[charCount++] = 'Q';
+			fen[charCount++] = 'Q';
 		}
 		if (position->castlingRights & CASTLE_KINGSIDE_BLACK) {
 			fen[charCount++] = 'k';
@@ -741,7 +746,7 @@ void dumpContent(Game * game) {
 	fflush(stdout);
 }
 
-void dumpPGN(Game * game, char color, BOOL hasAI) {
+void dumpPGN(Game * game, char color, BOOL hasAI) { // TODO: "From position"
 	char filename[50];
 	sprintf(filename, "chess_game_");
 	getTimestamp(&filename[strlen(filename)]);
@@ -884,6 +889,19 @@ unsigned long hashPosition(Position * position) {
     }
 
     return hash;
+}
+
+void writeToHashFile(Position * position, int evaluation, int depth) {
+    FILE * fp = fopen("hashfile", "a");
+
+    if (fp == NULL)
+        return;
+
+    char fen[MAX_FEN_LEN];
+    toMinFen(fen, position);
+
+    fprintf(fp, "%08lx %d %d %s\n", hashPosition(position), depth, evaluation, fen);
+    fclose(fp);
 }
 
 // ====== BOARD FILTERS ======
@@ -2265,7 +2283,6 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 }
 
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
-
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
@@ -2312,11 +2329,87 @@ Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
 
 }
 
+Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta) {
+	if (hasGameEnded(position)) {
+		int score = endNodeEvaluation(position);
+		writeToHashFile(position, score, 0);
+		return (Node) { .score = score };
+	}
+
+	if (depth <= 1) {
+		Node quie = quiescenceSearch(position);
+		writeToHashFile(position, quie.score, depth);
+		return quie;
+	}
+
+	// Mate in 1
+	Node staticNode = staticSearch(position);
+	if (staticNode.score == winScore(position->toMove)) {
+		writeToHashFile(position, staticNode.score, 1);
+		return staticNode;
+	}
+
+	Move bestMove = 0;
+
+	Node nodes[MAX_BRANCHING_FACTOR];
+	int moveCount = alphaBetaNodes(nodes, position, depth-1);
+
+	Position newPosition;
+	int i;
+	int alpha = *p_alpha;
+	int beta = *p_beta;
+	for (i=0; i<moveCount; i++) {
+		updatePosition(&newPosition, position, nodes[i].move);
+
+		int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
+		writeToHashFile(&newPosition, score, depth-1);
+
+		if (score == winScore(position->toMove)) {
+			return (Node) { .move = nodes[i].move, .score = score };
+		}
+
+		if (position->toMove == WHITE && score > alpha) {
+			alpha = score;
+			bestMove = nodes[i].move;
+		} else if (position->toMove == BLACK && score < beta) {
+			beta = score;
+			bestMove = nodes[i].move;
+		}
+
+		if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
+			break;
+		}
+	}
+
+	writeToHashFile(position, position->toMove==WHITE?alpha:beta, depth);
+	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
+}
+
 DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam) {
 	ThreadInfo * tInfo = (ThreadInfo *) lpParam;
 	Position * pos = &tInfo->pos;
 
 	Node node = pIDAB(pos, tInfo->depth, tInfo->alpha, tInfo->beta);
+
+	if ( pos->toMove == BLACK && node.score > *tInfo->alpha ) {
+		*tInfo->alpha = node.score;
+	} else if ( pos->toMove == WHITE && node.score < *tInfo->beta ) {
+		*tInfo->beta = node.score;
+	}
+
+	if (tInfo->verbose) {
+		printf("-");
+		fflush(stdout);
+	}
+
+	return node.score;
+}
+
+DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam) {
+	ThreadInfo * tInfo = (ThreadInfo *) lpParam;
+	Position * pos = &tInfo->pos;
+
+	Node node = pIDABhashed(pos, tInfo->depth, tInfo->alpha, tInfo->beta);
 
 	if ( pos->toMove == BLACK && node.score > *tInfo->alpha ) {
 		*tInfo->alpha = node.score;
@@ -2500,6 +2593,111 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 	return (Node) { .move = bestMove, .score = bestMoveScore };
 }
 
+Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
+	if (hasGameEnded(position)) {
+		int score = endNodeEvaluation(position);
+		writeToHashFile(position, score, 0);
+		return (Node) { .score = score };
+	}
+
+	if (depth <= 1) {
+		Node quie = quiescenceSearch(position);
+		writeToHashFile(position, quie.score, depth);
+		return quie;
+	}
+
+	int i;
+	Node nodes[MAX_BRANCHING_FACTOR];
+	int moveCount = alphaBetaNodes(nodes, position, depth-1);
+
+	if (moveCount == 1) {
+		return nodes[0];
+	}
+
+	Position firstPos;
+	updatePosition(&firstPos, position, nodes[0].move);
+	Node firstReply = idabThreaded(&firstPos, depth-1, FALSE);
+
+	if ( firstReply.score == winScore(position->toMove) ) {
+		if (verbose) {
+				printf("Playing checkmate move: ");
+				printFullMove(nodes[0].move, position->board);
+				printf(".\n");
+		}
+		writeToHashFile(position, firstReply.score, depth);
+		return (Node) { .move = nodes[0].move, .score = firstReply.score };
+	}
+
+	if (verbose) {
+		printf("Move ");
+		printFullMove(nodes[0].move, position->board);
+		printf(" had score of %+.2f.\n", firstReply.score/100.0);
+		printf("Analyzing other %d possible moves with minimum depth of %d plies:\n[", moveCount-1, depth);
+		for (i=0; i<moveCount-1; i++)
+			printf(" ");
+		printf("]\r[");
+		fflush(stdout);
+	}
+
+	HANDLE threadHandles[MAX_BRANCHING_FACTOR];
+	ThreadInfo threadInfo[MAX_BRANCHING_FACTOR];
+	int alpha = INT32_MIN;
+	int beta = INT32_MAX;
+
+	if (position->toMove == WHITE) {
+		alpha = firstReply.score;
+	} else {
+		beta = firstReply.score;
+	}
+
+	for (i=0; i<moveCount-1; i++) {
+		threadInfo[i].depth = depth-1;
+		updatePosition(&threadInfo[i].pos, position, nodes[i+1].move);
+		threadInfo[i].alpha = &alpha;
+		threadInfo[i].beta = &beta;
+		threadInfo[i].verbose = verbose;
+
+		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunctionHashed, (LPVOID) &threadInfo[i], 0, NULL);
+
+		if ( threadHandles[i] == NULL ) {
+//			printf("Error launching process on move #%d!\n", i);
+			printf("!");
+			fflush(stdout);
+		}
+	}
+
+	WaitForMultipleObjects((DWORD) moveCount-1, threadHandles, TRUE, INFINITE);
+	if (verbose) {
+		printf("] Done!\n");
+		fflush(stdout);
+	}
+
+	Move bestMove = nodes[0].move;
+	int bestMoveScore = firstReply.score;
+	long unsigned int retVal;
+	int score;
+	for (i=0; i<moveCount-1; i++) {
+		GetExitCodeThread(threadHandles[i], &retVal);
+		score = (int) retVal;
+
+		writeToHashFile(&threadInfo[i].pos, score, depth-1);
+
+		if ( (position->toMove == WHITE && score > bestMoveScore) || (position->toMove == BLACK && score < bestMoveScore) ) {
+			bestMove = nodes[i+1].move;
+			bestMoveScore = score;
+		}
+
+		if (CloseHandle(threadHandles[i]) == 0) {
+//			printf("Error on closing thread #%d!\n", i);
+			printf("x");
+			fflush(stdout);
+		}
+	}
+
+	writeToHashFile(position, bestMoveScore, depth);
+	return (Node) { .move = bestMove, .score = bestMoveScore };
+}
+
 Move getRandomMove(Position * position) {
 	Move moves[MAX_BRANCHING_FACTOR];
 	int totalMoves = legalMoves(moves, position, position->toMove);
@@ -2532,6 +2730,7 @@ Move getAIMove(Game * game, int depth) {
 //	Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
 //	Node node = idabThreaded(&game->position, depth, TRUE);
 	Node node = idabThreadedBestFirst(&game->position, depth, TRUE);
+//	Node node = idabThreadedBestFirstHashed(&game->position, depth, TRUE);
 
 	endTime = time(NULL);
 
