@@ -4,20 +4,20 @@ Simple chess game (developed to be faster than my [python version](https://githu
 Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispaces.com).
 
 ## Features
-- Board Representation
- - Bitboards
-- Search
- - Iterative Deepening
- - Alpha-Beta Pruning
- - Parallel Processing
- - Quiescence Search
- - Static Exchange Evaluation
-- Evaluation
- - Material Balance
- - Piece-Square Tables
- - Pawn Structure
-- Graphical User Interface
- - Attack Heatmap
+- Board Representation:
+    - Bitboards
+- Search:
+    - Iterative Deepening
+    - Alpha-Beta Pruning
+    - Parallel Processing
+    - Quiescence Search
+    - Static Exchange Evaluation
+- Evaluation:
+    - Material Balance
+    - Piece-Square Tables
+    - Pawn Structure
+- Graphical User Interface:
+    - Attack Heatmap
 
 ## Instructions
 1. Download [latest release](https://github.com/fredericojordan/fast-chess/releases)
