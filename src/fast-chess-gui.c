@@ -625,7 +625,12 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			break;
 
 		case SDLK_e:
-			printf("Board evaluation = %.2f\n", staticEvaluation(&(game->position))/100.0);
+			*editing = *editing?FALSE:TRUE;
+			if (*editing) {
+				*lastMove = 0;
+				*hasAI = FALSE;
+			}
+			printf("Editing %s.\n", *editing?"enabled":"disabled");
 			fflush(stdout);
 			break;
 
@@ -680,15 +685,9 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			break;
 
 		case SDLK_v:
-			*editing = *editing?FALSE:TRUE;
-			if (*editing) {
-				*lastMove = 0;
-				*hasAI = FALSE;
-			}
-			printf("Editing %s.\n", *editing?"enabled":"disabled");
+			printf("Board evaluation = %.2f\n", staticEvaluation(&(game->position))/100.0);
 			fflush(stdout);
 			break;
-
 
 		case SDLK_UP:
 			(*AIdepth)++;
