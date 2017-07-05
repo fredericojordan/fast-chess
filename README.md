@@ -39,10 +39,11 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **T** - Random [t]inted board color
 
 ### Miscelaneous
+- **E** - [E]dit mode (click and drag to move or click to cycle pieces)
 - **P** - Export to [P]GN
 - **D** - [D]ump game info to file
 - **M** - List legal [M]oves (debug mode only)
-- **E** - Static board [e]valuation (debug mode only)
+- **V** - Static board e[v]aluation (debug mode only)
 - **Q** - [Q]uit
 - **U** - [U]ndo move
 
