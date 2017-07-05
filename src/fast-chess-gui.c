@@ -544,6 +544,192 @@ void setEndTitle(Position * position) {
 	fflush(stdout);
 }
 
+void cyclePiece(Game * game, int leavingPos) {
+	if (game->position.board[leavingPos] == (WHITE|KING)) {
+		game->position.board[leavingPos] = BLACK|PAWN;
+	} else {
+		game->position.board[leavingPos] += 1;
+		game->position.board[leavingPos] %= 15;
+	}
+}
+
+void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int * AIdepth, BOOL * run, BOOL * ongoing, BOOL * editing, int * leavingPos, int * arrivingPos, Move * lastMove) {
+
+	switch (event.type) {
+	case SDL_QUIT:
+		*run = FALSE;
+		break;
+
+	case SDL_MOUSEMOTION:
+		break;
+
+	case SDL_MOUSEBUTTONDOWN:
+		*leavingPos = xy2index(event.motion.x, event.motion.y, *color);
+		break;
+
+	case SDL_MOUSEBUTTONUP:
+		*arrivingPos = xy2index(event.motion.x, event.motion.y, *color);
+
+		if (*editing) {
+			if (*leavingPos == *arrivingPos) {
+				cyclePiece(game, *leavingPos);
+			} else {
+				makeMove(game, generateMove(*leavingPos, *arrivingPos));
+				renderBoard(game->position.board, *color, *lastMove);
+			}
+		} else {
+			if ( *ongoing && ( !*hasAI || game->position.toMove == *color) ) {
+				Move moves[MAX_BRANCHING_FACTOR];
+				int moveCount = legalMoves(moves, &(game->position), game->position.toMove);
+
+				int i;
+				for (i=0; i<moveCount; i++) {
+					if (generateMove(*leavingPos, *arrivingPos) == moves[i]) {
+						*lastMove = moves[i];
+
+						printf("Player made move as %s: ", game->position.toMove==WHITE?"white":"black");
+						printFullMove(*lastMove, game->position.board);
+						printf(".\n");
+						fflush(stdout);
+
+						makeMove(game, *lastMove);
+						renderBoard(game->position.board, *color, *lastMove);
+
+						if ( hasGameEnded(&(game->position)) ) {
+							*ongoing = FALSE;
+							setEndTitle(&(game->position));
+						}
+					}
+				}
+			}
+
+		}
+		break;
+
+	case SDL_KEYDOWN:
+		switch( event.key.keysym.sym ) {
+		case SDLK_a:
+			*hasAI = *hasAI?FALSE:TRUE;
+			printf("AI opponent is now %s.\n", *hasAI?"ENABLED":"DISABLED");
+			fflush(stdout);
+			break;
+
+		case SDLK_c:
+			heatmap = FALSE;
+			nextColorScheme();
+			renderBoard(game->position.board, *color, *lastMove);
+			break;
+
+		case SDLK_d:
+			dumpContent(game);
+			break;
+
+		case SDLK_e:
+			printf("Board evaluation = %.2f\n", staticEvaluation(&(game->position))/100.0);
+			fflush(stdout);
+			break;
+
+		case SDLK_h:
+			heatmap = heatmap?FALSE:TRUE;
+			renderBoard(game->position.board, *color, *lastMove);
+			printf("Heatmap %s.\n", heatmap?"enabled":"disabled");
+			fflush(stdout);
+			break;
+
+		case SDLK_i:
+			*color = opponent(*color);
+			renderBoard(game->position.board, *color, *lastMove);
+			printf("Now playing as %s.\n", *color==WHITE?"WHITE":"BLACK");
+			fflush(stdout);
+			break;
+
+		case SDLK_m:
+			printLegalMoves(&(game->position));
+			break;
+
+		case SDLK_p:
+			dumpPGN(game, *color, *hasAI);
+			break;
+
+		case SDLK_q:
+		case SDLK_ESCAPE:
+			*run = FALSE;
+			break;
+
+		case SDLK_r:
+			heatmap = FALSE;
+			loadRandomBackground();
+			renderBoard(game->position.board, *color, *lastMove);
+			break;
+
+		case SDLK_t:
+			heatmap = FALSE;
+			loadRandomTintedBackground();
+			renderBoard(game->position.board, *color, *lastMove);
+			break;
+
+		case SDLK_u:
+			if (*editing) return;
+			unmakeMove(game);
+			if ( *hasAI ) unmakeMove(game);
+			SDL_SetWindowTitle(window, "Chess Game");
+			*ongoing = TRUE;
+			renderBoard(game->position.board, *color, *lastMove);
+			printf("Last move was undone.\n");
+			fflush(stdout);
+			break;
+
+		case SDLK_v:
+			*editing = *editing?FALSE:TRUE;
+			if (*editing) {
+				*lastMove = 0;
+				*hasAI = FALSE;
+			}
+			printf("Editing %s.\n", *editing?"enabled":"disabled");
+			fflush(stdout);
+			break;
+
+
+		case SDLK_UP:
+			(*AIdepth)++;
+			printf("Search base depth increased to %d.\n", *AIdepth);
+			fflush(stdout);
+			break;
+
+		case SDLK_DOWN:
+			if (*AIdepth==1) {
+				printf("Search base depth is 1.\n");
+			} else {
+				(*AIdepth)--;
+				printf("Search base depth decreased to %d.\n", *AIdepth);
+			}
+			fflush(stdout);
+			break;
+
+		default:
+//			printf("User pressed key: '%s' key acting as '%s' key\n", SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
+			printf("Pressing '%s' does nothing!\n", SDL_GetKeyName(event.key.keysym.sym));
+			fflush(stdout);
+			break;
+		}
+		break;
+
+		case SDL_WINDOWEVENT:
+			switch (event.window.event) {
+			case SDL_WINDOWEVENT_RESIZED:
+				if ( event.window.data1 != 8*TILE_SIDE ) {
+					TILE_SIDE = (int) (event.window.data1/8);
+				} else if ( event.window.data2 != 8*TILE_SIDE ) {
+					TILE_SIDE = (int) (event.window.data2/8);
+				}
+				SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
+				renderBoard(game->position.board, *color, *lastMove);
+				fflush(stdout);
+				break;
+			}
+	}
+}
+
 void play(char color, BOOL hasAI, int AIdepth) {
 	hasAI?printf("Playing as %s!\n", color==WHITE?"WHITE":"BLACK"):printf("Playing as both colors!\n");
 	fflush(stdout);
@@ -551,7 +737,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 	Game game;
 	getInitialGame(&game);
 
-	BOOL run = TRUE, ongoing = TRUE;
+	BOOL run = TRUE, ongoing = TRUE, editing = FALSE;
 	SDL_Event event;
 
 	int leavingPos = -1, arrivingPos = -1;
@@ -560,7 +746,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 	while( run ) {
 		renderBoard(game.position.board, color, lastMove);
 
-		if ( hasAI && ongoing && game.position.toMove == opponent(color) ) {
+		if ( hasAI && ongoing && !editing && game.position.toMove == opponent(color) ) {
 			SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
 			lastMove = getAIMove(&game, AIdepth);
 			makeMove(&game, lastMove);
@@ -574,160 +760,7 @@ void play(char color, BOOL hasAI, int AIdepth) {
 		}
 
 		while( SDL_PollEvent( &event ) == 0 );
-
-		switch (event.type) {
-		case SDL_QUIT:
-			run = FALSE;
-			break;
-
-		case SDL_MOUSEMOTION:
-			break;
-
-		case SDL_MOUSEBUTTONDOWN:
-			leavingPos = xy2index(event.motion.x, event.motion.y, color);
-			break;
-
-		case SDL_MOUSEBUTTONUP:
-			arrivingPos = xy2index(event.motion.x, event.motion.y, color);
-
-			if ( ongoing && ( !hasAI || game.position.toMove == color) ) {
-				Move moves[MAX_BRANCHING_FACTOR];
-				int moveCount = legalMoves(moves, &game.position, game.position.toMove);
-
-				int i;
-				for (i=0; i<moveCount; i++)
-					if (generateMove(leavingPos, arrivingPos) == moves[i]) {
-
-						lastMove = moves[i];
-
-						printf("Player made move as %s: ", game.position.toMove==WHITE?"white":"black");
-						printFullMove(lastMove, game.position.board);
-						printf(".\n");
-						fflush(stdout);
-
-						makeMove(&game, lastMove);
-						renderBoard(game.position.board, color, lastMove);
-
-						if ( hasGameEnded(&game.position) ) {
-							ongoing = FALSE;
-							setEndTitle(&game.position);
-						}
-					}
-			}
-			break;
-
-		case SDL_KEYDOWN:
-			switch( event.key.keysym.sym ) {
-			case SDLK_q:
-			case SDLK_ESCAPE:
-				run = FALSE;
-				break;
-
-			case SDLK_a:
-				hasAI = hasAI?FALSE:TRUE;
-				printf("AI opponent is now %s.\n", hasAI?"ENABLED":"DISABLED");
-				fflush(stdout);
-				break;
-
-			case SDLK_c:
-				heatmap = FALSE;
-				nextColorScheme();
-				renderBoard(game.position.board, color, lastMove);
-				break;
-
-			case SDLK_t:
-				heatmap = FALSE;
-				loadRandomTintedBackground();
-				renderBoard(game.position.board, color, lastMove);
-				break;
-
-			case SDLK_r:
-				heatmap = FALSE;
-				loadRandomBackground();
-				renderBoard(game.position.board, color, lastMove);
-				break;
-
-			case SDLK_e:
-				printf("board evaluation = %.2f\n", staticEvaluation(&game.position)/100.0);
-				fflush(stdout);
-				break;
-
-			case SDLK_d:
-				dumpContent(&game);
-				break;
-
-			case SDLK_p:
-				dumpPGN(&game, color, hasAI);
-				break;
-
-			case SDLK_m:
-				printLegalMoves(&game.position);
-				break;
-
-			case SDLK_u:
-				unmakeMove(&game);
-				if ( hasAI ) unmakeMove(&game);
-				SDL_SetWindowTitle(window, "Chess Game");
-				ongoing = TRUE;
-				lastMove = getLastMove(&game);
-				renderBoard(game.position.board, color, lastMove);
-				printf("Last move was undone.\n");
-				fflush(stdout);
-				break;
-
-			case SDLK_h:
-				heatmap = heatmap?FALSE:TRUE;
-				renderBoard(game.position.board, color, lastMove);
-				printf("Heatmap %s.\n", heatmap?"enabled":"disabled");
-				fflush(stdout);
-				break;
-
-			case SDLK_UP:
-				AIdepth++;
-				printf("Search base depth increased to %d.\n", AIdepth);
-				fflush(stdout);
-				break;
-
-			case SDLK_DOWN:
-				if (AIdepth==1) {
-					printf("Search base depth is 1.\n");
-				} else {
-					AIdepth--;
-					printf("Search base depth decreased to %d.\n", AIdepth);
-				}
-				fflush(stdout);
-				break;
-
-			case SDLK_i:
-				color = opponent(color);
-				renderBoard(game.position.board, color, lastMove);
-				printf("Now playing as %s.\n", color==WHITE?"WHITE":"BLACK");
-				fflush(stdout);
-				break;
-
-			default:
-//				printf("User pressed key: '%s' key acting as '%s' key\n", SDL_GetScancodeName(event.key.keysym.scancode), SDL_GetKeyName(event.key.keysym.sym));
-				printf("Pressing '%s' does nothing!\n", SDL_GetKeyName(event.key.keysym.sym));
-				fflush(stdout);
-				break;
-			}
-			break;
-
-			case SDL_WINDOWEVENT:
-				switch (event.window.event) {
-				case SDL_WINDOWEVENT_RESIZED:
-					if ( event.window.data1 != 8*TILE_SIDE ) {
-						TILE_SIDE = (int) (event.window.data1/8);
-					} else if ( event.window.data2 != 8*TILE_SIDE ) {
-						TILE_SIDE = (int) (event.window.data2/8);
-					}
-					SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-					renderBoard(game.position.board, color, lastMove);
-					fflush(stdout);
-					break;
-				}
-		}
-
+		handleEvent(event, &game, &color, &hasAI, &AIdepth, &run, &ongoing, &editing, &leavingPos, &arrivingPos, &lastMove);
 	}
 }
 
