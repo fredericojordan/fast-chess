@@ -631,7 +631,10 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			*editing = *editing?FALSE:TRUE;
 			if (*editing) {
 				*lastMove = 0;
-				*hasAI = FALSE;
+			} else {
+				char fen[MAX_FEN_LEN];
+				toFen(fen, &(game->position));
+				getFenGame(game, fen);
 			}
 			printf("Editing %s.\n", *editing?"enabled":"disabled");
 			fflush(stdout);
