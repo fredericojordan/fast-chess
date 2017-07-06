@@ -22,7 +22,7 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 ## Instructions
 1. Download [latest release](https://github.com/fredericojordan/fast-chess/releases)
 2. Extract file contents
-3. Run chess.exe (or chess-debug.exe for command prompt info)
+3. Run chess.exe (or chess-console.exe for command prompt info)
 4. ???
 5. Profit
 
@@ -42,8 +42,8 @@ Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispace
 - **E** - [E]dit mode (click and drag to move or click to cycle pieces)
 - **P** - Export to [P]GN
 - **D** - [D]ump game info to file
-- **M** - List legal [M]oves (debug mode only)
-- **V** - Static board e[v]aluation (debug mode only)
+- **M** - List legal [M]oves (console mode only)
+- **V** - Static board e[v]aluation (console mode only)
 - **Q** - [Q]uit
 - **U** - [U]ndo move
 
