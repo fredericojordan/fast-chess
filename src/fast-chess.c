@@ -780,6 +780,13 @@ void dumpPGN(Game * game, char color, BOOL hasAI) { // TODO: "From position"
 		fprintf(file, "[Black \"Human Player\"]\n");
 	}
 
+	if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0) {
+		fprintf(file, "[Variant \"Standard\"]\n");
+	} else {
+		fprintf(file, "[Variant \"From Position\"]\n");
+		fprintf(file, "[FEN \"%s\"]\n", game->positionHistory[0]);
+	}
+
 	if ( hasGameEnded(&game->position) ) {
 		if ( endNodeEvaluation(&game->position) == winScore(WHITE) ) {
 			fprintf(file, "[Result \"1-0\"]\n");
