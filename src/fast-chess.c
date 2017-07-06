@@ -1258,8 +1258,10 @@ BOOL canCastleKingside(Position * position, char color) {
 
 	case WHITE:
 		if ( (position->castlingRights&CASTLE_KINGSIDE_WHITE) &&
+			 (position->board[str2index("e1")] == WHITE|KING) &&
 			 (position->board[str2index("f1")] == EMPTY) &&
 			 (position->board[str2index("g1")] == EMPTY) &&
+			 (position->board[str2index("h1")] == WHITE|ROOK) &&
 			 (!isAttacked(str2bb("e1"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("f1"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("g1"), position->board, opponent(color))) )
@@ -1269,8 +1271,10 @@ BOOL canCastleKingside(Position * position, char color) {
 
 	case BLACK:
 		if ( (position->castlingRights&CASTLE_KINGSIDE_BLACK) &&
+			 (position->board[str2index("e8")] == BLACK|KING) &&
 			 (position->board[str2index("f8")] == EMPTY) &&
 			 (position->board[str2index("g8")] == EMPTY) &&
+			 (position->board[str2index("h8")] == BLACK|ROOK) &&
 			 (!isAttacked(str2bb("e8"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("f8"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("g8"), position->board, opponent(color))) )
@@ -1287,9 +1291,11 @@ BOOL canCastleQueenside(Position * position, char color) {
 
 	case WHITE:
 		if ( (position->castlingRights&CASTLE_QUEENSIDE_WHITE) &&
+			 (position->board[str2index("a1")] == WHITE|ROOK) &&
 			 (position->board[str2index("b1")] == EMPTY) &&
 			 (position->board[str2index("c1")] == EMPTY) &&
 			 (position->board[str2index("d1")] == EMPTY) &&
+			 (position->board[str2index("e1")] == WHITE|KING) &&
 			 (!isAttacked(str2bb("c1"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("d1"), position->board, opponent(color))) &&
 			 (!isAttacked(str2bb("e1"), position->board, opponent(color))) )
@@ -1299,9 +1305,11 @@ BOOL canCastleQueenside(Position * position, char color) {
 
 	case BLACK:
 		if ( (position->castlingRights&CASTLE_QUEENSIDE_BLACK) &&
+				 (position->board[str2index("a8")] == BLACK|ROOK) &&
 				 (position->board[str2index("b8")] == EMPTY) &&
 				 (position->board[str2index("c8")] == EMPTY) &&
 				 (position->board[str2index("d8")] == EMPTY) &&
+				 (position->board[str2index("e8")] == BLACK|KING) &&
 				 (!isAttacked(str2bb("c8"), position->board, opponent(color))) &&
 				 (!isAttacked(str2bb("d8"), position->board, opponent(color))) &&
 				 (!isAttacked(str2bb("e8"), position->board, opponent(color))) )

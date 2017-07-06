@@ -632,6 +632,11 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			if (*editing) {
 				*lastMove = 0;
 			} else {
+				game->position.epSquare = -1;
+				game->position.castlingRights = CASTLE_KINGSIDE_WHITE|CASTLE_QUEENSIDE_WHITE|CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK;
+				game->position.halfmoveClock = 0;
+				game->position.fullmoveNumber = 1;
+
 				char fen[MAX_FEN_LEN];
 				toFen(fen, &(game->position));
 				getFenGame(game, fen);
