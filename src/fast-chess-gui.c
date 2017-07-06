@@ -44,16 +44,13 @@ char COLOR_SQUEMES[][6] = {
 int bgColorNum = -1;
 char BG_COLOR[6];
 
-int checkRed = 0xFF0000;
-int checkTransparency = 0x80;
+int checkColor[] = { 0xFF, 0, 0, 0x80 };
+int lastMoveColor[] = {0x22, 0xFF, 0xAA, 0x80};
 
 BOOL heatmap = FALSE;
 int atkColor = 0xFF0000;
 int defColor = 0x00FF00;
 int heatmapTransparency = 0x30;
-
-int lastMoveColor = 0x22FFAA;
-int lastMoveTransparency = 0x80;
 
 SDL_Window* window = NULL; 			// The window we'll be rendering to
 SDL_Surface* screenSurface = NULL; 	// The surface contained by the window
@@ -397,22 +394,28 @@ void loadHeatTiles(void) {
 void loadCheckSquare(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 	SDL_Surface * checkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	SDL_FillRect( checkSurf, NULL, checkRed );
+	SDL_FillRect( checkSurf, NULL, SDL_MapRGB(&fmt, checkColor[0], checkColor[1], checkColor[2]) );
+
 	SDL_DestroyTexture(checkSquare);
 	checkSquare = SDL_CreateTextureFromSurface(renderer, checkSurf);
+
 	SDL_SetTextureBlendMode( checkSquare, SDL_BLENDMODE_BLEND );
-	SDL_SetTextureAlphaMod( checkSquare, checkTransparency );
+	SDL_SetTextureAlphaMod( checkSquare, checkColor[3] );
 	SDL_FreeSurface( checkSurf );
 }
 
 void loadLastMoveSquare(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
-	SDL_Surface * lastMoveSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	SDL_FillRect( lastMoveSurf, NULL, lastMoveColor );
+	SDL_Surface * lastMoveSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, 0xff000000, 0xff0000, 0xff00, 0xff );
+
+	SDL_FillRect( lastMoveSurf, NULL, SDL_MapRGBA(lastMoveSurf->format, lastMoveColor[0], lastMoveColor[1], lastMoveColor[2], lastMoveColor[3]) );
+	SDL_Rect dest = {1,1,8,8};
+	SDL_FillRect( lastMoveSurf, &dest, SDL_MapRGBA(lastMoveSurf->format,0,0,0,0) );
+
 	SDL_DestroyTexture(lastMoveSquare);
 	lastMoveSquare = SDL_CreateTextureFromSurface(renderer, lastMoveSurf);
+
 	SDL_SetTextureBlendMode( lastMoveSquare, SDL_BLENDMODE_BLEND );
-	SDL_SetTextureAlphaMod( lastMoveSquare, lastMoveTransparency );
 	SDL_FreeSurface( lastMoveSurf );
 }
 
@@ -574,7 +577,7 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			if (*leavingPos == *arrivingPos) {
 				cyclePiece(game, *leavingPos);
 			} else {
-				makeMove(game, generateMove(*leavingPos, *arrivingPos));
+				movePiece(game->position.board, generateMove(*leavingPos, *arrivingPos));
 				renderBoard(game->position.board, *color, *lastMove);
 			}
 		} else {
@@ -679,6 +682,7 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			if ( *hasAI ) unmakeMove(game);
 			SDL_SetWindowTitle(window, "Chess Game");
 			*ongoing = TRUE;
+			*lastMove = getLastMove(game);
 			renderBoard(game->position.board, *color, *lastMove);
 			printf("Last move was undone.\n");
 			fflush(stdout);
