@@ -746,7 +746,7 @@ void dumpContent(Game * game) {
 	fflush(stdout);
 }
 
-void dumpPGN(Game * game, char color, BOOL hasAI) { // TODO: "From position"
+void dumpPGN(Game * game, char color, BOOL hasAI) {
 	char filename[50];
 	sprintf(filename, "chess_game_");
 	getTimestamp(&filename[strlen(filename)]);
@@ -762,29 +762,22 @@ void dumpPGN(Game * game, char color, BOOL hasAI) { // TODO: "From position"
     strftime(date, 11, "%Y.%m.%d", tm_info);
 
 
-	fprintf(file, "[Event \"Fast Chess Friendly Game\"]\n");
-	fprintf(file, "[Site \"??\"]\n");
+	fprintf(file, "[Event \"Casual Game\"]\n");
+	fprintf(file, "[Site \"?\"]\n");
 	fprintf(file, "[Date \"%s\"]\n", date);
-	fprintf(file, "[Round \"Friendly\"]\n");
+	fprintf(file, "[Round \"-\"]\n");
 
 	if  ( hasAI ) {
 		if ( color == WHITE ) {
-			fprintf(file, "[White \"Human Player\"]\n");
-			fprintf(file, "[Black \"Fast Chess Engine\"]\n");
+			fprintf(file, "[White \"Unknown Human Player\"]\n");
+			fprintf(file, "[Black \"Fast Chess Engine %s\"]\n", ENGINE_VERSION);
 		} else {
-			fprintf(file, "[White \"Fast Chess Engine\"]\n");
-			fprintf(file, "[Black \"Human Player\"]\n");
+			fprintf(file, "[White \"Fast Chess Engine %s\"]\n", ENGINE_VERSION);
+			fprintf(file, "[Black \"Unknown Human Player\"]\n");
 		}
 	} else {
-		fprintf(file, "[White \"Human Player\"]\n");
-		fprintf(file, "[Black \"Human Player\"]\n");
-	}
-
-	if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0) {
-		fprintf(file, "[Variant \"Standard\"]\n");
-	} else {
-		fprintf(file, "[Variant \"From Position\"]\n");
-		fprintf(file, "[FEN \"%s\"]\n", game->positionHistory[0]);
+		fprintf(file, "[White \"Unknown Human Player\"]\n");
+		fprintf(file, "[Black \"Unknown Human Player\"]\n");
 	}
 
 	if ( hasGameEnded(&game->position) ) {
@@ -797,6 +790,13 @@ void dumpPGN(Game * game, char color, BOOL hasAI) { // TODO: "From position"
 		}
 	} else {
 		fprintf(file, "[Result \"*\"]\n");
+	}
+
+	if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0) {
+		fprintf(file, "[Variant \"Standard\"]\n");
+	} else {
+		fprintf(file, "[Variant \"From Position\"]\n");
+		fprintf(file, "[FEN \"%s\"]\n", game->positionHistory[0]);
 	}
 
 	fprintf(file, "[PlyCount \"%d\"]\n\n", game->moveListLen);

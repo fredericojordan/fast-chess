@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <windows.h>
 
+#define ENGINE_VERSION "v1.6.3"
+
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
 
