@@ -1,7 +1,7 @@
 # fast-chess
 Simple chess game (developed to be faster than my [python version](https://github.com/fredericojordan/chess)). GUI uses [SDL](https://www.libsdl.org/) library, dlls are available for Windows.
 
-Using some ideas from [Chess Programming Wiki](http://chessprogramming.wikispaces.com).
+Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) and [TSCP](http://www.tckerrigan.com/Chess/TSCP/) for some ideas and tuning values.
 
 ## Features
 - Board Representation:
