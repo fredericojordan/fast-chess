@@ -9,7 +9,7 @@
 #define FAST_CHESS_H_
 
 #include <stdint.h>
-#include <windows.h>
+//#include <windows.h>
 
 #define ENGINE_VERSION "v1.6.3"
 
@@ -334,11 +334,11 @@ int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
 Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta);
-DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
-DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam);
-Node idabThreaded(Position * position, int depth, BOOL verbose);
-Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
-Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
+//DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
+//DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam);
+//Node idabThreaded(Position * position, int depth, BOOL verbose);
+//Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
+//Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
 Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
