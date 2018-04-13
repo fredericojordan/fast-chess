@@ -510,7 +510,7 @@ BOOL init() {
 
 	screenSurface = SDL_GetWindowSurface( window );
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_GetRenderer(window);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	randomColorScheme();
