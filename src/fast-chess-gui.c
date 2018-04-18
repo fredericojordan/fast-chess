@@ -25,7 +25,7 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_video.h>
-//#include <SDL/SDL_ttf.h>
+#include <SDL2/SDL_ttf.h>
 #include <time.h>
 
 #include "fast-chess.h"
@@ -60,7 +60,7 @@ SDL_Texture *bgTexture, *whiteBgTexture, *checkSquare, *lastMoveSquare, *heatmap
 SDL_Texture *bPawn, *bKnight, *bBishop, *bRook, *bQueen, *bKing;
 SDL_Texture *wPawn, *wKnight, *wBishop, *wRook, *wQueen, *wKing;
 
-//TTF_Font *font;
+TTF_Font *font;
 
 SDL_Texture * loadImage(char * fileLocation) {
 	SDL_Surface* imgSurface = NULL;
@@ -206,46 +206,46 @@ void renderBackground(void) {
 	SDL_RenderCopy(renderer, bgTexture, NULL, &boardRect);
 }
 
-//void renderAlgebricNotation(char color) {
-//	if ( TILE_SIDE < 40 )
-//		return;
-//
-//	const char * const FILES_STR[8] = {"a", "b", "c", "d", "e", "f", "g", "h" };
-//	const char * const RANKS_STR[8] = {"1", "2", "3", "4", "5", "6", "7", "8" };
-//	int i;
-//
-//	for (i=0; i<8; i++) {
-//		SDL_Color text_color = {BG_COLOR[0+3*(i%2)], BG_COLOR[1+3*(i%2)], BG_COLOR[2+3*(i%2)]};
-//		SDL_Surface* messageSurface = TTF_RenderText_Solid(font, color==WHITE?RANKS_STR[i]:RANKS_STR[7-i], text_color);
-//		if ( messageSurface == NULL )
-//			continue;
-//
-//
-//		SDL_Texture* messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
-//		SDL_FreeSurface( messageSurface );
-//
-//		SDL_Rect tile = index2rect(8*i, WHITE);
-//		tile.w /= 6;
-//		tile.h /= 4;
-//		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
-//		SDL_DestroyTexture(messageTexture);
-//
-//		messageSurface = TTF_RenderText_Solid(font, color==WHITE?FILES_STR[i]:FILES_STR[7-i], text_color);
-//		if ( messageSurface == NULL )
-//			continue;
-//
-//		messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
-//		SDL_FreeSurface( messageSurface );
-//
-//		tile = index2rect(i, WHITE);
-//		tile.x += 1;
-//		tile.y += tile.h*3/4;
-//		tile.w /= 6;
-//		tile.h /= 4;
-//		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
-//		SDL_DestroyTexture(messageTexture);
-//	}
-//}
+void renderAlgebricNotation(char color) {
+	if ( TILE_SIDE < 40 )
+		return;
+
+	const char * const FILES_STR[8] = {"a", "b", "c", "d", "e", "f", "g", "h" };
+	const char * const RANKS_STR[8] = {"1", "2", "3", "4", "5", "6", "7", "8" };
+	int i;
+
+	for (i=0; i<8; i++) {
+		SDL_Color text_color = {BG_COLOR[0+3*(i%2)], BG_COLOR[1+3*(i%2)], BG_COLOR[2+3*(i%2)]};
+		SDL_Surface* messageSurface = TTF_RenderText_Solid(font, color==WHITE?RANKS_STR[i]:RANKS_STR[7-i], text_color);
+		if ( messageSurface == NULL )
+			continue;
+
+
+		SDL_Texture* messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
+		SDL_FreeSurface( messageSurface );
+
+		SDL_Rect tile = index2rect(8*i, WHITE);
+		tile.w /= 6;
+		tile.h /= 4;
+		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+		SDL_DestroyTexture(messageTexture);
+
+		messageSurface = TTF_RenderText_Solid(font, color==WHITE?FILES_STR[i]:FILES_STR[7-i], text_color);
+		if ( messageSurface == NULL )
+			continue;
+
+		messageTexture = SDL_CreateTextureFromSurface(renderer, messageSurface);
+		SDL_FreeSurface( messageSurface );
+
+		tile = index2rect(i, WHITE);
+		tile.x += 1;
+		tile.y += tile.h*3/4;
+		tile.w /= 6;
+		tile.h /= 4;
+		SDL_RenderCopy(renderer, messageTexture, NULL, &tile);
+		SDL_DestroyTexture(messageTexture);
+	}
+}
 
 SDL_Texture * getPieceTexture(int piece) {
 	switch(piece) {
@@ -325,7 +325,7 @@ void renderLastMove(int lastMove, char color) {
 void renderRegularBoard(int board[], char color, Move lastMove) {
 	SDL_RenderClear(renderer);
 	renderBackground();
-//	renderAlgebricNotation(color);
+	renderAlgebricNotation(color);
 	renderCheck(board, color);
 	renderLastMove(lastMove, color);
 	renderPieces(board, color);
@@ -477,9 +477,9 @@ void loadRandomBackground(void) {
 	SDL_FreeSurface( bgSurface );
 }
 
-//void loadFont() {
-//	font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
-//}
+void loadFont() {
+	font = TTF_OpenFont("open-sans/OpenSans-Bold.ttf", 48);
+}
 
 BOOL init() {
 	srand(time(NULL));
@@ -503,10 +503,10 @@ BOOL init() {
 		return FALSE;
 	}
 
-//	if( TTF_Init() == -1 ) {
-//	    printf("TTF_Init error: %s\n", TTF_GetError());
-//	    return FALSE;
-//	}
+	if( TTF_Init() == -1 ) {
+	    printf("TTF_Init error: %s\n", TTF_GetError());
+	    return FALSE;
+	}
 
 	screenSurface = SDL_GetWindowSurface( window );
 
@@ -520,7 +520,7 @@ BOOL init() {
 	loadLastMoveSquare();
 	loadImages();
 	loadHeatTiles();
-//	loadFont();
+	loadFont();
 
     return TRUE;
 }
