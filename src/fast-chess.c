@@ -13,7 +13,6 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
-//#include <conio.h>
 
 #include "fast-chess.h"
 
@@ -195,26 +194,26 @@ int loadFen(Position * position, char fen[]) {
 
 int toFen(char * fen, Position * position) {
 	int charCount = toMinFen(fen, position);
-//	fen[charCount-1] = ' ';
-//
-//	// ===== HALF MOVE CLOCK =====
-//	itoa(position->halfmoveClock, &fen[charCount++], 10);
-//	if (position->halfmoveClock >= 10) {
-//		charCount++;
-//		if (position->halfmoveClock >= 100) {
-//			charCount++;
-//		}
-//	}
-//	fen[charCount++] = ' ';
-//
-//	// ===== FULL MOVE NUMBER =====
-//	itoa(position->fullmoveNumber, &fen[charCount++], 10);
-//	if (position->fullmoveNumber >= 10) {
-//		charCount++;
-//		if (position->fullmoveNumber >= 100) {
-//			charCount++;
-//		}
-//	}
+	fen[charCount-1] = ' ';
+
+	// ===== HALF MOVE CLOCK =====
+	snprintf(&fen[charCount++], 2, "%d", position->halfmoveClock);
+	if (position->halfmoveClock >= 10) {
+		charCount++;
+		if (position->halfmoveClock >= 100) {
+			charCount++;
+		}
+	}
+	fen[charCount++] = ' ';
+
+	// ===== FULL MOVE NUMBER =====
+	snprintf(&fen[charCount++], 2, "%d", position->fullmoveNumber);
+	if (position->fullmoveNumber >= 10) {
+		charCount++;
+		if (position->fullmoveNumber >= 100) {
+			charCount++;
+		}
+	}
 	fen[charCount++] = '\0';
 
 	return charCount;
@@ -223,72 +222,72 @@ int toFen(char * fen, Position * position) {
 int toMinFen(char * fen, Position * position) {
 	int charCount = 0;
 
-//	// ===== BOARD =====
-//	int rank = 7;
-//	int file = 0;
-//	int emptySquares = 0;
-//
-//	while(rank >= 0) {
-//		int piece = position->board[8*rank+file];
-//
-//		if ( piece == EMPTY ) {
-//			emptySquares++;
-//		} else {
-//			if (emptySquares != 0) {
-//				itoa(emptySquares, &fen[charCount++], 10);
-//				emptySquares = 0;
-//			}
-//			fen[charCount++] = piece2char(piece);
-//		}
-//
-//		file++;
-//		if ( file > 7 ) {
-//			if (emptySquares != 0) {
-//				itoa(emptySquares, &fen[charCount++], 10);
-//				emptySquares = 0;
-//			}
-//			file = 0;
-//			rank--;
-//			fen[charCount++] = '/';
-//		}
-//	}
-//	fen[charCount-1] = ' ';
-//
-//
-//	// ===== TO MOVE =====
-//	if (position->toMove == BLACK) {
-//		fen[charCount++] = 'b';
-//	} else {
-//		fen[charCount++] = 'w';
-//	}
-//	fen[charCount++] = ' ';
-//
-//	// ===== CASTLING RIGHTS =====
-//	if (position->castlingRights == 0) {
-//			fen[charCount++] = '-';
-//	} else {
-//		if (position->castlingRights & CASTLE_KINGSIDE_WHITE) {
-//			fen[charCount++] = 'K';
-//		}
-//		if (position->castlingRights & CASTLE_QUEENSIDE_WHITE) {
-//			fen[charCount++] = 'Q';
-//		}
-//		if (position->castlingRights & CASTLE_KINGSIDE_BLACK) {
-//			fen[charCount++] = 'k';
-//		}
-//		if (position->castlingRights & CASTLE_QUEENSIDE_BLACK) {
-//			fen[charCount++] = 'q';
-//		}
-//	}
-//	fen[charCount++] = ' ';
-//
-//	// ===== EN PASSANT =====
-//	if (position->epSquare == -1) {
-//			fen[charCount++] = '-';
-//	} else {
-//		fen[charCount++] = getFile(position->epSquare);
-//		fen[charCount++] = getRank(position->epSquare);
-//	}
+	// ===== BOARD =====
+	int rank = 7;
+	int file = 0;
+	int emptySquares = 0;
+
+	while(rank >= 0) {
+		int piece = position->board[8*rank+file];
+
+		if ( piece == EMPTY ) {
+			emptySquares++;
+		} else {
+			if (emptySquares != 0) {
+			    snprintf(&fen[charCount++], 2, "%d", emptySquares);
+				emptySquares = 0;
+			}
+			fen[charCount++] = piece2char(piece);
+		}
+
+		file++;
+		if ( file > 7 ) {
+			if (emptySquares != 0) {
+			    snprintf(&fen[charCount++], 2, "%d", emptySquares);
+				emptySquares = 0;
+			}
+			file = 0;
+			rank--;
+			fen[charCount++] = '/';
+		}
+	}
+	fen[charCount-1] = ' ';
+
+
+	// ===== TO MOVE =====
+	if (position->toMove == BLACK) {
+		fen[charCount++] = 'b';
+	} else {
+		fen[charCount++] = 'w';
+	}
+	fen[charCount++] = ' ';
+
+	// ===== CASTLING RIGHTS =====
+	if (position->castlingRights == 0) {
+			fen[charCount++] = '-';
+	} else {
+		if (position->castlingRights & CASTLE_KINGSIDE_WHITE) {
+			fen[charCount++] = 'K';
+		}
+		if (position->castlingRights & CASTLE_QUEENSIDE_WHITE) {
+			fen[charCount++] = 'Q';
+		}
+		if (position->castlingRights & CASTLE_KINGSIDE_BLACK) {
+			fen[charCount++] = 'k';
+		}
+		if (position->castlingRights & CASTLE_QUEENSIDE_BLACK) {
+			fen[charCount++] = 'q';
+		}
+	}
+	fen[charCount++] = ' ';
+
+	// ===== EN PASSANT =====
+	if (position->epSquare == -1) {
+			fen[charCount++] = '-';
+	} else {
+		fen[charCount++] = getFile(position->epSquare);
+		fen[charCount++] = getRank(position->epSquare);
+	}
 	fen[charCount++] = '\0';
 
 	return charCount;
@@ -886,7 +885,7 @@ BOOL isAmbiguous(Position * posBefore, Move move) {
 
 unsigned long hashPosition(Position * position) {
 	unsigned char fen[MAX_FEN_LEN];
-//	toMinFen(fen, position);
+	toMinFen(fen, position);
 
     unsigned long hash = 5381;
     int c, i=0;
