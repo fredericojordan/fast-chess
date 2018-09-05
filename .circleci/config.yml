@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run:
           name: Installing CMake
-          command: sudo apt-get install cmake
+          command: apt-get install cmake
       - run:
           name: Generating Makefile
           command: cmake .
