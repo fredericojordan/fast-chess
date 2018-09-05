@@ -1,4 +1,8 @@
 **/*.o
 .idea/
-build/
+CMakeCache.txt
+CMakeFiles/
 Makefile
+build/
+chess
+cmake_install.cmake
