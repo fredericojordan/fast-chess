@@ -1,0 +1,13 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: debian:stretch
+    steps:
+      - checkout
+      - run:
+          name: Generating Makefile
+          command: cmake .
+      - run:
+          name: Building
+          command: make
