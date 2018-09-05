@@ -1,4 +1,7 @@
 # fast-chess
+
+[![CircleCI](https://circleci.com/gh/fredericojordan/fast-chess/tree/circleci.svg?style=svg)](https://circleci.com/gh/fredericojordan/fast-chess/tree/circleci)
+
 Simple chess game (developed to be faster than my [python version](https://github.com/fredericojordan/chess)). GUI uses [SDL](https://www.libsdl.org/) library, dlls are available for Windows.
 
 Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) and [TSCP](http://www.tckerrigan.com/Chess/TSCP/) for some ideas and tuning values.
