@@ -8,8 +8,11 @@
 #ifndef FAST_CHESS_H_
 #define FAST_CHESS_H_
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <stdint.h>
-//#include <windows.h>
 
 #define ENGINE_VERSION "v1.6.3"
 
@@ -334,16 +337,20 @@ int alphaBetaNodes(Node * nodes, Position * position, char depth);
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose);
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta);
 Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta);
-//DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
-//DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam);
-//Node idabThreaded(Position * position, int depth, BOOL verbose);
-//Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
-//Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
 Move getRandomMove(Position * position);
 Move getAIMove(Game * game, int depth);
 Move parseMove(char * move);
 Move getPlayerMove();
 Move suggestMove(char fen[], int depth);
+
+// Parallel processing currently only implemented for Windows
+#ifdef _WIN32
+DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam);
+DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam);
+Node idabThreaded(Position * position, int depth, BOOL verbose);
+Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose);
+Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose);
+#endif
 
 // ===== PLAY LOOP (TEXT) ====
 
