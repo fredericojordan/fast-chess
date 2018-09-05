@@ -5,7 +5,6 @@ jobs:
       - image: ubuntu
     steps:
       - checkout
-
       - run:
           name: Installing compilers
           command: |
@@ -16,6 +15,11 @@ jobs:
           command: |
             apt-get update
             apt-get install -y cmake
+      - run:
+          name: Installing SDL2
+          command: |
+            apt-get update
+            apt-get install -y libsdl2-dev
       - run:
           name: Generating Makefile
           command: cmake .
