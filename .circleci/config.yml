@@ -21,6 +21,11 @@ jobs:
             apt-get update
             apt-get install -y libsdl2-dev
       - run:
+          name: Installing SDL_image
+          command: |
+            apt-get update
+            apt-get install -y libsdl2-image-dev
+      - run:
           name: Generating Makefile
           command: cmake .
       - run:
