@@ -769,11 +769,11 @@ void dumpPGN(Game * game, char color, BOOL hasAI) {
 
 	if  ( hasAI ) {
 		if ( color == WHITE ) {
-			fprintf(file, "[White \"Unknown Human Player\"]\n");
-			fprintf(file, "[Black \"Fast Chess Engine %s\"]\n", ENGINE_VERSION);
+			fprintf(file, "[White \"%s\"]\n", HUMAN_NAME);
+			fprintf(file, "[Black \"%s\"]\n", ENGINE_NAME);
 		} else {
-			fprintf(file, "[White \"Fast Chess Engine %s\"]\n", ENGINE_VERSION);
-			fprintf(file, "[Black \"Unknown Human Player\"]\n");
+			fprintf(file, "[White \"%s\"]\n", ENGINE_NAME);
+			fprintf(file, "[Black \"%s\"]\n", HUMAN_NAME);
 		}
 	} else {
 		fprintf(file, "[White \"Unknown Human Player\"]\n");
