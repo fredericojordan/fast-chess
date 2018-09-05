@@ -16,6 +16,9 @@
 
 #define ENGINE_VERSION "v1.6.3"
 
+#define ENGINE_NAME "github.com/fredericojordan/fast-chess " ENGINE_VERSION
+#define HUMAN_NAME "Unknown Human Player"
+
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
 
