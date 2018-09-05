@@ -5,6 +5,12 @@ jobs:
       - image: ubuntu
     steps:
       - checkout
+
+      - run:
+          name: Installing compilers
+          command: |
+            apt-get update
+            apt-get install -y g++
       - run:
           name: Installing CMake
           command: |
