@@ -51,3 +51,15 @@ Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) 
 ![Chess Game](http://i.imgur.com/O6rcSqu.png)
 
 ![Chess Heatmap](http://i.imgur.com/qvwbINN.png)
+
+## Building the project
+
+### macOS
+
+```bash
+git clone https://github.com/fredericojordan/fast-chess.git
+cd fast-chess
+cmake .
+make
+./chess
+```
