@@ -3,7 +3,8 @@ os: osx
 compiler:
   - clang
   - gcc
-install: true
+install:
+  - brew install sdl2 sdl2_image sdl2_ttf
 script:
   - cmake .
   - make
