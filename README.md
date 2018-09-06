@@ -4,7 +4,7 @@
 
 ![fast-chess](http://i.imgur.com/O6rcSqu.png)
 
-Simple chess game (intended to be faster than my [python version](https://github.com/fredericojordan/chess), hence the name). GUI uses [SDL 2.0](https://www.libsdl.org/) library.
+Simple chess game intended to be faster than my (now abandoned) [python version](https://github.com/fredericojordan/chess), hence the name.
 
 Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) and [TSCP](http://www.tckerrigan.com/Chess/TSCP/) for some ideas and tuning values.
 
