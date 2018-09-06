@@ -1,6 +1,6 @@
 # fast-chess
 
-[![CircleCI](https://circleci.com/gh/fredericojordan/fast-chess.svg?style=svg)](https://circleci.com/gh/fredericojordan/fast-chess)
+[![Build Status](https://travis-ci.org/fredericojordan/fast-chess.svg?branch=master)](https://travis-ci.org/fredericojordan/fast-chess) [![CircleCI](https://circleci.com/gh/fredericojordan/fast-chess.svg?style=svg)](https://circleci.com/gh/fredericojordan/fast-chess)
 
 ![fast-chess](http://i.imgur.com/O6rcSqu.png)
 
