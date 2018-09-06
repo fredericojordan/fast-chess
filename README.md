@@ -61,7 +61,8 @@ Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) 
 
 ### macOS/Linux
 
-In order to successfully build the project we need a compiler, [CMake](https://cmake.org/) and also the [SDL](https://www.libsdl.org/) graphics libraries: `SDL2`, `SDL2_image` and `SDL2_ttf`.
+In order to successfully build the project we need a C++ compiler, [CMake](https://cmake.org/) and also the [SDL](https://www.libsdl.org/) graphics libraries: `SDL2`, `SDL2_image` and `SDL2_ttf`.
+
 In Debian systems, this can be achieved by running the command:
 
 ```bash
