@@ -63,13 +63,19 @@ Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) 
 
 In order to successfully build the project we need a C++ compiler, [CMake](https://cmake.org/) and also the [SDL](https://www.libsdl.org/) graphics libraries: `SDL2`, `SDL2_image` and `SDL2_ttf`.
 
-In Debian systems, this can be achieved by running the command:
+In Debian/Ubuntu, this can be achieved by running the command:
 
 ```bash
 apt-get install -y g++ cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
 ```
 
-Then you can just download the code, build the project and run the program:
+In macOS, we can run:
+
+```bash
+brew install cmake sdl2 sdl2_image sdl2_ttf
+```
+
+Then we just download the code, build the project and run the program:
 
 ```bash
 git clone https://github.com/fredericojordan/fast-chess.git
