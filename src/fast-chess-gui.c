@@ -48,8 +48,8 @@ int checkColor[] = { 0xFF, 0, 0, 0x80 };
 int lastMoveColor[] = {0x22, 0xFF, 0xAA, 0x80};
 
 BOOL heatmap = FALSE;
-int atkColor = 0xFF0000;
-int defColor = 0x00FF00;
+int atkColor[] = { 0xFF, 0, 0 };
+int defColor[] = { 0, 0xFF, 0 };
 int heatmapTransparency = 0x30;
 
 SDL_Window* window = NULL; 			// The window we'll be rendering to
@@ -375,7 +375,7 @@ void loadHeatTiles(void) {
 	const SDL_PixelFormat fmt = *(screenSurface->format);
 
 	SDL_Surface * atkSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	SDL_FillRect( atkSurf, NULL, atkColor );
+	SDL_FillRect( atkSurf, NULL, SDL_MapRGB(screenSurface->format, atkColor[0], atkColor[1], atkColor[2]));
 	SDL_DestroyTexture(heatmapAtkSquare);
 	heatmapAtkSquare = SDL_CreateTextureFromSurface(renderer, atkSurf);
 	SDL_SetTextureBlendMode( heatmapAtkSquare, SDL_BLENDMODE_BLEND );
@@ -383,7 +383,7 @@ void loadHeatTiles(void) {
 	SDL_FreeSurface( atkSurf );
 
 	SDL_Surface * defSurf = SDL_CreateRGBSurface(0, 10, 10, fmt.BitsPerPixel, fmt.Rmask, fmt.Gmask, fmt.Bmask, fmt.Amask );
-	SDL_FillRect( defSurf, NULL, defColor );
+	SDL_FillRect( defSurf, NULL, SDL_MapRGB(screenSurface->format, defColor[0], defColor[1], defColor[2]));
 	SDL_DestroyTexture(heatmapDefSquare);
 	heatmapDefSquare = SDL_CreateTextureFromSurface(renderer, defSurf);
 	SDL_SetTextureBlendMode( heatmapDefSquare, SDL_BLENDMODE_BLEND );
