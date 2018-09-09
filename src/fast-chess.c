@@ -884,7 +884,7 @@ BOOL isAmbiguous(Position * posBefore, Move move) {
 }
 
 unsigned long hashPosition(Position * position) {
-	unsigned char fen[MAX_FEN_LEN];
+	char fen[MAX_FEN_LEN];
 	toMinFen(fen, position);
 
     unsigned long hash = 5381;
