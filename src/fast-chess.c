@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 #include "fast-chess.h"
+#include "../lib/tbprobe.c"
 
 char FILES[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 char RANKS[8] = {'1', '2', '3', '4', '5', '6', '7', '8'};
@@ -329,7 +330,7 @@ BOOL isSet(Bitboard bb, int index) {
 		return FALSE;
 }
 
-Bitboard lsb(Bitboard bb) {
+Bitboard bb_lsb(Bitboard bb) {
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
 		Bitboard bit = index2bb(i);
@@ -339,7 +340,7 @@ Bitboard lsb(Bitboard bb) {
 	return 0;
 }
 
-Bitboard msb(Bitboard bb) {
+Bitboard bb_msb(Bitboard bb) {
 	int i;
 	for (i=0; i<NUM_SQUARES; i++) {
 		Bitboard bit = index2bb(63-i);
@@ -1373,7 +1374,7 @@ Bitboard SW_ray(Bitboard bb) {
 }
 
 Bitboard NE_attack(Bitboard single_piece, int board[], char color) {
-	Bitboard blocker = lsb(NE_ray(single_piece) & getOccupiedSquares(board));
+	Bitboard blocker = bb_lsb(NE_ray(single_piece) & getOccupiedSquares(board));
 	if (blocker) {
 		return NE_ray(single_piece) ^ NE_ray(blocker);
 	} else {
@@ -1382,7 +1383,7 @@ Bitboard NE_attack(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard NW_attack(Bitboard single_piece, int board[], char color) {
-	Bitboard blocker = lsb(NW_ray(single_piece) & getOccupiedSquares(board));
+	Bitboard blocker = bb_lsb(NW_ray(single_piece) & getOccupiedSquares(board));
 	if (blocker) {
 		return NW_ray(single_piece) ^ NW_ray(blocker);
 	} else {
@@ -1391,7 +1392,7 @@ Bitboard NW_attack(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard SE_attack(Bitboard single_piece, int board[], char color) {
-	Bitboard blocker = msb(SE_ray(single_piece) & getOccupiedSquares(board));
+	Bitboard blocker = bb_msb(SE_ray(single_piece) & getOccupiedSquares(board));
 	if (blocker) {
 		return SE_ray(single_piece) ^ SE_ray(blocker);
 	} else {
@@ -1400,7 +1401,7 @@ Bitboard SE_attack(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard SW_attack(Bitboard single_piece, int board[], char color) {
-	Bitboard blocker = msb(SW_ray(single_piece) & getOccupiedSquares(board));
+	Bitboard blocker = bb_msb(SW_ray(single_piece) & getOccupiedSquares(board));
 	if (blocker) {
 		return SW_ray(single_piece) ^ SW_ray(blocker);
 	} else {
@@ -1473,7 +1474,7 @@ Bitboard westRay(Bitboard moving_pieces) {
 }
 
 Bitboard northAttack(Bitboard single_piece, int board[], char color) {
-    Bitboard blocker = lsb(northRay(single_piece) & getOccupiedSquares(board));
+    Bitboard blocker = bb_lsb(northRay(single_piece) & getOccupiedSquares(board));
 
     if (blocker)
         return northRay(single_piece) ^ northRay(blocker);
@@ -1482,7 +1483,7 @@ Bitboard northAttack(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard southAttack(Bitboard single_piece, int board[], char color) {
-    Bitboard blocker = msb(southRay(single_piece) & getOccupiedSquares(board));
+    Bitboard blocker = bb_msb(southRay(single_piece) & getOccupiedSquares(board));
 
     if (blocker)
         return southRay(single_piece) ^ southRay(blocker);
@@ -1495,7 +1496,7 @@ Bitboard fileAttacks(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard eastAttack(Bitboard single_piece, int board[], char color) {
-    Bitboard blocker = lsb(eastRay(single_piece) & getOccupiedSquares(board));
+    Bitboard blocker = bb_lsb(eastRay(single_piece) & getOccupiedSquares(board));
 
     if (blocker)
         return eastRay(single_piece) ^ eastRay(blocker);
@@ -1504,7 +1505,7 @@ Bitboard eastAttack(Bitboard single_piece, int board[], char color) {
 }
 
 Bitboard westAttack(Bitboard single_piece, int board[], char color) {
-    Bitboard blocker = msb(westRay(single_piece) & getOccupiedSquares(board));
+    Bitboard blocker = bb_msb(westRay(single_piece) & getOccupiedSquares(board));
 
     if (blocker)
         return westRay(single_piece) ^ westRay(blocker);
