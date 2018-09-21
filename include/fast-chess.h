@@ -19,6 +19,8 @@
 #define ENGINE_NAME "github.com/fredericojordan/fast-chess " ENGINE_VERSION
 #define HUMAN_NAME "Unknown Human Player"
 
+#define TB_PATH "/Users/fredericojordan/dev/fast-chess/tablebases"
+
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
 
@@ -148,8 +150,8 @@ Bitboard index2bb(int index);
 int str2index(char *str);
 Bitboard str2bb(char *str);
 BOOL isSet(Bitboard bb, int index);
-Bitboard lsb(Bitboard bb);
-Bitboard msb(Bitboard bb);
+Bitboard bb_lsb(Bitboard bb);
+Bitboard bb_msb(Bitboard bb);
 int bb2index(Bitboard bb);
 char * movelist2str(Game * game);
 Move getLastMove(Game * game);
@@ -363,5 +365,8 @@ void playTextAs(char color, int depth);
 void playTextRandomColor(int depth);
 
 // ===========================
+
+void probe(Position * position);
+void initTablebases();
 
 #endif /* FAST_CHESS_H_ */

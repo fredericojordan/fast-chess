@@ -1,3 +1,4 @@
+**/*.a
 **/*.o
 .idea/
 CMakeCache.txt
