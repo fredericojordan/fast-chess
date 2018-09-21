@@ -484,6 +484,8 @@ void loadFont() {
 BOOL init() {
 	srand(time(NULL));
 
+    initTablebases();
+
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
         return FALSE;
@@ -676,6 +678,11 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 			heatmap = FALSE;
 			loadRandomBackground();
 			renderBoard(game->position.board, *color, *lastMove);
+			break;
+
+		case SDLK_s:
+//			probe(&game->position);
+			printf("Tablebase probing currently not available.\n");
 			break;
 
 		case SDLK_t:

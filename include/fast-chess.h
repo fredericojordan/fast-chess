@@ -19,6 +19,8 @@
 #define ENGINE_NAME "github.com/fredericojordan/fast-chess " ENGINE_VERSION
 #define HUMAN_NAME "Unknown Human Player"
 
+#define TB_PATH "/Users/fredericojordan/dev/fast-chess/tablebases"
+
 #define NUM_SQUARES (64)
 #define ENDGAME_PIECE_COUNT (7)
 
@@ -363,5 +365,8 @@ void playTextAs(char color, int depth);
 void playTextRandomColor(int depth);
 
 // ===========================
+
+void probe(Position * position);
+void initTablebases();
 
 #endif /* FAST_CHESS_H_ */

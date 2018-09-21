@@ -110,9 +110,11 @@ struct pos
     uint64_t bishops;
     uint64_t knights;
     uint64_t pawns;
+    uint8_t castling;
     uint8_t rule50;
     uint8_t ep;
     bool turn;
+    uint16_t move;
 };
 
 static bool do_move(struct pos *pos, const struct pos *pos0, uint16_t move);
