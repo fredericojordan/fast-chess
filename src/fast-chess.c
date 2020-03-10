@@ -1538,16 +1538,18 @@ Bitboard queenMoves(Bitboard moving_piece, int board[], char color) {
 
 // ======== MAKE MOVE ========
 
+// ==== Move Piece ====
 void movePiece(int board[], Move move) {
-	board[getTo(move)] = board[getFrom(move)];
-	board[getFrom(move)] = EMPTY;
+	board[getTo(move)] = board[getFrom(move)]; // Take the selected, valid, position for the piece and give it the information from the current position.
+	board[getFrom(move)] = EMPTY; // Take the previous position and clear it of all piece data.
 }
 
+// ==== Current position information update ====
 void updatePosition(Position * newPosition, Position * position, Move move) {
-	memcpy(newPosition, position, sizeof(Position));
-	int leavingSquare = getFrom(move);
-	int arrivingSquare = getTo(move);
-	int piece = position->board[leavingSquare];
+	memcpy(newPosition, position, sizeof(Position)); // Copy information of selected, valid, position.
+	int leavingSquare = getFrom(move); // Get coordinates of position piece is on.
+	int arrivingSquare = getTo(move); // Get cordinates of selected position.
+	int piece = position->board[leavingSquare]; // Get the piece information that is stored on the position it is leaving.
 
 	// ===== MOVE PIECE =====
 	movePiece(newPosition->board, move);
@@ -1556,19 +1558,20 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 	newPosition->toMove = opponent(position->toMove);
 
 	// ===== MOVE COUNTS =====
-	newPosition->halfmoveClock += 1;
-	if (position->toMove == BLACK) {
+	// Half move clock takes care of enforcing the fifty-move rule (in this program 75). The count is reset if a capture happens or a pawn moves.
+	newPosition->halfmoveClock += 1; // Add one to the count
+	if (position->toMove == BLACK) { // If it's black it has negative positions 
 		newPosition->fullmoveNumber += 1;
 	}
 
 	if (position->board[arrivingSquare] != EMPTY) {
-		newPosition->halfmoveClock = 0;
+		newPosition->halfmoveClock = 0; // If there is a capture, reset the half move clock
 	}
 
 	// ===== PAWNS =====
 	newPosition->epSquare = -1;
 	if ( (piece&PIECE_MASK) == PAWN ) {
-		newPosition->halfmoveClock = 0;
+		newPosition->halfmoveClock = 0; //If a pawn moves, reset the half move clock
 
 		if (arrivingSquare == position->epSquare) {
 		    if (index2bb(position->epSquare)&RANK_3) {
