@@ -1833,16 +1833,17 @@ int staticOrderLegalMoves(Move * orderedLegalMoves, Position * position, char co
 	return legalCount;
 }
 
+// ==== Let a list of legal captures ====
 int legalCaptures(Move * legalCaptures, Position * position, char color) {
 	int i, captureCount = 0;
 
 	Move moves[MAX_BRANCHING_FACTOR];
-	int legalCount = legalMoves(moves, position, color);
+	int legalCount = legalMoves(moves, position, color); // Get the number of legal moves
 
 	for (i=0; i<legalCount; i++) {
-		int arrivingSquare = getTo(moves[i]);
+		int arrivingSquare = getTo(moves[i]); // Get information for selected position
 		if ( index2bb(arrivingSquare) & getColoredPieces(position->board, opponent(color)) ) {
-			legalCaptures[captureCount++] = moves[i];
+			legalCaptures[captureCount++] = moves[i]; // If the piece on the board is a valid piece to take (oposite colour) then increase the count of legal caputres by one
 		}
 	}
 
