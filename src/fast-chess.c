@@ -1594,6 +1594,11 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 	}
 
 	// ===== CASTLING =====
+	// Castling rules: 
+	// The kind and the rook may not have moved from their starting position if you want to castle
+	// All spaces between the king and the rook must be empty
+	// The king cannot be in check
+	// The squares that the king passes over myst not be under atack, nor the square where it lands on
 	if (leavingSquare == str2index("a1")) {
 		newPosition->castlingRights = removeCastlingRights(newPosition->castlingRights, CASTLE_QUEENSIDE_WHITE);
 	}
@@ -1630,69 +1635,72 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 	}
 }
 
+// ==== Another move function ====
 void makeMove(Game * game, Move move) {
 	Position newPosition;
-	updatePosition(&newPosition, &(game->position), move);
-	memcpy(&(game->position), &newPosition, sizeof(Position));
+	updatePosition(&newPosition, &(game->position), move); // Move the piece to the next position selected
+	memcpy(&(game->position), &newPosition, sizeof(Position)); // Copy the memory of the position onto the next position
 
-	game->moveListLen += 1;
+	game->moveListLen += 1; // List of moves made increases
 
 	// ===== MOVE LIST =====
 	game->moveList[game->moveListLen-1] = move;
 
 	// ===== POSITION HISTORY =====
-	toFen(game->positionHistory[game->moveListLen], &game->position);
+	toFen(game->positionHistory[game->moveListLen], &game->position); // Stores each move in "position history"
 }
 
+// ==== Unmake move (for undo function) ====
 void unmakeMove(Game * game) {
 	Position newPosition;
-	if (game->moveListLen >= 1) {
-			loadFen(&newPosition, game->positionHistory[game->moveListLen-1]);
-			memcpy(&(game->position), &newPosition, sizeof(Position));
+	if (game->moveListLen >= 1) { // If the user has made at least one move
+			loadFen(&newPosition, game->positionHistory[game->moveListLen-1]); // Get the games move history
+			memcpy(&(game->position), &newPosition, sizeof(Position)); // Get the last move made 
 
-			game->moveList[game->moveListLen-1] = 0;
-			memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
+			game->moveList[game->moveListLen-1] = 0; // Remove that last move from the list of moves
+			memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char)); // Make the size of the list the size of the new list
 
-			game->moveListLen -= 1;
+			game->moveListLen -= 1; // Make the list length one less
 		} else { // return to initial game
-			loadFen(&newPosition, game->positionHistory[0]);
+			loadFen(&newPosition, game->positionHistory[0]); // Else there is no moves to undo
 			memcpy(&(game->position), &newPosition, sizeof(Position));
 
-			game->moveListLen = 0;
+			game->moveListLen = 0; // The list is size 0
 			memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
 			memset(&game->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
 		}
 }
 
 // ======== MOVE GEN =========
-
+// ==== Makes a list of moves ====
 Bitboard getMoves(Bitboard movingPiece, Position * position, char color) {
 	int piece = position->board[bb2index(movingPiece)] & PIECE_MASK;
 
 	switch (piece) {
 	case PAWN:
-		return pawnMoves(movingPiece, position, color);
+		return pawnMoves(movingPiece, position, color); // List pawn moves and info
 	case KNIGHT:
-		return knightMoves(movingPiece, position->board, color);
+		return knightMoves(movingPiece, position->board, color); // List knight moves and info
 	case BISHOP:
-		return bishopMoves(movingPiece, position->board, color);
+		return bishopMoves(movingPiece, position->board, color); // List bishop moves and info
 	case ROOK:
-		return rookMoves(movingPiece, position->board, color);
+		return rookMoves(movingPiece, position->board, color); // List rook moves and info
 	case QUEEN:
-		return queenMoves(movingPiece, position->board, color);
+		return queenMoves(movingPiece, position->board, color); // List queen moves and info 
 	case KING:
-		return kingMoves(movingPiece, position->board, color);
+		return kingMoves(movingPiece, position->board, color); // List king moves and info
 	}
 	return 0;
 }
 
+// List of legal moves
 int pseudoLegalMoves(Move * moves, Position * position, char color) {
 	int leavingSquare, arrivingSquare, moveCount = 0;
 
 	for (leavingSquare=0; leavingSquare<NUM_SQUARES; leavingSquare++) {
-		int piece = position->board[leavingSquare];
+		int piece = position->board[leavingSquare]; // Get the position of the square the piece is leaving
 
-		if (piece != EMPTY && (piece&COLOR_MASK) == color) {
+		if (piece != EMPTY && (piece&COLOR_MASK) == color) { // Get the peices information and the colour of it
 			Bitboard targets = getMoves(index2bb(leavingSquare), position, color);
 
 			for (arrivingSquare=0; arrivingSquare<NUM_SQUARES; arrivingSquare++) {
@@ -1701,7 +1709,7 @@ int pseudoLegalMoves(Move * moves, Position * position, char color) {
 				}
 			}
 
-			if ( (piece&PIECE_MASK) == KING ) {
+			if ( (piece&PIECE_MASK) == KING ) { // If the piece is a king
 				if (canCastleKingside(position, color)) {
 					moves[moveCount++] = generateMove(leavingSquare, leavingSquare+2);
 				}
@@ -1715,64 +1723,70 @@ int pseudoLegalMoves(Move * moves, Position * position, char color) {
 	return moveCount;
 }
 
+// ==== Get a list of possible attacks for each piece ==== 
 Bitboard getAttacks(Bitboard movingPiece, int board[], char color) {
 	int piece = board[bb2index(movingPiece)] & PIECE_MASK;
 
 	switch (piece) {
 	case PAWN:
-		return pawnAttacks(movingPiece, board, color);
+		return pawnAttacks(movingPiece, board, color); // Get the pawns information
 	case KNIGHT:
-		return knightAttacks(movingPiece);
+		return knightAttacks(movingPiece); // Get the knights information
 	case BISHOP:
-		return bishopAttacks(movingPiece, board, color);
+		return bishopAttacks(movingPiece, board, color); // Get the bishops information
 	case ROOK:
-		return rookAttacks(movingPiece, board, color);
+		return rookAttacks(movingPiece, board, color); // Get the rooks information
 	case QUEEN:
-		return queenAttacks(movingPiece, board, color);
+		return queenAttacks(movingPiece, board, color); // Get the queens information
 	case KING:
-		return kingAttacks(movingPiece);
+		return kingAttacks(movingPiece); // Get the kings information
 	}
 	return 0;
 }
 
+// ==== Get the number of attacks ====
 int countAttacks(Bitboard target, int board[], char color) {
 	int i, attackCount = 0;
 
 	for (i=0; i<NUM_SQUARES; i++)
 		if (board[i] != EMPTY && (board[i]&COLOR_MASK) == color)
 			if ( getAttacks(index2bb(i), board, color) & target )
-				attackCount += 1;
+				attackCount += 1; // Add one to the attack count
 
 	return attackCount;
 }
 
+// ==== Was the piece attacked ====
 BOOL isAttacked(Bitboard target, int board[], char color) {
-	if (countAttacks(target, board, color) > 0)
-		return TRUE;
+	if (countAttacks(target, board, color) > 0) // Get the pieces attack information
+		return TRUE; // If it was attacked return true
 	else
-		return FALSE;
+		return FALSE; // If it wasn't attacked return false
 }
 
+// ==== Checks if it's check ====
 BOOL isCheck(int board[], char color) {
-	return isAttacked(getKing(board, color), board, opponent(color));
+ 	return isAttacked(getKing(board, color), board, opponent(color)); // Return if the king can be attacked?
 }
 
+// ==== Checks if the move is the legal ====
 BOOL isLegalMove(Position * position, Move move) {
 	Position newPosition;
-	updatePosition(&newPosition, position, move);
-	if ( isCheck(newPosition.board, position->toMove) )
+	updatePosition(&newPosition, position, move); // Gets selected position
+	if ( isCheck(newPosition.board, position->toMove) ) // Did the user move the king into a spot where it will be attacked.
 		return FALSE;
 	return TRUE;
 }
 
+// ==== Returns how many legal moves there are ====
 int legalMoves(Move * legalMoves, Position * position, char color) {
 	int i, legalCount = 0;
 
 	Move pseudoMoves[MAX_BRANCHING_FACTOR];
-	int pseudoCount = pseudoLegalMoves(pseudoMoves, position, color);
+	int pseudoCount = pseudoLegalMoves(pseudoMoves, position, color); // Get the number of pseudo legal moves
 
-	for (i=0; i<pseudoCount; i++) {
-		if (isLegalMove(position, pseudoMoves[i])) {
+	for (i=0; i<pseudoCount; i++) { 
+		if (isLegalMove(position, pseudoMoves[i])) { //For all of the moves, if the move is legal, increase the count by one
 			legalMoves[legalCount++] = pseudoMoves[i];
 		}
 	}
@@ -1780,14 +1794,15 @@ int legalMoves(Move * legalMoves, Position * position, char color) {
 	return legalCount;
 }
 
+// ==== Count of legal moves ====
 int legalMovesCount(Position * position, char color) {
 	int i, legalCount = 0;
 
 	Move pseudoMoves[MAX_BRANCHING_FACTOR];
-	int pseudoCount = pseudoLegalMoves(pseudoMoves, position, color);
+	int pseudoCount = pseudoLegalMoves(pseudoMoves, position, color); // Get list of psuedo legal moves 
 
 	for (i=0; i<pseudoCount; i++) {
-		if (isLegalMove(position, pseudoMoves[i])) {
+		if (isLegalMove(position, pseudoMoves[i])) { // For that number of moves, if it is a legal move, increment by one
 			legalCount++;
 		}
 	}
@@ -1795,23 +1810,24 @@ int legalMovesCount(Position * position, char color) {
 	return legalCount;
 }
 
+// ==== List the legal moves in static order ==== 
 int staticOrderLegalMoves(Move * orderedLegalMoves, Position * position, char color) {
 	Move moves[MAX_BRANCHING_FACTOR];
-	int legalCount = legalMoves(moves, position, color);
+	int legalCount = legalMoves(moves, position, color); // Get the count of moves from a piece
 
 	Position newPosition;
 	Node nodes[legalCount], orderedNodes[legalCount];
 
 	int i;
 	for (i=0; i<legalCount; i++) {
-		updatePosition(&newPosition, position, moves[i]);
-		nodes[i] = (Node) { .move = moves[i], .score = staticEvaluation(&newPosition) };
+		updatePosition(&newPosition, position, moves[i]); // Make the move
+		nodes[i] = (Node) { .move = moves[i], .score = staticEvaluation(&newPosition) }; // Staticaly evaluate the new move
 	}
 
-	sortNodes(orderedNodes, nodes, legalCount, color);
+	sortNodes(orderedNodes, nodes, legalCount, color); // Sort the nodes (moves) in the list
 
 	for (i=0; i<legalCount; i++) {
-		orderedLegalMoves[i] = orderedNodes[i].move;
+		orderedLegalMoves[i] = orderedNodes[i].move; // Reorder the legal moves into a sorted list
 	}
 
 	return legalCount;
