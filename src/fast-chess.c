@@ -2103,15 +2103,21 @@ int staticExchangeEvaluation(Position * position, int targetSquare) {
 	return value>0?value:0;
 }
 
+// More extensive value evaluation, done by checking all possible captures after a move
+// and seeing if any of the captures will cause the move to be a poor trade
 int quiescenceEvaluation(Position * position) {
+	// Evaluate current position's value statically
 	int staticScore = staticEvaluation(position);
 
+	// If the game is over in this position, return the current score
 	if (hasGameEnded(position))
 		return staticScore;
 
+	// Get number of possible captures, and fill captures with all possible captures
 	Move captures[MAX_BRANCHING_FACTOR];
 	int captureCount = legalCaptures(captures, position, position->toMove);
 
+	// If there are no possible captures, return the static score
 	if (captureCount == 0) {
 		return staticScore;
 	} else {
@@ -2119,12 +2125,16 @@ int quiescenceEvaluation(Position * position) {
 		int i, bestScore = staticScore;
 
 		for (i=0; i<captureCount; i++) {
+			// If the current position is a poor, break the loop
 			if (staticExchangeEvaluation(position, getTo(captures[i])) <= 0)
 				break;
 
+			// Simulate capture
 			updatePosition(&newPosition, position, captures[i]);
+			// Recursively calculate value of this position
 			int score = quiescenceEvaluation(&newPosition);
 
+			// If score is better than the current best, update the best score
 			if ( (position->toMove == WHITE && score > bestScore) ||
 				 (position->toMove == BLACK && score < bestScore) ) {
 				bestScore = score;
@@ -2135,25 +2145,36 @@ int quiescenceEvaluation(Position * position) {
 	}
 }
 
-// ========= SEARCH ==========
+// ==============================================================
+// 					========= SEARCH ==========
+// ==============================================================
 
+// Basic move search, only evaluating each piece once
 Node staticSearch(Position * position) {
+	// Initialize best score to max values before iteration
 	int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
 	Move bestMove = 0;
 
+	// Create array of possible moves
 	Move moves[MAX_BRANCHING_FACTOR];
+	// Finds the count of possible moves and fills move array with all possible moves
 	int moveCount = legalMoves(moves, position, position->toMove);
 
 	Position newPosition;
 	int i;
+	//For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, moves[i]);
+		// Calculate the value of the board after the move
 		int score = staticEvaluation(&newPosition);
 
+		// If move wins the game, return the move
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
+		//Otherwise, if the move is the best move so far, update the best move
 		if ( (position->toMove == WHITE && score > bestScore) ||
 			 (position->toMove == BLACK && score < bestScore) ) {
 			bestScore = score;
@@ -2164,7 +2185,9 @@ Node staticSearch(Position * position) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
+// Search utilizing the quiescence evaluation to get a more accurate value estimate
 Node quiescenceSearch(Position * position) {
+	// Initialize best score to max values before iteration
 	int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
 	Move bestMove = 0;
 
@@ -2173,14 +2196,20 @@ Node quiescenceSearch(Position * position) {
 
 	Position newPosition;
 	int i;
+	// Create array of possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, moves[i]);
+		// Calculate the value of the board after the move, checking to see
+		// if the value will be invalidated by an opponents move
 		int score = quiescenceEvaluation(&newPosition);
 
+		// If move wins the game, return the move
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
+		//Otherwise, if the move is the best move so far, update the best move
 		if ( (position->toMove == WHITE && score > bestScore) ||
 			 (position->toMove == BLACK && score < bestScore) ) {
 			bestScore = score;
@@ -2191,34 +2220,46 @@ Node quiescenceSearch(Position * position) {
 	return (Node) { .move = bestMove, .score = bestScore };
 }
 
+// Basic recursive search, which evaluates each position recursively up to a given depth
 Node alphaBeta(Position * position, char depth, int alpha, int beta) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	// If the depth has reached 1, then return the static evaluation of the position
+	// As static evaluation is naturally an evaluation of depth 1
 	if (depth == 1)
 		return staticSearch(position);
 
-	// Mate in 1
+	// Shortcut check to see if a simple 1-depth search will yield a winning move
 	Node staticNode = staticSearch(position);
 	if (staticNode.score == winScore(position->toMove))
 		return staticNode;
+	// Otherwise, proceed with the recursive search
 
 	Move bestMove = 0;
 
+	// Find list of possible moves, ordered by the move's value
 	Move moves[MAX_BRANCHING_FACTOR];
 	int moveCount = staticOrderLegalMoves(moves, position, position->toMove);
 
 	Position newPosition;
 	int i;
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, moves[i]);
 
+		// Evaluate node's score recursively 
+		// (Makes move, then simulates making more moves after that move, and returns best score)
 		int score = alphaBeta(&newPosition, depth-1, alpha, beta).score;
 
+		// If the returned score wins the game, return that node	
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = moves[i], .score = score };
 		}
 
+		// Otherwise, update the best move and upper/lower bound (alpha/beta)
 		if (position->toMove == WHITE && score > alpha) {
 			alpha = score;
 			bestMove = moves[i];
@@ -2226,7 +2267,7 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta) {
 			beta = score;
 			bestMove = moves[i];
 		}
-
+		// If the lower bound exceeds the upper bound, terminate the loop
 		if (alpha > beta) {
 			break;
 		}
@@ -2235,37 +2276,49 @@ Node alphaBeta(Position * position, char depth, int alpha, int beta) {
 	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
 }
 
+// Generates sorted list of best possible moves for a certain position using alphaBeta
 int alphaBetaNodes(Node * sortedNodes, Position * position, char depth) {
 	Node nodes[MAX_BRANCHING_FACTOR];
 	Move moves[MAX_BRANCHING_FACTOR];
+	// Get list of legal moves
 	int moveCount = legalMoves(moves, position, position->toMove);
 
 	Position newPosition;
 	int i;
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, moves[i]);
-
+		
+		// Add move to list of nodes
 		nodes[i].move = moves[i];
+		// Use alphaBeta to calculate the score of the move, and add to list of nodes
 		nodes[i].score = depth>1?alphaBeta(&newPosition, depth-1, INT32_MIN, INT32_MAX).score:staticEvaluation(&newPosition);
 	}
 
+	// Sort list of nodes into sortedNodes
 	sortNodes(sortedNodes, nodes, moveCount, position->toMove);
 
 	return moveCount;
 }
 
+// A version of alphaBeta that uses a list of nodes sorted by value using alphaBeta (why?)
+// It also uses quiescence search to confirm the validity of the move
 Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int beta, BOOL verbose) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth == 1)
 		return quiescenceSearch(position);
 //		return staticSearch(position);
 
-	// Mate in 1
+	// Shortcut check to see if a simple 1-depth search will yield a winning move
 	Node staticNode = staticSearch(position);
 	if (staticNode.score == winScore(position->toMove))
 		return staticNode;
+	// Otherwise, proceed with the recursive search
 
 	Move bestMove = 0;
 
@@ -2274,12 +2327,15 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 		fflush(stdout);
 	}
 
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 	Node nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
 	Position newPosition;
 	int i;
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, nodes[i].move);
 
 		if (verbose) {
@@ -2288,7 +2344,8 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 			printf(" = ");
 			fflush(stdout);
 		}
-
+		// Evaluate node's score recursively 
+		// (Makes move, then simulates making more moves after that move, and returns best score)
 		int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
 
 		if (verbose) {
@@ -2296,10 +2353,12 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 			fflush(stdout);
 		}
 
+		// If the returned score wins the game, return that node
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = nodes[i].move, .score = score };
 		}
 
+		// Otherwise, update the best move and upper/lower bound (alpha/beta)
 		if (position->toMove == WHITE && score > alpha) {
 			alpha = score;
 			bestMove = nodes[i].move;
@@ -2308,6 +2367,7 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 			bestMove = nodes[i].move;
 		}
 
+		// If the lower bound exceeds the upper bound, terminate the loop
 		if (alpha > beta) {
 			break;
 		}
@@ -2316,20 +2376,28 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 	return (Node) { .move = bestMove, .score = position->toMove==WHITE?alpha:beta };
 }
 
+// A version of iterativeDeepeningAlphaBeta with static upper and lower bounds
+// Used for limiting the number of iterations when evaluating all possible moves
+// by restricting the upper and lower bounds to the current bestupper and lower bounds
+// (used when threading)
 Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth == 1)
 		return quiescenceSearch(position);
 
-	// Mate in 1
+	// Shortcut check to see if a simple 1-depth search will yield a winning move
 	Node staticNode = staticSearch(position);
 	if (staticNode.score == winScore(position->toMove))
 		return staticNode;
+	// Otherwise, proceed with the recursive search
 
 	Move bestMove = 0;
 
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 	Node nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
@@ -2337,15 +2405,21 @@ Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
 	int i;
 	int alpha = *p_alpha;
 	int beta = *p_beta;
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, nodes[i].move);
 
+		// Evaluate node's score recursively 
+		// (Makes move, then simulates making more moves after that move, and returns best score)
 		int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
 
+		// If the returned score wins the game, return that node
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = nodes[i].move, .score = score };
 		}
 
+		// Otherwise, update the best move and upper/lower bound (alpha/beta)
 		if (position->toMove == WHITE && score > alpha) {
 			alpha = score;
 			bestMove = nodes[i].move;
@@ -2354,6 +2428,7 @@ Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
 			bestMove = nodes[i].move;
 		}
 
+		// If the lower bounds exceed any of the upper bounds, terminate the loop
 		if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
 			break;
 		}
@@ -2363,45 +2438,56 @@ Node pIDAB(Position * position, char depth, int * p_alpha, int * p_beta) {
 
 }
 
+// A version of pIDAB that writes the search data to a hash file
 Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position)) {
 		int score = endNodeEvaluation(position);
 		writeToHashFile(position, score, 0);
 		return (Node) { .score = score };
 	}
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth <= 1) {
 		Node quie = quiescenceSearch(position);
 		writeToHashFile(position, quie.score, depth);
 		return quie;
 	}
 
-	// Mate in 1
+	// Shortcut check to see if a simple 1-depth search will yield a winning move
 	Node staticNode = staticSearch(position);
 	if (staticNode.score == winScore(position->toMove)) {
 		writeToHashFile(position, staticNode.score, 1);
 		return staticNode;
 	}
+	// Otherwise, proceed with the recursive search
 
 	Move bestMove = 0;
 
 	Node nodes[MAX_BRANCHING_FACTOR];
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 
 	Position newPosition;
 	int i;
 	int alpha = *p_alpha;
 	int beta = *p_beta;
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Simulate move
 		updatePosition(&newPosition, position, nodes[i].move);
 
+		// Evaluate node's score recursively 
+		// (Makes move, then simulates making more moves after that move, and returns best score)
 		int score = iterativeDeepeningAlphaBeta(&newPosition, depth-1, alpha, beta, FALSE).score;
 		writeToHashFile(&newPosition, score, depth-1);
 
+		// If the returned score wins the game, return that node
 		if (score == winScore(position->toMove)) {
 			return (Node) { .move = nodes[i].move, .score = score };
 		}
 
+		// Otherwise, update the best move and upper/lower bound (alpha/beta)
 		if (position->toMove == WHITE && score > alpha) {
 			alpha = score;
 			bestMove = nodes[i].move;
@@ -2410,6 +2496,7 @@ Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta) {
 			bestMove = nodes[i].move;
 		}
 
+		// If the lower bounds exceed any of the upper bounds, terminate the loop
 		if (alpha > beta || alpha > *p_beta || *p_alpha > beta) {
 			break;
 		}
@@ -2421,14 +2508,21 @@ Node pIDABhashed(Position * position, char depth, int * p_alpha, int * p_beta) {
 
 
 // Parallel processing currently only implemented for Windows
+// ifdef block to define windows-only features
 #ifdef _WIN32
 
+// Threaded position evaluation function for windows
 DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam) {
+	// Get thread info
 	ThreadInfo * tInfo = (ThreadInfo *) lpParam;
+	// Get position to evaluate from the thread info
 	Position * pos = &tInfo->pos;
 
+	// Evalute the value of the node using pIDAB
 	Node node = pIDAB(pos, tInfo->depth, tInfo->alpha, tInfo->beta);
 
+	// If the new node score is better than the old node score
+	// Update the global upper and lower bounds accordingly
 	if ( pos->toMove == BLACK && node.score > *tInfo->alpha ) {
 		*tInfo->alpha = node.score;
 	} else if ( pos->toMove == WHITE && node.score < *tInfo->beta ) {
@@ -2440,15 +2534,22 @@ DWORD WINAPI evaluatePositionThreadFunction(LPVOID lpParam) {
 		fflush(stdout);
 	}
 
+	// Return the score of the node
 	return node.score;
 }
 
+// Threaded position evaluation function that calls pIDABhashed instead of pIDAB
 DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam) {
+	// Get thread info
 	ThreadInfo * tInfo = (ThreadInfo *) lpParam;
+	// Get position to evaluate from the thread info
 	Position * pos = &tInfo->pos;
 
+	// Evalute the value of the node using pIDABhashed
 	Node node = pIDABhashed(pos, tInfo->depth, tInfo->alpha, tInfo->beta);
 
+	// If the new node score is better than the old node score
+	// Update the global upper and lower bounds accordingly
 	if ( pos->toMove == BLACK && node.score > *tInfo->alpha ) {
 		*tInfo->alpha = node.score;
 	} else if ( pos->toMove == WHITE && node.score < *tInfo->beta ) {
@@ -2460,20 +2561,26 @@ DWORD WINAPI evaluatePositionThreadFunctionHashed(LPVOID lpParam) {
 		fflush(stdout);
 	}
 
+	// Return the score of the node
 	return node.score;
 }
 
+// Function which initiates threaded move search
 Node idabThreaded(Position * position, int depth, BOOL verbose) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth <= 1)
 		return quiescenceSearch(position);
 
 	int i;
 	Node nodes[MAX_BRANCHING_FACTOR];
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
+	// If there is only 1 possible move, return that move
 	if (moveCount == 1) {
 		return nodes[0];
 	}
@@ -2488,18 +2595,23 @@ Node idabThreaded(Position * position, int depth, BOOL verbose) {
 
 	HANDLE threadHandles[MAX_BRANCHING_FACTOR];
 	ThreadInfo threadInfo[MAX_BRANCHING_FACTOR];
+	// Initialize upper and lower bounds to maximum values
 	int alpha = INT32_MIN;
 	int beta = INT32_MAX;
 
+	// For all possible moves
 	for (i=0; i<moveCount; i++) {
+		// Initiallize thread struct 
 		threadInfo[i].depth = depth-1;
 		updatePosition(&threadInfo[i].pos, position, nodes[i].move);
 		threadInfo[i].alpha = &alpha;
 		threadInfo[i].beta = &beta;
 		threadInfo[i].verbose = verbose;
 
+		// Start threaded evaluation of the current move
 		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunction, (LPVOID) &threadInfo[i], 0, NULL);
 
+		// If the thread failed to create, print an error message
 		if ( threadHandles[i] == NULL ) {
 //			printf("Error launching process on move #%d!\n", i);
 			printf("!");
@@ -2507,25 +2619,32 @@ Node idabThreaded(Position * position, int depth, BOOL verbose) {
 		}
 	}
 
+	// Wait for threads to finish (windows command)
 	WaitForMultipleObjects((DWORD) moveCount, threadHandles, TRUE, INFINITE);
 	if (verbose) {
 		printf("]\n");
 		fflush(stdout);
 	}
 
+	// Retrieve best move
+
 	Move bestMove = 0;
 	int bestMoveScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
 	long unsigned int retVal;
 	int score;
+	// For all of the possible moves
 	for (i=0; i<moveCount; i++) {
+		// Retrieve the exit value of the thread, which is the score of the position
 		GetExitCodeThread(threadHandles[i], &retVal);
 		score = (int) retVal;
 
+		// If the score is better than the current best score, update the best move and best score
 		if ( (position->toMove == WHITE && score > bestMoveScore) || (position->toMove == BLACK && score < bestMoveScore) ) {
 			bestMove = nodes[i].move;
 			bestMoveScore = score;
 		}
 
+		// Deallocate thread
 		if (CloseHandle(threadHandles[i]) == 0) {
 //			printf("Error on closing thread #%d!\n", i);
 			printf("x");
@@ -2536,25 +2655,37 @@ Node idabThreaded(Position * position, int depth, BOOL verbose) {
 	return (Node) { .move = bestMove, .score = bestMoveScore };
 }
 
+// Function which initiates threaded move search with initial upper and lower bounds
+// Evaluates value of first position before performing threading, and restricts
+// the upper and lower bounds of the threads to the upper and lower bounds of the
+// first position
 Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position))
 		return (Node) { .score = endNodeEvaluation(position) };
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth <= 1)
 		return quiescenceSearch(position);
 
 	int i;
 	Node nodes[MAX_BRANCHING_FACTOR];
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
+	// If there is only 1 possible move, return that move
 	if (moveCount == 1) {
 		return nodes[0];
 	}
 
+
 	Position firstPos;
+	// Simulate first move
 	updatePosition(&firstPos, position, nodes[0].move);
+	// Evaluate score of first move
 	Node firstReply = idabThreaded(&firstPos, depth-1, FALSE);
 
+	// If the first move wins the game, return that move
 	if ( firstReply.score == winScore(position->toMove) ) {
 		if (verbose) {
 				printf("Playing checkmate move: ");
@@ -2577,24 +2708,30 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 
 	HANDLE threadHandles[MAX_BRANCHING_FACTOR];
 	ThreadInfo threadInfo[MAX_BRANCHING_FACTOR];
+	// Initialize upper and lower bounds to maximum values
 	int alpha = INT32_MIN;
 	int beta = INT32_MAX;
 
+	// Set upper and lower bounds
 	if (position->toMove == WHITE) {
 		alpha = firstReply.score;
 	} else {
 		beta = firstReply.score;
 	}
 
+	// For all possible moves
 	for (i=0; i<moveCount-1; i++) {
+		// Initiallize thread struct 
 		threadInfo[i].depth = depth-1;
 		updatePosition(&threadInfo[i].pos, position, nodes[i+1].move);
 		threadInfo[i].alpha = &alpha;
 		threadInfo[i].beta = &beta;
 		threadInfo[i].verbose = verbose;
 
+		// Start threaded evaluation of the current move
 		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunction, (LPVOID) &threadInfo[i], 0, NULL);
 
+		// If the thread failed to create, print an error message
 		if ( threadHandles[i] == NULL ) {
 //			printf("Error launching process on move #%d!\n", i);
 			printf("!");
@@ -2602,25 +2739,31 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 		}
 	}
 
+	// Wait for threads to finish (windows command)
 	WaitForMultipleObjects((DWORD) moveCount-1, threadHandles, TRUE, INFINITE);
 	if (verbose) {
 		printf("] Done!\n");
 		fflush(stdout);
 	}
 
+	// Retrieve best move
+
 	Move bestMove = nodes[0].move;
 	int bestMoveScore = firstReply.score;
 	long unsigned int retVal;
 	int score;
 	for (i=0; i<moveCount-1; i++) {
+		// Retrieve the exit value of the thread, which is the score of the position
 		GetExitCodeThread(threadHandles[i], &retVal);
 		score = (int) retVal;
 
+		// If the score is better than the current best score, update the best move and best score
 		if ( (position->toMove == WHITE && score > bestMoveScore) || (position->toMove == BLACK && score < bestMoveScore) ) {
 			bestMove = nodes[i+1].move;
 			bestMoveScore = score;
 		}
 
+		// Deallocate thread
 		if (CloseHandle(threadHandles[i]) == 0) {
 //			printf("Error on closing thread #%d!\n", i);
 			printf("x");
@@ -2631,13 +2774,16 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 	return (Node) { .move = bestMove, .score = bestMoveScore };
 }
 
+// Same as idabThreadedBestFirst, but calls the hashed version of evaluatePositionThreadFunction
 Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
+	// If the game has ended after this move, return
 	if (hasGameEnded(position)) {
 		int score = endNodeEvaluation(position);
 		writeToHashFile(position, score, 0);
 		return (Node) { .score = score };
 	}
 
+	// If the depth has reached 1, then return the quiescence evaluation of the position
 	if (depth <= 1) {
 		Node quie = quiescenceSearch(position);
 		writeToHashFile(position, quie.score, depth);
@@ -2646,16 +2792,21 @@ Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
 
 	int i;
 	Node nodes[MAX_BRANCHING_FACTOR];
+	// Find list of possible moves, ordered by the move's value using alphaBeta to calculate the score
 	int moveCount = alphaBetaNodes(nodes, position, depth-1);
 
+	// If there is only 1 possible move, return that move
 	if (moveCount == 1) {
 		return nodes[0];
 	}
 
 	Position firstPos;
+	// Simulate first move
 	updatePosition(&firstPos, position, nodes[0].move);
+	// Evaluate score of first move
 	Node firstReply = idabThreaded(&firstPos, depth-1, FALSE);
 
+	// If the first move wins the game, return that move
 	if ( firstReply.score == winScore(position->toMove) ) {
 		if (verbose) {
 				printf("Playing checkmate move: ");
@@ -2679,22 +2830,27 @@ Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
 
 	HANDLE threadHandles[MAX_BRANCHING_FACTOR];
 	ThreadInfo threadInfo[MAX_BRANCHING_FACTOR];
+	// Initialize upper and lower bounds to maximum values
 	int alpha = INT32_MIN;
 	int beta = INT32_MAX;
 
+	// Set upper and lower bounds
 	if (position->toMove == WHITE) {
 		alpha = firstReply.score;
 	} else {
 		beta = firstReply.score;
 	}
 
+	// For all possible moves
 	for (i=0; i<moveCount-1; i++) {
+		// Initiallize thread struct 
 		threadInfo[i].depth = depth-1;
 		updatePosition(&threadInfo[i].pos, position, nodes[i+1].move);
 		threadInfo[i].alpha = &alpha;
 		threadInfo[i].beta = &beta;
 		threadInfo[i].verbose = verbose;
 
+		// Start threaded evaluation of the current move
 		threadHandles[i] = CreateThread(NULL, 0, evaluatePositionThreadFunctionHashed, (LPVOID) &threadInfo[i], 0, NULL);
 
 		if ( threadHandles[i] == NULL ) {
@@ -2704,27 +2860,33 @@ Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
 		}
 	}
 
+	// Wait for threads to finish (windows command)
 	WaitForMultipleObjects((DWORD) moveCount-1, threadHandles, TRUE, INFINITE);
 	if (verbose) {
 		printf("] Done!\n");
 		fflush(stdout);
 	}
 
+	// Retrieve best move
+
 	Move bestMove = nodes[0].move;
 	int bestMoveScore = firstReply.score;
 	long unsigned int retVal;
 	int score;
 	for (i=0; i<moveCount-1; i++) {
+		// Retrieve the exit value of the thread, which is the score of the position
 		GetExitCodeThread(threadHandles[i], &retVal);
 		score = (int) retVal;
 
 		writeToHashFile(&threadInfo[i].pos, score, depth-1);
 
+		// If the score is better than the current best score, update the best move and best score
 		if ( (position->toMove == WHITE && score > bestMoveScore) || (position->toMove == BLACK && score < bestMoveScore) ) {
 			bestMove = nodes[i+1].move;
 			bestMoveScore = score;
 		}
 
+		// Deallocate thread
 		if (CloseHandle(threadHandles[i]) == 0) {
 //			printf("Error on closing thread #%d!\n", i);
 			printf("x");
@@ -2738,17 +2900,22 @@ Node idabThreadedBestFirstHashed(Position * position, int depth, BOOL verbose) {
 
 #endif /* _WIN32 */
 
+// Gets a random move
 Move getRandomMove(Position * position) {
 	Move moves[MAX_BRANCHING_FACTOR];
+	// Find all legal moves
 	int totalMoves = legalMoves(moves, position, position->toMove);
+	// Choose random move and return
 	int chosenMove = rand() % totalMoves;
 	return moves[chosenMove];
 }
 
+// Initial searching for AI move
 Move getAIMove(Game * game, int depth) {
 	printf("--- AI ---\n");
 	fflush(stdout);
 
+	// If it is the first move, chooses initial game move using hardcoded initial moves from a .txt file
 	if ( fromInitial(game) && countBookOccurrences(game) > 0 ) {
 		printf("There are %d available book continuations.\n", countBookOccurrences(game));
 		fflush(stdout);
@@ -2760,6 +2927,7 @@ Move getAIMove(Game * game, int depth) {
 		return bookMove;
 	}
 
+	// Start timer for search
 	time_t startTime, endTime;
 	startTime = time(NULL);
 
@@ -2772,14 +2940,17 @@ Move getAIMove(Game * game, int depth) {
 //	Node node = idabThreadedBestFirst(&game->position, depth, TRUE);
 //	Node node = idabThreadedBestFirstHashed(&game->position, depth, TRUE);
 
+	// Search for best move using current position
 #ifdef _WIN32
 	Node node = idabThreadedBestFirst(&game->position, depth, TRUE);
 #else
 	Node node = iterativeDeepeningAlphaBeta(&game->position, depth, INT32_MIN, INT32_MAX, TRUE);
 #endif
 
+	// End timer for search
 	endTime = time(NULL);
 
+	// Print which move was chosen, and how long it took
 	printf("CHOSEN move: ");
 	printFullMove(node.move, game->position.board);
 	printf(" in %d seconds [%+.2f, %+.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
@@ -2788,72 +2959,103 @@ Move getAIMove(Game * game, int depth) {
 	return node.move;
 }
 
+// Parses a string for a move into a move struct
 Move parseMove(char * move) {
+	// Converts first couple into a location
 	int pos1 = str2index(&move[0]);
+	// Converts second couple into a location
 	int pos2 = str2index(&move[2]);
+	// Generates move from 2 locations and returns
 	return generateMove(pos1, pos2);
 }
 
+// Gets player input for a move, parses into string and returns as move
 Move getPlayerMove() {
 	char input[100];
 	gets( input );
 	return parseMove(input);
 }
 
+// Suggests a move by calling the AI move generator
 Move suggestMove(char fen[], int depth) {
 	Game game;
 	getFenGame(&game, fen);
 	return getAIMove(&game, depth);
 }
 
-// ===== PLAY LOOP (TEXT) ====
+// ==============================================================
+// 		        ========= PLAY LOOP (TEXT) ==========
+// ==============================================================
 
+// Prints out that the user is playing as white, then starts the game
 void playTextWhite(int depth) {
 	printf("Playing as WHITE!\n");
 	fflush(stdout);
 
 	Game game;
+	// Initialize game
 	getInitialGame(&game);
 
+	// While the game has not ended
 	while(TRUE) {
+		// Print the game board
 		printBoard(game.position.board);
+		// Check game end state
         if (hasGameEnded(&game.position))
         	break;
 
+		// Player moves
         makeMove(&game, getPlayerMove());
 
+		// Print the game board
         printBoard(game.position.board);
+		// Check game end state
         if (hasGameEnded(&game.position))
 			break;
 
+		// AI moves
         makeMove(&game, getAIMove(&game, depth));
 	}
+
+	// Prints the outcome of the game
 	printOutcome(&game.position);
 }
 
+// Prints out that the user is playing as black, then starts the game
 void playTextBlack(int depth) {
 	printf("Playing as BLACK!\n");
 	fflush(stdout);
 
 	Game game;
+	// Initialize game
 	getInitialGame(&game);
 
+	// While the game has not ended
 	while(TRUE) {
-        printBoard(game.position.board);
+		// Print the game board
+		printBoard(game.position.board);
+		// Check game end state
         if (hasGameEnded(&game.position))
         	break;
 
-        makeMove(&game, getAIMove(&game, depth));
+		// Player moves
+        makeMove(&game, getPlayerMove());
 
+		// Print the game board
         printBoard(game.position.board);
+		// Check game end state
         if (hasGameEnded(&game.position))
 			break;
 
-        makeMove(&game, getPlayerMove());
+		// AI moves
+        makeMove(&game, getAIMove(&game, depth));
 	}
+
+	// Prints the outcome of the game
 	printOutcome(&game.position);
 }
 
+// Decides how to start the game based on the value of WHITE and BLACK
 void playTextAs(char color, int depth) {
 	if (color == WHITE)
 		playTextWhite(depth);
@@ -2861,6 +3063,7 @@ void playTextAs(char color, int depth) {
 		playTextBlack(depth);
 }
 
+// Randomizes whether or not the first player is black or white, and calls playText As
 void playTextRandomColor(int depth) {
 	char colors[] = {WHITE, BLACK};
 	char color = colors[rand()%2];
