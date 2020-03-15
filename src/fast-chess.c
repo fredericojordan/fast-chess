@@ -2028,33 +2028,46 @@ int positionalBonus(int board[], char color) {
 	return bonus;
 }
 
+// Calculates the difference between the white and black positional bonuses
 int positionalBalance(int board[]) {
 	return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
 }
 
+// Evaluates the state of the game at game end
 int endNodeEvaluation(Position * position) {
+	// If it is checkmate, return the winning score
 	if (isCheckmate(position)) {
 		return winScore(opponent(position->toMove));
 	}
+	// If it is in stalemate or will likely be a stalemate, return 0
 	if (isStalemate(position) || hasInsufficientMaterial(position->board) || isOver75MovesRule(position)) {
 		return 0;
 	}
+	// Else, return 0
 	return 0;
 }
 
+// Evaluates the current state of the game
 int staticEvaluation(Position * position) {
+	// If the game has ended, call endNodeEvaluation
 	if (hasGameEnded(position))
 		return endNodeEvaluation(position);
+	// Else return a combination of the material and positional balances
+	// to figure out who has the upper hand
 	else
 		return materialBalance(position->board) + positionalBalance(position->board);
 }
 
+// Gets sorted list of captures that occur at a given location
 int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
 	Move allCaptures[MAX_BRANCHING_FACTOR], targetCaptures[MAX_ATTACKING_PIECES];
+	// Get list of all legal capture
 	int captureCount = legalCaptures(allCaptures, position, position->toMove);
 	int i, j, targetCount = 0;
 
+	// Fill target captures with all of the captures that occur at the target square
 	for (i=0; i<captureCount; i++) {
+		// If the capture occurs at target square, fill
 		if ( getTo(allCaptures[i]) == targetSquare ) {
 			targetCaptures[targetCount++] = allCaptures[i];
 		}
@@ -2063,22 +2076,29 @@ int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
 	Move captureBuffer[targetCount];
 
 	BOOL sorted;
+	// Insertion sort of targetCount
 	for (i=0; i<targetCount; i++) {
 		sorted = FALSE;
+		// Get integer representation of piece from targetcaptures[i]
 		int piece = position->board[getFrom(targetCaptures[i])] & PIECE_MASK;
 
 		for (j=0; j<i; j++) {
+			// Get integer representation of piece from captures[j]
 			int sortedPiece = position->board[getFrom(captures[j])] & PIECE_MASK;
 
+			// If the piece at target captures is less than the piece at captures
 			if ( PIECE_VALUES[piece] < PIECE_VALUES[sortedPiece] ) {
+				// Move captures[j] over 1 spot
 				sorted = TRUE;
 				memcpy(captureBuffer, &captures[j], (i-j)*sizeof(Move));
 				memcpy(&captures[j+1], captureBuffer, (i-j)*sizeof(Move));
+				// Move targetCaptures[i] to captures[j]
 				captures[j] = targetCaptures[i];
 				break;
 			}
 		}
 
+		// Else, insert at end of iteration
 		if ( sorted == FALSE ) {
 			captures[i] = targetCaptures[i];
 		}
@@ -2087,16 +2107,23 @@ int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
 	return targetCount;
 }
 
+// Evaluates the long-term cost of taking a piece
+// Used for deciding if a trade is bad in the long term
 int staticExchangeEvaluation(Position * position, int targetSquare) {
 	Move captures[MAX_ATTACKING_PIECES];
+	// Get sorted list of possible captures
 	int attackCount = getCaptureSequence(captures, position, targetSquare);
 	int value = 0;
 
+	// If the amount of possible captures is greater than 0
 	if ( attackCount > 0 ) {
 		Position newPosition;
+		// Simulate move
 		updatePosition(&newPosition, position, captures[0]);
+		// Get value of the captured piece
 		int capturedPiece = position->board[targetSquare] & PIECE_MASK;
 		int pieceValue = PIECE_VALUES[capturedPiece];
+		// Get overall value by subtracting the capture evaluation of the updated position from the value of the capture
 		value = pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
 	}
 
@@ -2125,7 +2152,7 @@ int quiescenceEvaluation(Position * position) {
 		int i, bestScore = staticScore;
 
 		for (i=0; i<captureCount; i++) {
-			// If the current position is a poor, break the loop
+			// If the current position is a poor exchange, break the loop
 			if (staticExchangeEvaluation(position, getTo(captures[i])) <= 0)
 				break;
 
