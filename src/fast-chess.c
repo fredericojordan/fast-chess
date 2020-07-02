@@ -1003,27 +1003,27 @@ Bitboard getOccupiedSquares(Board * board) {
 //
 //    return pieces;
 //}
-//
-//Bitboard fileFilter(Bitboard positions) {
-//    Bitboard filter = 0;
-//    int i;
-//
-//    for (i=0; i<8; i++)
-//        if (positions&FILES_BB[i])
-//            filter |= FILES_BB[i];
-//    return filter;
-//}
-//
-//Bitboard rankFilter(Bitboard positions) {
-//    Bitboard filter = 0;
-//    int i;
-//
-//    for (i=0; i<8; i++)
-//        if (positions&RANKS_BB[i])
-//            filter |= RANKS_BB[i];
-//    return filter;
-//}
-//
+
+Bitboard fileFilter(Bitboard positions) {
+    Bitboard filter = 0;
+    int i;
+
+    for (i=0; i<8; i++)
+        if (positions&FILES_BB[i])
+            filter |= FILES_BB[i];
+    return filter;
+}
+
+Bitboard rankFilter(Bitboard positions) {
+    Bitboard filter = 0;
+    int i;
+
+    for (i=0; i<8; i++)
+        if (positions&RANKS_BB[i])
+            filter |= RANKS_BB[i];
+    return filter;
+}
+
 //char countPieces(Bitboard bitboard) {
 //    int i, count=0;
 //    for (i=0; i<NUM_SQUARES; i++) {
@@ -1032,7 +1032,7 @@ Bitboard getOccupiedSquares(Board * board) {
 //    }
 //    return count;
 //}
-//
+
 // ======= DIRECTIONS ========
 
 Bitboard east(Bitboard bb) {
@@ -1197,64 +1197,67 @@ char getEpSquare(int leaving) {
     return -1;
 }
 
-//BOOL isDoubledPawn(Bitboard position, Board * board) {
-//    char pieceColor = board[bb2index(position)]&COLOR_MASK;
-//
-//    if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&fileFilter(position) ) > 1)
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//BOOL isIsolatedPawn(Bitboard position, Board * board) {
-//    Bitboard sideFiles = fileFilter(east(position) | west(position));
-//    char pieceColor = board[bb2index(position)]&COLOR_MASK;
-//
-//    if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&sideFiles ) == 0)
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//BOOL isBackwardsPawn(Bitboard position, Board * board) {
-//    Bitboard squaresFilter = east(position) | west(position);
-//    char pieceColor = board[bb2index(position)]&COLOR_MASK;
-//
-//    if ( pieceColor == BLACK ) {
-//        squaresFilter |= northRay(squaresFilter);
-//    } else {
-//        squaresFilter |= southRay(squaresFilter);
-//    }
-//
-//    if (countPieces( getPawns(board)&getColoredPieces(board, pieceColor)&squaresFilter ) == 0)
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//BOOL isPassedPawn(Bitboard position, Board * board) {
-//    Bitboard squaresFilter = 0;
-//    char pieceColor = board[bb2index(position)]&COLOR_MASK;
-//
-//    if ( pieceColor == BLACK ) {
-//        squaresFilter |= southRay(east(position)) | southRay(west(position)) | southRay(position);
-//    } else {
-//        squaresFilter |= northRay(east(position)) | northRay(west(position)) | northRay(position);
-//    }
-//
-//    if (countPieces( getPawns(board)&getColoredPieces(board, opponent(pieceColor))&squaresFilter ) == 0)
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//BOOL isOpenFile(Bitboard position, Board * board) {
-//    if (countPieces( getPawns(board)&fileFilter(position) ) == 0)
-//        return TRUE;
-//    return FALSE;
-//}
-//
-//BOOL isSemiOpenFile(Bitboard position, Board * board) {
-//    if (countPieces( getPawns(board)&fileFilter(position) ) == 1)
-//        return TRUE;
-//    return FALSE;
-//}
+BOOL isDoubledPawn(Bitboard position, Board * board, char color) {
+    if (color == WHITE) {
+        if (countBits(board->whitePawns & fileFilter(position)) > 1) return TRUE;
+    } else {
+        if (countBits(board->blackPawns & fileFilter(position)) > 1) return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOL isIsolatedPawn(Bitboard position, Board * board, char color) {
+    Bitboard sideFiles = fileFilter(east(position) | west(position));
+
+    if (color == WHITE) {
+        if (countBits(board->whitePawns & sideFiles) == 0) return TRUE;
+    } else {
+        if (countBits(board->blackPawns & sideFiles) == 0) return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOL isBackwardsPawn(Bitboard position, Board * board, char color) {
+    Bitboard squaresFilter = east(position) | west(position);
+
+    if ( color == BLACK ) {
+        squaresFilter |= northRay(squaresFilter);
+        if (countBits( board->blackPawns & squaresFilter ) == 0) return TRUE;
+    } else {
+        squaresFilter |= southRay(squaresFilter);
+        if (countBits( board->whitePawns & squaresFilter ) == 0) return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOL isPassedPawn(Bitboard position, Board * board, char color) {
+    Bitboard squaresFilter = 0;
+
+    if ( color == BLACK ) {
+        squaresFilter |= southRay(east(position)) | southRay(west(position)) | southRay(position);
+        if (countBits( board->whitePawns & squaresFilter ) == 0) return TRUE;
+    } else {
+        squaresFilter |= northRay(east(position)) | northRay(west(position)) | northRay(position);
+        if (countBits( board->blackPawns & squaresFilter ) == 0) return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOL isOpenFile(Bitboard position, Board * board) {
+    if (countBits( getPawns(board)&fileFilter(position) ) == 0)
+        return TRUE;
+    return FALSE;
+}
+
+BOOL isSemiOpenFile(Bitboard position, Board * board) {
+    if (countBits( getPawns(board)&fileFilter(position) ) == 1)
+        return TRUE;
+    return FALSE;
+}
 
 // ========== KNIGHT =========
 
@@ -1760,7 +1763,7 @@ void makeMove(Game * game, Move move) {
     game->moveList[game->moveListLen-1] = move;
 
     // ===== POSITION HISTORY =====
-    toFen(game->positionHistory[game->moveListLen], &game->position);
+    // toFen(game->positionHistory[game->moveListLen], &game->position);
 }
 
 //void unmakeMove(Game * game) {
@@ -1916,27 +1919,27 @@ int legalMovesCount(Position * position, char color) {
     return legalCount;
 }
 
-//int staticOrderLegalMoves(Move * orderedLegalMoves, Position * position, char color) {
-//    Move moves[MAX_BRANCHING_FACTOR];
-//    int legalCount = legalMoves(moves, position, color);
-//
-//    Position newPosition;
-//    Node nodes[legalCount], orderedNodes[legalCount];
-//
-//    int i;
-//    for (i=0; i<legalCount; i++) {
-//        updatePosition(&newPosition, position, moves[i]);
-//        nodes[i] = (Node) { .move = moves[i], .score = staticEvaluation(&newPosition) };
-//    }
-//
-//    sortNodes(orderedNodes, nodes, legalCount, color);
-//
-//    for (i=0; i<legalCount; i++) {
-//        orderedLegalMoves[i] = orderedNodes[i].move;
-//    }
-//
-//    return legalCount;
-//}
+int staticOrderLegalMoves(Move * orderedLegalMoves, Position * position, char color) {
+    Move moves[MAX_BRANCHING_FACTOR];
+    int legalCount = legalMoves(moves, position, color);
+
+    Position newPosition;
+    Node nodes[legalCount], orderedNodes[legalCount];
+
+    int i;
+    for (i=0; i<legalCount; i++) {
+        updatePosition(&newPosition, position, moves[i]);
+        nodes[i] = (Node) { .move = moves[i], .score = staticEvaluation(&newPosition) };
+    }
+
+    sortNodes(orderedNodes, nodes, legalCount, color);
+
+    for (i=0; i<legalCount; i++) {
+        orderedLegalMoves[i] = orderedNodes[i].move;
+    }
+
+    return legalCount;
+}
 
 int legalCaptures(Move * legalCaptures, Position * position, char color) {
     int i, captureCount = 0;
@@ -2048,97 +2051,88 @@ int materialBalance(Board * board) {
     return materialSum(board, WHITE) - materialSum(board, BLACK);
 }
 
-//int positionalBonus(Board * board, char color) {
-//    int bonus = 0;
-//
-//    int i;
-//    for (i=0; i<NUM_SQUARES; i++) {
-//        int piece = board[i];
-//
-//        if (piece != EMPTY && (piece&COLOR_MASK) == color) {
-//            int pieceType = piece&PIECE_MASK;
-//
-//            switch(pieceType) {
-//            case PAWN:
-//                if (color == WHITE) {
-//                    bonus += PAWN_BONUS[i];
-//                } else {
-//                    bonus += PAWN_BONUS[FLIP_VERTICAL[i]];
-//                }
-//
-//                if (isDoubledPawn(index2bb(i), board)) {
-//                    bonus -= DOUBLED_PAWN_PENALTY/2;
-//                }
-//                if (isPassedPawn(index2bb(i), board)) {
-//                    bonus += PASSED_PAWN_BONUS;
-//                }
-//
-//                if (isIsolatedPawn(index2bb(i), board)) {
-//                    bonus -= ISOLATED_PAWN_PENALTY;
-//                } else if (isBackwardsPawn(index2bb(i), board)) {
-//                    bonus -= BACKWARDS_PAWN_PENALTY;
-//                }
-//
-//                break;
-//
-//            case KNIGHT:
-//                if (color == WHITE) {
-//                    bonus += KNIGHT_BONUS[i];
-//                } else {
-//                    bonus += KNIGHT_BONUS[FLIP_VERTICAL[i]];
-//                }
-//                break;
-//
-//            case BISHOP:
-//                if (color == WHITE) {
-//                    bonus += BISHOP_BONUS[i];
-//                } else {
-//                    bonus += BISHOP_BONUS[FLIP_VERTICAL[i]];
-//                }
-//                break;
-//
-//            case ROOK:
-//                if (isOpenFile(index2bb(i), board)) {
-//                    bonus += ROOK_OPEN_FILE_BONUS;
-//                } else if (isSemiOpenFile(index2bb(i), board)) {
-//                    bonus += ROOK_SEMI_OPEN_FILE_BONUS;
-//                }
-//
-//                if (color == WHITE) {
-//                    if (index2bb(i) & RANK_7) {
-//                        bonus += ROOK_ON_SEVENTH_BONUS;
-//                    }
-//                } else {
-//                    if (index2bb(i) & RANK_2) {
-//                        bonus += ROOK_ON_SEVENTH_BONUS;
-//                    }
-//                }
-//                break;
-//
-//            case KING:
-//                if (isEndgame(board)) {
-//                    if (color == WHITE) {
-//                        bonus += KING_ENDGAME_BONUS[i];
-//                    } else {
-//                        bonus += KING_ENDGAME_BONUS[FLIP_VERTICAL[i]];
-//                    }
-//                } else {
-//                    if (color == WHITE) {
-//                        bonus += KING_BONUS[i];
-//                    } else {
-//                        bonus += KING_BONUS[FLIP_VERTICAL[i]];
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    return bonus;
-//}
-//
-//int positionalBalance(Board * board) {
-//    return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
-//}
+int positionalBonus(Board * board, char color) {
+    int bonus = 0;
+    Bitboard positionBB;
+    Bitboard coloredPieces = getColoredPieces(board, color);
+
+    int i;
+    for (i=0; i<NUM_SQUARES; i++) {
+
+        positionBB = index2bb(i);
+
+        if (positionBB & coloredPieces) {
+            if ( (positionBB & board->whitePawns) | (positionBB & board->blackPawns) ) {
+                if (color == WHITE) {
+                    bonus += PAWN_BONUS[i];
+                } else {
+                    bonus += PAWN_BONUS[FLIP_VERTICAL[i]];
+                }
+
+                if (isDoubledPawn(positionBB, board, color)) {
+                    bonus -= DOUBLED_PAWN_PENALTY/2;
+                }
+                if (isPassedPawn(positionBB, board, color)) {
+                    bonus += PASSED_PAWN_BONUS;
+                }
+
+                if (isIsolatedPawn(positionBB, board, color)) {
+                    bonus -= ISOLATED_PAWN_PENALTY;
+                } else if (isBackwardsPawn(positionBB, board, color)) {
+                    bonus -= BACKWARDS_PAWN_PENALTY;
+                }
+            } else if ( (positionBB & board->whiteKnights) | (positionBB & board->blackKnights)) {
+                if (color == WHITE) {
+                    bonus += KNIGHT_BONUS[i];
+                } else {
+                    bonus += KNIGHT_BONUS[FLIP_VERTICAL[i]];
+                }
+            } else if ( (positionBB & board->whiteBishops) | (positionBB & board->blackBishops)) {
+                if (color == WHITE) {
+                    bonus += BISHOP_BONUS[i];
+                } else {
+                    bonus += BISHOP_BONUS[FLIP_VERTICAL[i]];
+                }
+            } else if ( (positionBB & board->whiteRooks) | (positionBB & board->blackRooks)) {
+                if (isOpenFile(positionBB, board)) {
+                    bonus += ROOK_OPEN_FILE_BONUS;
+                } else if (isSemiOpenFile(positionBB, board)) {
+                    bonus += ROOK_SEMI_OPEN_FILE_BONUS;
+                }
+
+                if (color == WHITE) {
+                    if (positionBB & RANK_7) {
+                        bonus += ROOK_ON_SEVENTH_BONUS;
+                    }
+                } else {
+                    if (positionBB & RANK_2) {
+                        bonus += ROOK_ON_SEVENTH_BONUS;
+                    }
+                }
+            } else if ( (positionBB & board->whiteKing) | (positionBB & board->blackKing)) {
+                if (isEndgame(board)) {
+                    if (color == WHITE) {
+                        bonus += KING_ENDGAME_BONUS[i];
+                    } else {
+                        bonus += KING_ENDGAME_BONUS[FLIP_VERTICAL[i]];
+                    }
+                } else {
+                    if (color == WHITE) {
+                        bonus += KING_BONUS[i];
+                    } else {
+                        bonus += KING_BONUS[FLIP_VERTICAL[i]];
+                    }
+                }
+            }
+        }
+    }
+
+    return bonus;
+}
+
+int positionalBalance(Board * board) {
+    return positionalBonus(board, WHITE) - positionalBonus(board, BLACK);
+}
 
 int endNodeEvaluation(Position * position) {
     if (isCheckmate(position)) {
@@ -2157,59 +2151,68 @@ int staticEvaluation(Position * position) {
         return materialBalance(&(position->board)) + positionalBalance(&(position->board));
 }
 
-//int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
-//    Move allCaptures[MAX_BRANCHING_FACTOR], targetCaptures[MAX_ATTACKING_PIECES];
-//    int captureCount = legalCaptures(allCaptures, position, position->toMove);
-//    int i, j, targetCount = 0;
-//
-//    for (i=0; i<captureCount; i++) {
-//        if ( getTo(allCaptures[i]) == targetSquare ) {
-//            targetCaptures[targetCount++] = allCaptures[i];
-//        }
-//    }
-//
-//    Move captureBuffer[targetCount];
-//
-//    BOOL sorted;
-//    for (i=0; i<targetCount; i++) {
-//        sorted = FALSE;
-//        int piece = position->board[getFrom(targetCaptures[i])] & PIECE_MASK;
-//
-//        for (j=0; j<i; j++) {
-//            int sortedPiece = position->board[getFrom(captures[j])] & PIECE_MASK;
-//
-//            if ( PIECE_VALUES[piece] < PIECE_VALUES[sortedPiece] ) {
-//                sorted = TRUE;
-//                memcpy(captureBuffer, &captures[j], (i-j)*sizeof(Move));
-//                memcpy(&captures[j+1], captureBuffer, (i-j)*sizeof(Move));
-//                captures[j] = targetCaptures[i];
-//                break;
-//            }
-//        }
-//
-//        if ( sorted == FALSE ) {
-//            captures[i] = targetCaptures[i];
-//        }
-//    }
-//
-//    return targetCount;
-//}
-//
-//int staticExchangeEvaluation(Position * position, int targetSquare) {
-//    Move captures[MAX_ATTACKING_PIECES];
-//    int attackCount = getCaptureSequence(captures, position, targetSquare);
-//    int value = 0;
-//
-//    if ( attackCount > 0 ) {
-//        Position newPosition;
-//        updatePosition(&newPosition, position, captures[0]);
-//        int capturedPiece = position->board[targetSquare] & PIECE_MASK;
-//        int pieceValue = PIECE_VALUES[capturedPiece];
-//        value = pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
-//    }
-//
-//    return value>0?value:0;
-//}
+int getPieceValue(Bitboard position, Board * board) {
+    if ( (position & board->whitePawns)   | (position & board->blackPawns) )   return PIECE_VALUES[PAWN];
+    if ( (position & board->whiteKnights) | (position & board->blackKnights) ) return PIECE_VALUES[KNIGHT];
+    if ( (position & board->whiteBishops) | (position & board->blackBishops) ) return PIECE_VALUES[BISHOP];
+    if ( (position & board->whiteRooks)   | (position & board->blackRooks) )   return PIECE_VALUES[ROOK];
+    if ( (position & board->whiteQueens)  | (position & board->blackQueens) )  return PIECE_VALUES[QUEEN];
+    if ( (position & board->whiteKing)    | (position & board->blackKing) )    return PIECE_VALUES[KING];
+    return 0;
+}
+
+int getCaptureSequence(Move * captures, Position * position, int targetSquare) {
+    Move allCaptures[MAX_BRANCHING_FACTOR], targetCaptures[MAX_ATTACKING_PIECES];
+    int captureCount = legalCaptures(allCaptures, position, position->toMove);
+    int i, j, targetCount = 0;
+
+    for (i=0; i<captureCount; i++) {
+        if ( getTo(allCaptures[i]) == targetSquare ) {
+            targetCaptures[targetCount++] = allCaptures[i];
+        }
+    }
+
+    Move captureBuffer[targetCount];
+
+    BOOL sorted;
+    for (i=0; i<targetCount; i++) {
+        sorted = FALSE;
+        int pieceValue = getPieceValue(index2bb(getFrom(targetCaptures[i])), &(position->board));
+
+        for (j=0; j<i; j++) {
+            int sortedPieceValue = getPieceValue(index2bb(getFrom(captures[j])), &(position->board));
+
+            if ( pieceValue < sortedPieceValue ) {
+                sorted = TRUE;
+                memcpy(captureBuffer, &captures[j], (i-j)*sizeof(Move));
+                memcpy(&captures[j+1], captureBuffer, (i-j)*sizeof(Move));
+                captures[j] = targetCaptures[i];
+                break;
+            }
+        }
+
+        if ( sorted == FALSE ) {
+            captures[i] = targetCaptures[i];
+        }
+    }
+
+    return targetCount;
+}
+
+int staticExchangeEvaluation(Position * position, int targetSquare) {
+    Move captures[MAX_ATTACKING_PIECES];
+    int attackCount = getCaptureSequence(captures, position, targetSquare);
+    int value = 0;
+
+    if ( attackCount > 0 ) {
+        Position newPosition;
+        updatePosition(&newPosition, position, captures[0]);
+        int pieceValue = getPieceValue(index2bb(targetSquare), &(position->board));
+        value = pieceValue - staticExchangeEvaluation(&newPosition, targetSquare);
+    }
+
+    return value>0?value:0;
+}
 
 int quiescenceEvaluation(Position * position) {
     int staticScore = staticEvaluation(position);
@@ -2243,34 +2246,34 @@ int quiescenceEvaluation(Position * position) {
     }
 }
 
-//// ========= SEARCH ==========
-//
-//Node staticSearch(Position * position) {
-//    int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
-//    Move bestMove = 0;
-//
-//    Move moves[MAX_BRANCHING_FACTOR];
-//    int moveCount = legalMoves(moves, position, position->toMove);
-//
-//    Position newPosition;
-//    int i;
-//    for (i=0; i<moveCount; i++) {
-//        updatePosition(&newPosition, position, moves[i]);
-//        int score = staticEvaluation(&newPosition);
-//
-//        if (score == winScore(position->toMove)) {
-//            return (Node) { .move = moves[i], .score = score };
-//        }
-//
-//        if ( (position->toMove == WHITE && score > bestScore) ||
-//             (position->toMove == BLACK && score < bestScore) ) {
-//            bestScore = score;
-//            bestMove = moves[i];
-//        }
-//    }
-//
-//    return (Node) { .move = bestMove, .score = bestScore };
-//}
+// ========= SEARCH ==========
+
+Node staticSearch(Position * position) {
+    int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;
+    Move bestMove = 0;
+
+    Move moves[MAX_BRANCHING_FACTOR];
+    int moveCount = legalMoves(moves, position, position->toMove);
+
+    Position newPosition;
+    int i;
+    for (i=0; i<moveCount; i++) {
+        updatePosition(&newPosition, position, moves[i]);
+        int score = staticEvaluation(&newPosition);
+
+        if (score == winScore(position->toMove)) {
+            return (Node) { .move = moves[i], .score = score };
+        }
+
+        if ( (position->toMove == WHITE && score > bestScore) ||
+             (position->toMove == BLACK && score < bestScore) ) {
+            bestScore = score;
+            bestMove = moves[i];
+        }
+    }
+
+    return (Node) { .move = bestMove, .score = bestScore };
+}
 
 Node quiescenceSearch(Position * position) {
     int bestScore = position->toMove==WHITE?INT32_MIN:INT32_MAX;

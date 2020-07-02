@@ -245,10 +245,10 @@ Bitboard pawnCaptures(Bitboard moving_piece, Position * position, char color);
 Bitboard pawnMoves(Bitboard moving_piece, Position * position, char color);
 BOOL isDoublePush(int leaving, int arriving);
 char getEpSquare(int leaving);
-BOOL isDoubledPawn(Bitboard position, Board * board);
-BOOL isIsolatedPawn(Bitboard position, Board * board);
-BOOL isBackwardsPawn(Bitboard position, Board * board);
-BOOL isPassedPawn(Bitboard position, Board * board);
+BOOL isDoubledPawn(Bitboard position, Board * board, char color);
+BOOL isIsolatedPawn(Bitboard position, Board * board, char color);
+BOOL isBackwardsPawn(Bitboard position, Board * board, char color);
+BOOL isPassedPawn(Bitboard position, Board * board, char color);
 BOOL isOpenFile(Bitboard position, Board * board);
 BOOL isSemiOpenFile(Bitboard position, Board * board);
 
