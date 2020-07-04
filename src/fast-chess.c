@@ -1808,7 +1808,7 @@ Bitboard getMoves(Bitboard movingPiece, Position * position, char color) {
 
 int pseudoLegalMoves(Move * moves, Position * position, char color) {
     int leavingSquare, arrivingSquare, moveCount = 0;
-    int leavingBB = 1;
+    Bitboard leavingBB = 1;
     Bitboard attackers = getColoredPieces(&(position->board), color);
 
     for (leavingSquare=0; leavingSquare<NUM_SQUARES; leavingSquare++) {
@@ -1830,6 +1830,7 @@ int pseudoLegalMoves(Move * moves, Position * position, char color) {
                 }
             }
         }
+        leavingBB <<= 1;
     }
 
     return moveCount;
