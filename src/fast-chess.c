@@ -744,7 +744,7 @@ void printMove(Move move) {
 }
 
 void printFullMove(Move move, Board * board) {
-    int leavingBB = index2bb(getFrom(move));
+    Bitboard leavingBB = index2bb(getFrom(move));
     printf("%s from ", bb2str(leavingBB, board));
     printMove(move);
 }
