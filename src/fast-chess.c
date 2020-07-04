@@ -2897,7 +2897,6 @@ Move getAIMove(Game * game, int depth) {
     printf(" in %d seconds [%+.2f, %+.2f]\n", (int) (endTime-startTime), staticEvaluation(&game->position)/100.0, node.score/100.0);
     fflush(stdout);
 
-    exit(0); // FREDEBUG
     return node.move;
 }
 
@@ -2987,17 +2986,13 @@ int main(int argc, char *argv[]) {
     srand(time(NULL));
 
 //    playTextRandomColor(DEFAULT_AI_DEPTH);
-    playTextBlack(DEFAULT_AI_DEPTH);
 
-    printf("Testing!\n");
-    fflush(stdout);
+    Game game;
+    getFenGame(&game, "3r3r/1R3p1p/p4Qp1/1p6/1Pq5/k4PPB/2P4P/1K6 w k - 0 31");
 
-//    Game game;
-//    getInitialGame(&game);
-//    getFenGame(&game, "3r3r/1R3p1p/p4Qp1/1p6/1Pq5/k4PPB/2P4P/1K6 w k - 0 31");
-//    printBoard(&(game.position.board));
-
-    exit(0);
+    printBoard(&(game.position.board));
+    printLegalMoves(&(game.position));
+    getAIMove(&game, DEFAULT_AI_DEPTH);
 
     return EXIT_SUCCESS;
 }
