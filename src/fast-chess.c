@@ -1623,40 +1623,40 @@ void movePiece(Board * board, Move move) {
 
 
     if (leaving & board->whiteKing) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->whiteKing = arriving;
     } else if (leaving & board->whiteQueens) {
-        clearPositions(board, arriving);
-        board->whiteKing = board->whiteKing | arriving;
+        clearPositions(board, arriving | leaving);
+        board->whiteQueens = board->whiteQueens | arriving;
     } else if (leaving & board->whiteRooks) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->whiteRooks = board->whiteRooks | arriving;
     } else if (leaving & board->whiteKnights) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->whiteKnights = board->whiteKnights | arriving;
     } else if (leaving & board->whiteBishops) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->whiteBishops = board->whiteBishops | arriving;
     } else if (leaving & board->whitePawns) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->whitePawns = board->whitePawns | arriving;
     } else if (leaving & board->blackKing) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackKing = arriving;
     } else if (leaving & board->blackQueens) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackQueens = board->blackQueens | arriving;
     } else if (leaving & board->blackRooks) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackRooks = board->blackRooks | arriving;
     } else if (leaving & board->blackKnights) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackKnights = board->blackKnights | arriving;
     } else if (leaving & board->blackBishops) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackBishops = board->blackBishops | arriving;
     } else if (leaving & board->blackPawns) {
-        clearPositions(board, arriving);
+        clearPositions(board, arriving | leaving);
         board->blackPawns = board->blackPawns | arriving;
     }
 }
