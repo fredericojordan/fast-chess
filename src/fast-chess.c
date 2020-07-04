@@ -260,36 +260,36 @@ int loadFen(Position * position, char fen[]) {
     return 1+nextFenField-fen;
 }
 
-//int toFen(char * fen, Position * position) {
-//    int charCount = toMinFen(fen, position);
-//    fen[charCount-1] = ' ';
-//
-//    // ===== HALF MOVE CLOCK =====
-//    snprintf(&fen[charCount++], 2, "%d", position->halfmoveClock);
-//    if (position->halfmoveClock >= 10) {
-//        charCount++;
-//        if (position->halfmoveClock >= 100) {
-//            charCount++;
-//        }
-//    }
-//    fen[charCount++] = ' ';
-//
-//    // ===== FULL MOVE NUMBER =====
-//    snprintf(&fen[charCount++], 2, "%d", position->fullmoveNumber);
-//    if (position->fullmoveNumber >= 10) {
-//        charCount++;
-//        if (position->fullmoveNumber >= 100) {
-//            charCount++;
-//        }
-//    }
-//    fen[charCount++] = '\0';
-//
-//    return charCount;
-//}
-//
-//int toMinFen(char * fen, Position * position) {
-//    int charCount = 0;
-//
+int toFen(char * fen, Position * position) {
+    int charCount = toMinFen(fen, position);
+    fen[charCount-1] = ' ';
+
+    // ===== HALF MOVE CLOCK =====
+    snprintf(&fen[charCount++], 2, "%d", position->halfmoveClock);
+    if (position->halfmoveClock >= 10) {
+        charCount++;
+        if (position->halfmoveClock >= 100) {
+            charCount++;
+        }
+    }
+    fen[charCount++] = ' ';
+
+    // ===== FULL MOVE NUMBER =====
+    snprintf(&fen[charCount++], 2, "%d", position->fullmoveNumber);
+    if (position->fullmoveNumber >= 10) {
+        charCount++;
+        if (position->fullmoveNumber >= 100) {
+            charCount++;
+        }
+    }
+    fen[charCount++] = '\0';
+
+    return charCount;
+}
+
+int toMinFen(char * fen, Position * position) {
+    int charCount = 0;
+
 //    // ===== BOARD =====
 //    int rank = 7;
 //    int file = 0;
@@ -320,48 +320,48 @@ int loadFen(Position * position, char fen[]) {
 //        }
 //    }
 //    fen[charCount-1] = ' ';
-//
-//
-//    // ===== TO MOVE =====
-//    if (position->toMove == BLACK) {
-//        fen[charCount++] = 'b';
-//    } else {
-//        fen[charCount++] = 'w';
-//    }
-//    fen[charCount++] = ' ';
-//
-//    // ===== CASTLING RIGHTS =====
-//    if (position->castlingRights == 0) {
-//            fen[charCount++] = '-';
-//    } else {
-//        if (position->castlingRights & CASTLE_KINGSIDE_WHITE) {
-//            fen[charCount++] = 'K';
-//        }
-//        if (position->castlingRights & CASTLE_QUEENSIDE_WHITE) {
-//            fen[charCount++] = 'Q';
-//        }
-//        if (position->castlingRights & CASTLE_KINGSIDE_BLACK) {
-//            fen[charCount++] = 'k';
-//        }
-//        if (position->castlingRights & CASTLE_QUEENSIDE_BLACK) {
-//            fen[charCount++] = 'q';
-//        }
-//    }
-//    fen[charCount++] = ' ';
-//
-//    // ===== EN PASSANT =====
-//    if (position->epSquare == -1) {
-//            fen[charCount++] = '-';
-//    } else {
-//        fen[charCount++] = getFile(position->epSquare);
-//        fen[charCount++] = getRank(position->epSquare);
-//    }
-//    fen[charCount++] = '\0';
-//
-//    return charCount;
-//}
-//
-//// ========= UTILITY =========
+
+
+    // ===== TO MOVE =====
+    if (position->toMove == BLACK) {
+        fen[charCount++] = 'b';
+    } else {
+        fen[charCount++] = 'w';
+    }
+    fen[charCount++] = ' ';
+
+    // ===== CASTLING RIGHTS =====
+    if (position->castlingRights == 0) {
+            fen[charCount++] = '-';
+    } else {
+        if (position->castlingRights & CASTLE_KINGSIDE_WHITE) {
+            fen[charCount++] = 'K';
+        }
+        if (position->castlingRights & CASTLE_QUEENSIDE_WHITE) {
+            fen[charCount++] = 'Q';
+        }
+        if (position->castlingRights & CASTLE_KINGSIDE_BLACK) {
+            fen[charCount++] = 'k';
+        }
+        if (position->castlingRights & CASTLE_QUEENSIDE_BLACK) {
+            fen[charCount++] = 'q';
+        }
+    }
+    fen[charCount++] = ' ';
+
+    // ===== EN PASSANT =====
+    if (position->epSquare == -1) {
+            fen[charCount++] = '-';
+    } else {
+        fen[charCount++] = getFile(position->epSquare);
+        fen[charCount++] = getRank(position->epSquare);
+    }
+    fen[charCount++] = '\0';
+
+    return charCount;
+}
+
+// ========= UTILITY =========
 
 BOOL fromInitial(Game * game) {
     if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0 )
@@ -427,123 +427,123 @@ int bb2index(Bitboard bb) {
     return -1;
 }
 
-//char * movelist2str(Game * game) {
-//    char * movestr = NULL;
-//
-//    if (game->moveListLen == 0) {
-//        movestr = (char*) malloc(sizeof(char));
-//        movestr[0] = 0;
-//        return movestr;
-//    }
-//
-//    movestr = (char*) malloc (5*game->moveListLen);
-//
-//    int i;
-//    for (i=0;i<game->moveListLen;i++) {
-//        int leaving = getFrom(game->moveList[i]);
-//        int arriving = getTo(game->moveList[i]);
-//        movestr[5*i] = getFile(leaving);
-//        movestr[5*i+1] = getRank(leaving);
-//        movestr[5*i+2] = getFile(arriving);
-//        movestr[5*i+3] = getRank(arriving);
-//        movestr[5*i+4] = ' ';
-//    }
-//
-//    movestr[5*game->moveListLen-1] = 0;
-//
-//    return movestr;
-//}
-//
-//Move getLastMove(Game * game) {
-//    if (game->moveListLen == 0)
-//        return 0;
-//    else
-//        return game->moveList[game->moveListLen-1];
-//}
-//
-//BOOL startsWith(const char *str, const char *pre) {
-//    size_t lenpre = strlen(pre), lenstr = strlen(str);
-//
-//    if (lenpre > lenstr)
-//        return FALSE;
-//
-//    return strncmp(pre, str, lenpre) == 0 ? TRUE : FALSE;
-//}
-//
-//int countBookOccurrences(Game * game) {
-//    FILE * fp = fopen("book.txt", "r");
-//
-//    if (fp == NULL)
-//        return 0;
-//
-//    char * moveList = movelist2str(game);
-//    char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
-//    int charPos = 0, occurrences = 0;
-//
-//    while (TRUE) {
-//        char ch = getc(fp);
-//        line[charPos++] = ch;
-//
-//        if ( ch == '\n' || ch == EOF ) {
-//            line[charPos-1] = '\0';
-//
-//            if (startsWith(line, moveList) && strlen(line) > strlen(moveList)) {
-//                occurrences++;
-//            }
-//
-//            if ( ch == EOF )
-//                break;
-//
-//            charPos = 0;
-//        }
-//    }
-//
-//    fclose(fp);
-//    free(line);
-//    free(moveList);
-//
-//    return occurrences;
-//}
-//
-//Move getBookMove(Game * game) {
-//    Move move = 0;
-//    int moveNum = rand() % countBookOccurrences(game);
-//
-//    FILE * fp = fopen("book.txt", "r");
-//
-//    if (fp == NULL)
-//        return 0;
-//
-//    char * moveList = movelist2str(game);
-//    char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
-//    int charPos = 0, occurrences = 0;
-//
-//    while (TRUE) {
-//        char ch = getc(fp);
-//        line[charPos++] = ch;
-//
-//        if ( ch == '\n' ) {
-//            line[charPos] = '\0';
-//
-//            if (startsWith(line, moveList)) {
-//                if ( occurrences == moveNum ) {
-//                    int ind = game->moveListLen*5;
-//                    move = parseMove(&line[ind]);
-//                    break;
-//                }
-//                occurrences++;
-//            }
-//
-//            charPos = 0;
-//        }
-//    }
-//
-//    fclose(fp);
-//    free(line);
-//    free(moveList);
-//
-//    return move;
-//}
+char * movelist2str(Game * game) {
+    char * movestr = NULL;
+
+    if (game->moveListLen == 0) {
+        movestr = (char*) malloc(sizeof(char));
+        movestr[0] = 0;
+        return movestr;
+    }
+
+    movestr = (char*) malloc (5*game->moveListLen);
+
+    int i;
+    for (i=0;i<game->moveListLen;i++) {
+        int leaving = getFrom(game->moveList[i]);
+        int arriving = getTo(game->moveList[i]);
+        movestr[5*i] = getFile(leaving);
+        movestr[5*i+1] = getRank(leaving);
+        movestr[5*i+2] = getFile(arriving);
+        movestr[5*i+3] = getRank(arriving);
+        movestr[5*i+4] = ' ';
+    }
+
+    movestr[5*game->moveListLen-1] = 0;
+
+    return movestr;
+}
+
+Move getLastMove(Game * game) {
+    if (game->moveListLen == 0)
+        return 0;
+    else
+        return game->moveList[game->moveListLen-1];
+}
+
+BOOL startsWith(const char *str, const char *pre) {
+    size_t lenpre = strlen(pre), lenstr = strlen(str);
+
+    if (lenpre > lenstr)
+        return FALSE;
+
+    return strncmp(pre, str, lenpre) == 0 ? TRUE : FALSE;
+}
+
+int countBookOccurrences(Game * game) {
+    FILE * fp = fopen("book.txt", "r");
+
+    if (fp == NULL)
+        return 0;
+
+    char * moveList = movelist2str(game);
+    char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
+    int charPos = 0, occurrences = 0;
+
+    while (TRUE) {
+        char ch = getc(fp);
+        line[charPos++] = ch;
+
+        if ( ch == '\n' || ch == EOF ) {
+            line[charPos-1] = '\0';
+
+            if (startsWith(line, moveList) && strlen(line) > strlen(moveList)) {
+                occurrences++;
+            }
+
+            if ( ch == EOF )
+                break;
+
+            charPos = 0;
+        }
+    }
+
+    fclose(fp);
+    free(line);
+    free(moveList);
+
+    return occurrences;
+}
+
+Move getBookMove(Game * game) {
+    Move move = 0;
+    int moveNum = rand() % countBookOccurrences(game);
+
+    FILE * fp = fopen("book.txt", "r");
+
+    if (fp == NULL)
+        return 0;
+
+    char * moveList = movelist2str(game);
+    char *line = (char *) malloc(sizeof(char) * MAX_BOOK_ENTRY_LEN);
+    int charPos = 0, occurrences = 0;
+
+    while (TRUE) {
+        char ch = getc(fp);
+        line[charPos++] = ch;
+
+        if ( ch == '\n' ) {
+            line[charPos] = '\0';
+
+            if (startsWith(line, moveList)) {
+                if ( occurrences == moveNum ) {
+                    int ind = game->moveListLen*5;
+                    move = parseMove(&line[ind]);
+                    break;
+                }
+                occurrences++;
+            }
+
+            charPos = 0;
+        }
+    }
+
+    fclose(fp);
+    free(line);
+    free(moveList);
+
+    return move;
+}
 
 char getFile(int position) {
     int file = position%8;
@@ -1763,7 +1763,7 @@ void makeMove(Game * game, Move move) {
     game->moveList[game->moveListLen-1] = move;
 
     // ===== POSITION HISTORY =====
-    // toFen(game->positionHistory[game->moveListLen], &game->position);
+     toFen(game->positionHistory[game->moveListLen], &game->position);
 }
 
 //void unmakeMove(Game * game) {
@@ -2861,16 +2861,16 @@ Move getAIMove(Game * game, int depth) {
     printf("--- AI ---\n");
     fflush(stdout);
 
-//    if ( fromInitial(game) && countBookOccurrences(game) > 0 ) {
-//        printf("There are %d available book continuations.\n", countBookOccurrences(game));
-//        fflush(stdout);
-//        Move bookMove = getBookMove(game);
-//        printf("CHOSEN book move: ");
-//        printFullMove(bookMove, game->position.board);
-//        printf(".\n");
-//        fflush(stdout);
-//        return bookMove;
-//    }
+    if ( fromInitial(game) && countBookOccurrences(game) > 0 ) {
+        printf("There are %d available book continuations.\n", countBookOccurrences(game));
+        fflush(stdout);
+        Move bookMove = getBookMove(game);
+        printf("CHOSEN book move: ");
+        printFullMove(bookMove, &(game->position.board));
+        printf(".\n");
+        fflush(stdout);
+        return bookMove;
+    }
 
     time_t startTime, endTime;
     startTime = time(NULL);
