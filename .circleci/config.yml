@@ -2,30 +2,15 @@ version: 2
 jobs:
   build:
     docker:
-      - image: ubuntu
+      - image: circleci/python:3.8.4-buster
     steps:
       - checkout
       - run:
-          name: Updating apt-get
-          command: apt-get update
+          name: Install dependencies
+          command: sudo apt-get update && sudo apt-get install -y g++ cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
       - run:
-          name: Installing compilers
-          command: apt-get install -y g++
-      - run:
-          name: Installing CMake
-          command: apt-get install -y cmake
-      - run:
-          name: Installing SDL2
-          command: apt-get install -y libsdl2-dev
-      - run:
-          name: Installing SDL_image
-          command: apt-get install -y libsdl2-image-dev
-      - run:
-          name: Installing SDL_ttf
-          command: apt-get install -y libsdl2-ttf-dev
-      - run:
-          name: Generating Makefile
+          name: Run CMake
           command: cmake .
       - run:
-          name: Building
+          name: Build
           command: make
