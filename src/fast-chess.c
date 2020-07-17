@@ -290,36 +290,39 @@ int toFen(char * fen, Position * position) {
 int toMinFen(char * fen, Position * position) {
     int charCount = 0;
 
-//    // ===== BOARD =====
-//    int rank = 7;
-//    int file = 0;
-//    int emptySquares = 0;
-//
-//    while(rank >= 0) {
-//        int piece = position->board[8*rank+file];
-//
-//        if ( piece == EMPTY ) {
-//            emptySquares++;
-//        } else {
-//            if (emptySquares != 0) {
-//                snprintf(&fen[charCount++], 2, "%d", emptySquares);
-//                emptySquares = 0;
-//            }
-//            fen[charCount++] = piece2char(piece);
-//        }
-//
-//        file++;
-//        if ( file > 7 ) {
-//            if (emptySquares != 0) {
-//                snprintf(&fen[charCount++], 2, "%d", emptySquares);
-//                emptySquares = 0;
-//            }
-//            file = 0;
-//            rank--;
-//            fen[charCount++] = '/';
-//        }
-//    }
-//    fen[charCount-1] = ' ';
+    // ===== BOARD =====
+    int rank = 7;
+    int file = 0;
+    int emptyCount = 0;
+
+    Bitboard empties = getEmptySquares(&(position->board));
+    Bitboard bb;
+
+    while(rank >= 0) {
+        bb = index2bb(8*rank+file);
+
+        if ( bb & empties ) {
+            emptyCount++;
+        } else {
+            if (emptyCount != 0) {
+                snprintf(&fen[charCount++], 2, "%d", emptyCount);
+                emptyCount = 0;
+            }
+            fen[charCount++] = bb2char(bb, &(position->board));
+        }
+
+        file++;
+        if ( file > 7 ) {
+            if (emptyCount != 0) {
+                snprintf(&fen[charCount++], 2, "%d", emptyCount);
+                emptyCount = 0;
+            }
+            file = 0;
+            rank--;
+            fen[charCount++] = '/';
+        }
+    }
+    fen[charCount-1] = ' ';
 
 
     // ===== TO MOVE =====
@@ -569,7 +572,7 @@ int getTo(Move move) {
     return move & 0xFF;
 }
 
-char piece2char(Bitboard position, Board * board) {
+char bb2char(Bitboard position, Board * board) {
     if (position & board->whitePawns)
         return 'P';
     if (position & board->whiteKnights)
@@ -612,7 +615,7 @@ char * bb2str(Bitboard position, Board * board) {
     if ( (position & board->whiteKing) | (position & board->blackKing) )
         return "King";
 
-    return "";
+    return "?";
 }
 
 void printBitboard(Bitboard bitboard) {
