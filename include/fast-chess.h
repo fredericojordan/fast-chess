@@ -90,24 +90,24 @@ typedef struct {
 } Position;
 
 typedef struct {
-	Position position;
+    Position position;
 
-	unsigned int moveListLen;
-	Move moveList[MAX_PLYS_PER_GAME];
-	char positionHistory[MAX_PLYS_PER_GAME][MAX_FEN_LEN];
+    unsigned int moveListLen;
+    Move moveList[MAX_PLYS_PER_GAME];
+    char positionHistory[MAX_PLYS_PER_GAME][MAX_FEN_LEN];
 } Game;
 
 typedef struct {
-	Move move;
-	int score;
+    Move move;
+    int score;
 } Node;
 
 typedef struct {
-	int depth;
-	Position pos;
-	int * alpha;
-	int * beta;
-	BOOL verbose;
+    int depth;
+    Position pos;
+    int * alpha;
+    int * beta;
+    BOOL verbose;
 } ThreadInfo;
 
 extern char FILES[8];
