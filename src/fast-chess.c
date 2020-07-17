@@ -569,37 +569,34 @@ int getTo(Move move) {
     return move & 0xFF;
 }
 
-//char piece2char(int piece) {
-//    switch(piece) {
-//    case WHITE|PAWN:
-//        return 'P';
-//    case WHITE|KNIGHT:
-//        return 'N';
-//    case WHITE|BISHOP:
-//        return 'B';
-//    case WHITE|ROOK:
-//        return 'R';
-//    case WHITE|QUEEN:
-//        return 'Q';
-//    case WHITE|KING:
-//        return 'K';
-//    case BLACK|PAWN:
-//        return 'p';
-//    case BLACK|KNIGHT:
-//        return 'n';
-//    case BLACK|BISHOP:
-//        return 'b';
-//    case BLACK|ROOK:
-//        return 'r';
-//    case BLACK|QUEEN:
-//        return 'q';
-//    case BLACK|KING:
-//        return 'k';
-//    case EMPTY:
-//        return '.';
-//    }
-//    return 0;
-//}
+char piece2char(Bitboard position, Board * board) {
+    if (position & board->whitePawns)
+        return 'P';
+    if (position & board->whiteKnights)
+        return 'N';
+    if (position & board->whiteBishops)
+        return 'B';
+    if (position & board->whiteRooks)
+        return 'R';
+    if (position & board->whiteQueens)
+        return 'Q';
+    if (position & board->whiteKing)
+        return 'K';
+    if (position & board->blackPawns)
+        return 'p';
+    if (position & board->blackKnights)
+        return 'n';
+    if (position & board->blackBishops)
+        return 'b';
+    if (position & board->blackRooks)
+        return 'r';
+    if (position & board->blackQueens)
+        return 'q';
+    if (position & board->blackKing)
+        return 'k';
+
+    return '?';
+}
 
 char * bb2str(Bitboard position, Board * board) {
     if ( (position & board->whitePawns) | (position & board->blackPawns) )
@@ -670,21 +667,21 @@ void printBoard(Board * board) {
     fflush(stdout);
 }
 
-//void printGame(Game * game) {
-//    printf("Game -> %p (%lu)", game, sizeof(*game));
-//    printBoard(game->position.board);
-//    printf("board -> %p (%lu)\n", game->position.board, sizeof(game->position.board));
-//    printf("toMove = %d -> %p (%lu)\n", game->position.toMove, &game->position.toMove, sizeof(game->position.toMove));
-//    printf("ep = %d -> %p (%lu)\n", game->position.epSquare, &game->position.epSquare, sizeof(game->position.epSquare));
-//    printf("castle rights = %d -> %p (%lu)\n", game->position.castlingRights, &game->position.castlingRights, sizeof(game->position.castlingRights));
-//    printf("half clock = %d -> %p (%lu)\n", game->position.halfmoveClock, &game->position.halfmoveClock, sizeof(game->position.halfmoveClock));
-//    printf("full num = %d -> %p (%lu)\n", game->position.fullmoveNumber, &game->position.fullmoveNumber, sizeof(game->position.fullmoveNumber));
-//
-//    printf("moveListLen = %d -> %p (%lu)\n", game->moveListLen, &game->moveListLen, sizeof(game->moveListLen));
-//    printf("moveList -> %p (%lu)\n", game->moveList, sizeof(game->moveList));
-//    printf("positionHistory -> %p (%lu)\n", game->positionHistory, sizeof(game->positionHistory));
-//    fflush(stdout);
-//}
+void printGame(Game * game) {
+    printf("Game -> %p (%lu)", game, sizeof(*game));
+    printBoard(&(game->position.board));
+    printf("board -> %p (%lu)\n", &(game->position.board), sizeof(game->position.board));
+    printf("toMove = %d -> %p (%lu)\n", game->position.toMove, &game->position.toMove, sizeof(game->position.toMove));
+    printf("ep = %d -> %p (%lu)\n", game->position.epSquare, &game->position.epSquare, sizeof(game->position.epSquare));
+    printf("castle rights = %d -> %p (%lu)\n", game->position.castlingRights, &game->position.castlingRights, sizeof(game->position.castlingRights));
+    printf("half clock = %d -> %p (%lu)\n", game->position.halfmoveClock, &game->position.halfmoveClock, sizeof(game->position.halfmoveClock));
+    printf("full num = %d -> %p (%lu)\n", game->position.fullmoveNumber, &game->position.fullmoveNumber, sizeof(game->position.fullmoveNumber));
+
+    printf("moveListLen = %d -> %p (%lu)\n", game->moveListLen, &game->moveListLen, sizeof(game->moveListLen));
+    printf("moveList -> %p (%lu)\n", game->moveList, sizeof(game->moveList));
+    printf("positionHistory -> %p (%lu)\n", game->positionHistory, sizeof(game->positionHistory));
+    fflush(stdout);
+}
 
 Bitboard not(Bitboard bb) {
     return ~bb & ALL_SQUARES;
@@ -767,39 +764,39 @@ void printNode(Node node) {
     printf(": %d", node.score);
 }
 
-//void getTimestamp(char * timestamp) {
-//    time_t timer;
-//    struct tm* tm_info;
-//
-//    time(&timer);
-//    tm_info = localtime(&timer);
-//
-//    strftime(timestamp, 20, "%Y-%m-%d_%H.%M.%S", tm_info);
-//}
-//
-//void dumpContent(Game * game) {
-//    char * movelist = movelist2str(game);
-//
-//    char filename[50];
-//    sprintf(filename, "chess_game_");
-//    getTimestamp(&filename[strlen(filename)]);
-//    sprintf(&filename[strlen(filename)], ".txt");
-//
-//    FILE * file = fopen(filename, "w+");
-//
-//    fprintf(file, "movelist = %s\nposition history:\n", movelist);
-//
-//    int i;
-//    for (i=0; i<game->moveListLen+1; i++)
-//        fprintf(file, "%s\n", game->positionHistory[i]);
-//
-//    free(movelist);
-//    fclose(file);
-//
-//    printf("Dumped game content to: %s\n", filename);
-//    fflush(stdout);
-//}
-//
+void getTimestamp(char * timestamp) {
+    time_t timer;
+    struct tm* tm_info;
+
+    time(&timer);
+    tm_info = localtime(&timer);
+
+    strftime(timestamp, 20, "%Y-%m-%d_%H.%M.%S", tm_info);
+}
+
+void dumpContent(Game * game) {
+    char * movelist = movelist2str(game);
+
+    char filename[50];
+    sprintf(filename, "chess_game_");
+    getTimestamp(&filename[strlen(filename)]);
+    sprintf(&filename[strlen(filename)], ".txt");
+
+    FILE * file = fopen(filename, "w+");
+
+    fprintf(file, "movelist = %s\nposition history:\n", movelist);
+
+    int i;
+    for (i=0; i<game->moveListLen+1; i++)
+        fprintf(file, "%s\n", game->positionHistory[i]);
+
+    free(movelist);
+    fclose(file);
+
+    printf("Dumped game content to: %s\n", filename);
+    fflush(stdout);
+}
+
 //void dumpPGN(Game * game, char color, BOOL hasAI) {
 //    char filename[50];
 //    sprintf(filename, "chess_game_");
@@ -1023,15 +1020,6 @@ Bitboard rankFilter(Bitboard positions) {
             filter |= RANKS_BB[i];
     return filter;
 }
-
-//char countPieces(Bitboard bitboard) {
-//    int i, count=0;
-//    for (i=0; i<NUM_SQUARES; i++) {
-//        if (index2bb(i)&bitboard)
-//            count += 1;
-//    }
-//    return count;
-//}
 
 // ======= DIRECTIONS ========
 
@@ -2849,14 +2837,14 @@ Node iterativeDeepeningAlphaBeta(Position * position, char depth, int alpha, int
 //}
 //
 //#endif /* _WIN32 */
-//
-//Move getRandomMove(Position * position) {
-//    Move moves[MAX_BRANCHING_FACTOR];
-//    int totalMoves = legalMoves(moves, position, position->toMove);
-//    int chosenMove = rand() % totalMoves;
-//    return moves[chosenMove];
-//}
-//
+
+Move getRandomMove(Position * position) {
+    Move moves[MAX_BRANCHING_FACTOR];
+    int totalMoves = legalMoves(moves, position, position->toMove);
+    int chosenMove = rand() % totalMoves;
+    return moves[chosenMove];
+}
+
 Move getAIMove(Game * game, int depth) {
     printf("--- AI ---\n");
     fflush(stdout);
@@ -2911,13 +2899,13 @@ Move getPlayerMove() {
     gets( input );
     return parseMove(input);
 }
-//
-//Move suggestMove(char fen[], int depth) {
-//    Game game;
-//    getFenGame(&game, fen);
-//    return getAIMove(&game, depth);
-//}
-//
+
+Move suggestMove(char fen[], int depth) {
+    Game game;
+    getFenGame(&game, fen);
+    return getAIMove(&game, depth);
+}
+
 //// ===== PLAY LOOP (TEXT) ====
 
 void playTextWhite(int depth) {

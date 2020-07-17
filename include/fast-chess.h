@@ -179,7 +179,7 @@ Move generateMove(int leavingSquare, int arrivingSquare);
 int getFrom(Move move);
 int getTo(Move move);
 int char2piece(char pieceCode);
-char piece2char(int piece);
+char piece2char(Bitboard position, Board * board);
 char * bb2str(Bitboard position, Board * board);
 void printBitboard(Bitboard bitboard);
 char getPieceChar(Bitboard position, Board * board);
@@ -209,7 +209,6 @@ Bitboard getOccupiedSquares(Board * board);
 Bitboard getPieces(Board * board, int pieceType);
 Bitboard fileFilter(Bitboard positions);
 Bitboard rankFilter(Bitboard positions);
-char countPieces(Bitboard bitboard);
 
 // ======= DIRECTIONS ========
 
