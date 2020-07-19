@@ -179,6 +179,7 @@ Move generateMove(int leavingSquare, int arrivingSquare);
 int getFrom(Move move);
 int getTo(Move move);
 int char2piece(char pieceCode);
+int bb2piece(Bitboard position, Board * board);
 char bb2char(Bitboard position, Board * board);
 char * bb2str(Bitboard position, Board * board);
 void printBitboard(Bitboard bitboard);
@@ -206,7 +207,7 @@ void writeToHashFile(Position * position, int evaluation, int depth);
 Bitboard getColoredPieces(Board * board, char color);
 Bitboard getEmptySquares(Board * board);
 Bitboard getOccupiedSquares(Board * board);
-Bitboard getPieces(Board * board, int pieceType);
+Bitboard getTwinPieces(Bitboard position, Board * board);
 Bitboard fileFilter(Bitboard positions);
 Bitboard rankFilter(Bitboard positions);
 

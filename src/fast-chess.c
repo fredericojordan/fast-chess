@@ -572,6 +572,35 @@ int getTo(Move move) {
     return move & 0xFF;
 }
 
+int bb2piece(Bitboard position, Board * board) {
+    if (position & board->whitePawns)
+        return WHITE|PAWN;
+    if (position & board->whiteKnights)
+        return WHITE|KNIGHT;
+    if (position & board->whiteBishops)
+        return WHITE|BISHOP;
+    if (position & board->whiteRooks)
+        return WHITE|ROOK;
+    if (position & board->whiteQueens)
+        return WHITE|QUEEN;
+    if (position & board->whiteKing)
+        return WHITE|KING;
+    if (position & board->blackPawns)
+        return BLACK|PAWN;
+    if (position & board->blackKnights)
+        return BLACK|KNIGHT;
+    if (position & board->blackBishops)
+        return BLACK|BISHOP;
+    if (position & board->blackRooks)
+        return BLACK|ROOK;
+    if (position & board->blackQueens)
+        return BLACK|QUEEN;
+    if (position & board->blackKing)
+        return BLACK|KING;
+
+    return EMPTY;
+}
+
 char bb2char(Bitboard position, Board * board) {
     if (position & board->whitePawns)
         return 'P';
@@ -800,170 +829,177 @@ void dumpContent(Game * game) {
     fflush(stdout);
 }
 
-//void dumpPGN(Game * game, char color, BOOL hasAI) {
-//    char filename[50];
-//    sprintf(filename, "chess_game_");
-//    getTimestamp(&filename[strlen(filename)]);
-//    sprintf(&filename[strlen(filename)], ".pgn");
-//
-//    FILE * file = fopen(filename, "w+");
-//
-//    char date[12];
-//    time_t timer;
-//    struct tm* tm_info;
-//    time(&timer);
-//    tm_info = localtime(&timer);
-//    strftime(date, 11, "%Y.%m.%d", tm_info);
-//
-//
-//    fprintf(file, "[Event \"Casual Game\"]\n");
-//    fprintf(file, "[Site \"?\"]\n");
-//    fprintf(file, "[Date \"%s\"]\n", date);
-//    fprintf(file, "[Round \"-\"]\n");
-//
-//    if  ( hasAI ) {
-//        if ( color == WHITE ) {
-//            fprintf(file, "[White \"%s\"]\n", HUMAN_NAME);
-//            fprintf(file, "[Black \"%s\"]\n", ENGINE_NAME);
-//        } else {
-//            fprintf(file, "[White \"%s\"]\n", ENGINE_NAME);
-//            fprintf(file, "[Black \"%s\"]\n", HUMAN_NAME);
-//        }
-//    } else {
-//        fprintf(file, "[White \"Unknown Human Player\"]\n");
-//        fprintf(file, "[Black \"Unknown Human Player\"]\n");
-//    }
-//
-//    if ( hasGameEnded(&game->position) ) {
-//        if ( endNodeEvaluation(&game->position) == winScore(WHITE) ) {
-//            fprintf(file, "[Result \"1-0\"]\n");
-//        } else if ( endNodeEvaluation(&game->position) == winScore(BLACK) ) {
-//            fprintf(file, "[Result \"0-1\"]\n");
-//        } else if ( endNodeEvaluation(&game->position) == 0 ) {
-//            fprintf(file, "[Result \"1/2-1/2\"]\n");
-//        }
-//    } else {
-//        fprintf(file, "[Result \"*\"]\n");
-//    }
-//
-//    if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0) {
-//        fprintf(file, "[Variant \"Standard\"]\n");
-//    } else {
-//        fprintf(file, "[Variant \"From Position\"]\n");
-//        fprintf(file, "[FEN \"%s\"]\n", game->positionHistory[0]);
-//    }
-//
-//    fprintf(file, "[PlyCount \"%d\"]\n\n", game->moveListLen);
-//
-//
-//    int i;
-//    char ply[8];
-//    for (i=0;i<game->moveListLen;i++) {
-//        if (i%2==0) fprintf(file, "%d. ", 1+(i/2));
-//        move2str(ply, game, i);
-//        fprintf(file, "%s ", ply);
-//    }
-//
-//    fclose(file);
-//
-//    printf("Dumped game pgn to: %s\n", filename);
-//    fflush(stdout);
-//}
-//
-//void move2str(char * str, Game * game, int moveNumber) { // TODO: refactor
-//    Position posBefore, posAfter;
-//    loadFen(&posBefore, game->positionHistory[moveNumber]);
-//    loadFen(&posAfter, game->positionHistory[moveNumber+1]);
-//    Move move = game->moveList[moveNumber];
-//    int leavingSquare = getFrom(move);
-//    int arrivingSquare = getTo(move);
-//    int movingPiece = posBefore.board[leavingSquare];
-//    int capturedPiece = posBefore.board[arrivingSquare];
-//
-//    int length = 0;
-//    if ( (movingPiece&PIECE_MASK) == KING && abs(leavingSquare-arrivingSquare) == 2 ) { // if castling
-//        if ( index2bb(arrivingSquare)&FILE_G ) {
-//            sprintf(str, "O-O");
-//            length += 3;
-//        } else if ( index2bb(arrivingSquare)&FILE_C ) {
-//            sprintf(str, "O-O-O");
-//            length += 5;
-//        }
-//    } else { // if not castling
-//        if ( (movingPiece&PIECE_MASK) == PAWN ) {
-//            if ( capturedPiece != EMPTY ) {
-//                str[length++] = getFile(leavingSquare);
-//            }
-//        } else {
-//            str[length++] = piece2char(movingPiece&PIECE_MASK);
-//        }
-//
-//        if( isAmbiguous(&posBefore, move) ) {
-//            if ( countBits( getColoredPieces(posBefore.board, movingPiece&COLOR_MASK)&getPieces(posBefore.board, movingPiece&PIECE_MASK)&fileFilter(index2bb(leavingSquare)) ) == 1 ) {
-//                str[length++] = getFile(leavingSquare);
-//            } else {
-//                str[length++] = getRank(leavingSquare);
-//            }
-//        }
-//
-//        if ( capturedPiece != EMPTY ) {
-//            str[length++] = 'x';
-//        }
-//
-//        str[length++] = getFile(arrivingSquare);
-//        str[length++] = getRank(arrivingSquare);
-//    }
-//
-//    if ( isCheckmate(&posAfter) ) {
-//        str[length++] = '#';
-//    } else if (isCheck(posAfter.board, posAfter.toMove)) {
-//        str[length++] = '+';
-//    }
-//
-//    str[length++] = 0;
-//}
-//
-//BOOL isAmbiguous(Position * posBefore, Move move) {
-//    int i, attackCount = 0;
-//    Move moves[MAX_BRANCHING_FACTOR];
-//    int moveCount = legalMoves(moves, posBefore, posBefore->toMove);
-//
-//    for (i=0; i<moveCount; i++) {
-//        if ( getTo(moves[i]) == getTo(move) &&
-//                posBefore->board[getFrom(moves[i])] == posBefore->board[getFrom(move)] ) {
-//            attackCount++;
-//        }
-//    }
-//
-//    return attackCount > 1;
-//}
-//
-//unsigned long hashPosition(Position * position) {
-//    char fen[MAX_FEN_LEN];
-//    toMinFen(fen, position);
-//
-//    unsigned long hash = 5381;
-//    int c, i=0;
-//
-//    while ((c = fen[i++])) {
-//        hash = ((hash << 5) + hash) + c;
-//    }
-//
-//    return hash;
-//}
-//
-//void writeToHashFile(Position * position, int evaluation, int depth) {
-//    FILE * fp = fopen("hashfile", "a");
-//
-//    if (fp == NULL)
-//        return;
-//
-//    char fen[MAX_FEN_LEN];
-//    toMinFen(fen, position);
-//
-//    fprintf(fp, "%08lx %d %d %s\n", hashPosition(position), depth, evaluation, fen);
-//    fclose(fp);
-//}
+void dumpPGN(Game * game, char color, BOOL hasAI) {
+    char filename[50];
+    sprintf(filename, "chess_game_");
+    getTimestamp(&filename[strlen(filename)]);
+    sprintf(&filename[strlen(filename)], ".pgn");
+
+    FILE * file = fopen(filename, "w+");
+
+    char date[12];
+    time_t timer;
+    struct tm* tm_info;
+    time(&timer);
+    tm_info = localtime(&timer);
+    strftime(date, 11, "%Y.%m.%d", tm_info);
+
+
+    fprintf(file, "[Event \"Casual Game\"]\n");
+    fprintf(file, "[Site \"?\"]\n");
+    fprintf(file, "[Date \"%s\"]\n", date);
+    fprintf(file, "[Round \"-\"]\n");
+
+    if  ( hasAI ) {
+        if ( color == WHITE ) {
+            fprintf(file, "[White \"%s\"]\n", HUMAN_NAME);
+            fprintf(file, "[Black \"%s\"]\n", ENGINE_NAME);
+        } else {
+            fprintf(file, "[White \"%s\"]\n", ENGINE_NAME);
+            fprintf(file, "[Black \"%s\"]\n", HUMAN_NAME);
+        }
+    } else {
+        fprintf(file, "[White \"Unknown Human Player\"]\n");
+        fprintf(file, "[Black \"Unknown Human Player\"]\n");
+    }
+
+    if ( hasGameEnded(&game->position) ) {
+        if ( endNodeEvaluation(&game->position) == winScore(WHITE) ) {
+            fprintf(file, "[Result \"1-0\"]\n");
+        } else if ( endNodeEvaluation(&game->position) == winScore(BLACK) ) {
+            fprintf(file, "[Result \"0-1\"]\n");
+        } else if ( endNodeEvaluation(&game->position) == 0 ) {
+            fprintf(file, "[Result \"1/2-1/2\"]\n");
+        }
+    } else {
+        fprintf(file, "[Result \"*\"]\n");
+    }
+
+    if ( strcmp(game->positionHistory[0], INITIAL_FEN) == 0) {
+        fprintf(file, "[Variant \"Standard\"]\n");
+    } else {
+        fprintf(file, "[Variant \"From Position\"]\n");
+        fprintf(file, "[FEN \"%s\"]\n", game->positionHistory[0]);
+    }
+
+    fprintf(file, "[PlyCount \"%d\"]\n\n", game->moveListLen);
+
+
+    int i;
+    char ply[8];
+    for (i=0;i<game->moveListLen;i++) {
+        if (i%2==0) fprintf(file, "%d. ", 1+(i/2));
+        move2str(ply, game, i);
+        fprintf(file, "%s ", ply);
+    }
+
+    fclose(file);
+
+    printf("Dumped game pgn to: %s\n", filename);
+    fflush(stdout);
+}
+
+void move2str(char * str, Game * game, int moveNumber) {
+    Position posBefore, posAfter;
+    loadFen(&posBefore, game->positionHistory[moveNumber]);
+    loadFen(&posAfter, game->positionHistory[moveNumber+1]);
+    Move move = game->moveList[moveNumber];
+    int leavingSquare = getFrom(move);
+    int arrivingSquare = getTo(move);
+
+    Bitboard leavingBB = index2bb(leavingSquare);
+    Bitboard arrivingBB = index2bb(arrivingSquare);
+
+    int length = 0;
+    if ( (leavingBB & (posBefore.board.whiteKing | posBefore.board.blackKing)) &&
+          abs(leavingSquare-arrivingSquare) == 2 ) { // if castling
+        if ( arrivingBB&FILE_G ) {
+            sprintf(str, "O-O");
+            length += 3;
+        } else if ( arrivingBB&FILE_C ) {
+            sprintf(str, "O-O-O");
+            length += 5;
+        }
+    } else { // if not castling
+        if ( leavingBB & (posBefore.board.whitePawns | posBefore.board.blackPawns) ) {
+            if ( arrivingBB & getOccupiedSquares(&(posBefore.board)) ) {
+                str[length++] = getFile(leavingSquare);
+            }
+        } else {
+            str[length++] = bb2char(leavingBB, &(posBefore.board));
+        }
+
+        if( isAmbiguous(&posBefore, move) ) {
+            if ( countBits( getTwinPieces(leavingBB, &(posBefore.board)) & fileFilter(leavingBB) ) == 1 ) {
+                str[length++] = getFile(leavingSquare);
+            } else {
+                str[length++] = getRank(leavingSquare);
+            }
+        }
+
+        if ( bb2piece(arrivingBB, &(posBefore.board)) != EMPTY ) {
+            str[length++] = 'x';
+        }
+
+        str[length++] = getFile(arrivingSquare);
+        str[length++] = getRank(arrivingSquare);
+    }
+
+    if ( isCheckmate(&posAfter) ) {
+        str[length++] = '#';
+    } else if (isCheck(&(posAfter.board), posAfter.toMove)) {
+        str[length++] = '+';
+    }
+
+    str[length++] = 0;
+}
+
+BOOL isAmbiguous(Position * position, Move move) {
+    Move moves[MAX_BRANCHING_FACTOR];
+    int moveCount = legalMoves(moves, position, position->toMove);
+    Bitboard targetBB = index2bb(getTo(move));
+    Bitboard attackerBB = index2bb(getFrom(move));
+    int attackerPiece = bb2piece(attackerBB, &(position->board));
+
+    int attackerCount = 0;
+    for (int i=0; i<moveCount; i++) {
+        Bitboard tgtBB = index2bb(getTo(moves[i]));
+        Bitboard atkBB = index2bb(getFrom(moves[i]));
+
+        if ( attackerPiece == bb2piece(atkBB, &(position->board)) && (targetBB & tgtBB) ) {
+            attackerCount++;
+        }
+    }
+
+    return attackerCount > 1;
+}
+
+unsigned long hashPosition(Position * position) {
+    char fen[MAX_FEN_LEN];
+    toMinFen(fen, position);
+
+    unsigned long hash = 5381;
+    int c, i=0;
+
+    while ((c = fen[i++])) {
+        hash = ((hash << 5) + hash) + c;
+    }
+
+    return hash;
+}
+
+void writeToHashFile(Position * position, int evaluation, int depth) {
+    FILE * fp = fopen("hashfile", "a");
+
+    if (fp == NULL)
+        return;
+
+    char fen[MAX_FEN_LEN];
+    toMinFen(fen, position);
+
+    fprintf(fp, "%08lx %d %d %s\n", hashPosition(position), depth, evaluation, fen);
+    fclose(fp);
+}
 
 // ====== BOARD FILTERS ======
 
@@ -993,16 +1029,35 @@ Bitboard getOccupiedSquares(Board * board) {
     return getColoredPieces(board, WHITE) | getColoredPieces(board, BLACK);
 }
 
-//Bitboard getPieces(Board * board, int pieceType) {
-//    int i;
-//    Bitboard pieces = 0;
-//
-//    for (i=0; i<NUM_SQUARES; i++)
-//        if ((board[i]&PIECE_MASK) == pieceType)
-//            pieces |= index2bb(i);
-//
-//    return pieces;
-//}
+Bitboard getTwinPieces(Bitboard position, Board * board) {
+    if (position & board->whiteKing)
+        return board->whiteKing;
+    if (position & board->whiteQueens)
+        return board->whiteQueens;
+    if (position & board->whiteRooks)
+        return board->whiteRooks;
+    if (position & board->whiteKnights)
+        return board->whiteKnights;
+    if (position & board->whiteBishops)
+        return board->whiteBishops;
+    if (position & board->whitePawns)
+        return board->whitePawns;
+
+    if (position & board->blackKing)
+        return board->blackKing;
+    if (position & board->blackQueens)
+        return board->blackQueens;
+    if (position & board->blackRooks)
+        return board->blackRooks;
+    if (position & board->blackKnights)
+        return board->blackKnights;
+    if (position & board->blackBishops)
+        return board->blackBishops;
+    if (position & board->blackPawns)
+        return board->blackPawns;
+
+    return position;
+}
 
 Bitboard fileFilter(Bitboard positions) {
     Bitboard filter = 0;
@@ -1757,25 +1812,25 @@ void makeMove(Game * game, Move move) {
      toFen(game->positionHistory[game->moveListLen], &game->position);
 }
 
-//void unmakeMove(Game * game) {
-//    Position newPosition;
-//    if (game->moveListLen >= 1) {
-//            loadFen(&newPosition, game->positionHistory[game->moveListLen-1]);
-//            memcpy(&(game->position), &newPosition, sizeof(Position));
-//
-//            game->moveList[game->moveListLen-1] = 0;
-//            memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
-//
-//            game->moveListLen -= 1;
-//        } else { // return to initial game
-//            loadFen(&newPosition, game->positionHistory[0]);
-//            memcpy(&(game->position), &newPosition, sizeof(Position));
-//
-//            game->moveListLen = 0;
-//            memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
-//            memset(&game->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
-//        }
-//}
+void unmakeMove(Game * game) {
+    Position newPosition;
+    if (game->moveListLen >= 1) {
+            loadFen(&newPosition, game->positionHistory[game->moveListLen-1]);
+            memcpy(&(game->position), &newPosition, sizeof(Position));
+
+            game->moveList[game->moveListLen-1] = 0;
+            memset(game->positionHistory[game->moveListLen], 0, MAX_FEN_LEN*sizeof(char));
+
+            game->moveListLen -= 1;
+        } else { // return to initial game
+            loadFen(&newPosition, game->positionHistory[0]);
+            memcpy(&(game->position), &newPosition, sizeof(Position));
+
+            game->moveListLen = 0;
+            memset(game->moveList, 0, MAX_PLYS_PER_GAME*sizeof(int));
+            memset(&game->positionHistory[1], 0, (MAX_PLYS_PER_GAME-1)*MAX_FEN_LEN*sizeof(char));
+        }
+}
 
 // ======== MOVE GEN =========
 
@@ -2982,8 +3037,15 @@ int main(int argc, char *argv[]) {
     getFenGame(&game, "3r3r/1R3p1p/p4Qp1/1p6/1Pq5/k4PPB/2P4P/1K6 w k - 0 31");
 
     printBoard(&(game.position.board));
-    printLegalMoves(&(game.position));
-    getAIMove(&game, DEFAULT_AI_DEPTH);
+//    printLegalMoves(&(game.position));
+
+//    Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
+//    printFullMove(node.move, &(game.position.board));
+//    printf("\nscore: %+.2f\n", node.score/100.0);
+
+    Move move = getAIMove(&game, DEFAULT_AI_DEPTH);
+//    makeMove(&game, move);
+//    dumpPGN(&game, WHITE, FALSE);
 
     return EXIT_SUCCESS;
 }
