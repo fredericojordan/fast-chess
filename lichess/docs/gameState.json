@@ -1,0 +1,9 @@
+{'bdraw': False,
+ 'binc': 0,
+ 'btime': 2147483647,
+ 'moves': 'e2e4 e7e5 g1f3',
+ 'status': 'started',
+ 'type': 'gameState',
+ 'wdraw': False,
+ 'winc': 0,
+ 'wtime': 2147483647}
