@@ -41,6 +41,14 @@ def make_move(game_id, move):
     )
 
 
+def write_in_chat(game_id, message):
+    return requests.post(
+        f"{BASE_URL}/api/bot/game/{game_id}/chat",
+        data={"room": "player", "text": str(message)},
+        headers=AUTH_HEADER,
+    )
+
+
 def stream_incoming_events():
     return requests.get(
         f"{BASE_URL}/api/stream/event", headers=AUTH_HEADER, stream=True,
