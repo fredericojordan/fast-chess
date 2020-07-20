@@ -2850,11 +2850,31 @@ void playTextRandomColor(int depth) {
 
 // ===========================
 
- /*
+// /*
 int main(int argc, char *argv[]) {
     srand(time(NULL));
 
-    playTextRandomColor(DEFAULT_AI_DEPTH);
+//    playTextRandomColor(DEFAULT_AI_DEPTH);
+
+    Game game;
+    if ( argc > 1 ) {
+        getFenGame(&game, argv[1]);
+    } else {
+        getFenGame(&game, "3r3r/1R3p1p/p4Qp1/1p6/1Pq5/k4PPB/2P4P/1K6 w k - 0 31");
+    }
+
+//    printBoard(&(game.position.board));
+//    printLegalMoves(&(game.position));
+
+    Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
+    Move move = node.move;
+    printf("%c%c%c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
+//    printFullMove(node.move, &(game.position.board));
+//    printf("\nscore: %+.2f\n", node.score/100.0);
+
+//    Move move = getAIMove(&game, DEFAULT_AI_DEPTH);
+//    makeMove(&game, move);
+//    dumpPGN(&game, WHITE, FALSE);
 
     return EXIT_SUCCESS;
 }
