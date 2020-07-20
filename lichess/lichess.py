@@ -27,12 +27,9 @@ def get_ongoing_games():
 
 
 def accept_challenge(challenge_id):
-    print(f"ACCEPTING {challenge_id}")
-    r = requests.post(
+    return requests.post(
         f"{BASE_URL}/api/challenge/{challenge_id}/accept", headers=AUTH_HEADER
     )
-    pprint(r.json())
-    return r
 
 
 def make_move(game_id, move):
@@ -61,7 +58,7 @@ def stream_game(game_id):
     )
 
 
-def watch_incoming_events():
+def watch_event_stream():
     while True:
         try:
             response = stream_incoming_events()
@@ -74,15 +71,15 @@ def watch_incoming_events():
             pass
 
 
-def watch_incoming_moves(game_id):
+def watch_game_stream(game_id):
     while True:
         try:
             response = stream_game(game_id)
             lines = response.iter_lines()
             for line in lines:
                 if line:
-                    event_move = json.loads(line.decode("utf-8"))
-                    process_move(event_move)
+                    game_event = json.loads(line.decode("utf-8"))
+                    process_game_event(game_event)
         except:
             pass
 
@@ -94,8 +91,18 @@ def ongoing_games():
             yield game
 
 
-def process_move(move):
-    pprint(move)
+def process_game_event(event):
+    pprint(event)
+
+    event_type = event.get("type")
+    if not event_type:
+        return
+
+    if event_type == "gameFull":
+        pass
+
+    if event_type == "gameState":
+        pass
 
 
 def process_event(event):
@@ -109,7 +116,7 @@ def process_event(event):
         process_challenge(event)
 
     if event_type == "gameStart":
-        pass
+        watch_game_stream(event["game"]["id"])
 
 
 def process_challenge(event):
@@ -138,8 +145,9 @@ def get_fastchess_move(game):
 
 
 if __name__ == "__main__":
-    # watch_incoming_events()
-    watch_incoming_moves("GEv5ltw2")
+    pass
+    # watch_event_stream()
+    # watch_game_stream("GEv5ltw2")
 
     # for game in ongoing_games():
     #     pprint(game)
