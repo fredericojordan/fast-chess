@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
@@ -291,6 +292,14 @@ int toMinFen(char * fen, Position * position) {
     fen[charCount++] = '\0';
 
     return charCount;
+}
+
+void getMovelistGame(Game * game, char moves[]) {
+    getInitialGame(game);
+
+    for (int i=0; i<strlen(moves)-3; i += 5) {
+        makeMove(game, parseMove(&moves[i]));
+    }
 }
 
 // ========= UTILITY =========
@@ -2854,27 +2863,29 @@ void playTextRandomColor(int depth) {
 int main(int argc, char *argv[]) {
     srand(time(NULL));
 
-//    playTextRandomColor(DEFAULT_AI_DEPTH);
+    int opt;
+    int FEN_MODE = 0, MOVES_MODE = 1, mode = FEN_MODE;
 
-    Game game;
-    if ( argc > 1 ) {
-        getFenGame(&game, argv[1]);
-    } else {
-        getFenGame(&game, "3r3r/1R3p1p/p4Qp1/1p6/1Pq5/k4PPB/2P4P/1K6 w k - 0 31");
+    while ((opt = getopt(argc, argv, "fm")) != -1) {
+        switch (opt) {
+        case 'f': mode = FEN_MODE; break;
+        case 'm': mode = MOVES_MODE; break;
+        default:
+            fprintf(stderr, "Usage: %s [-fm] game_string\n", argv[0]);
+            exit(EXIT_FAILURE);
+        }
     }
 
-//    printBoard(&(game.position.board));
-//    printLegalMoves(&(game.position));
+    Game game;
+    if (mode == FEN_MODE) {
+        getFenGame(&game, argv[optind]);
+    } else if (mode == MOVES_MODE) {
+        getMovelistGame(&game, argv[optind]);
+    }
 
     Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
     Move move = node.move;
     printf("%c%c%c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
-//    printFullMove(node.move, &(game.position.board));
-//    printf("\nscore: %+.2f\n", node.score/100.0);
-
-//    Move move = getAIMove(&game, DEFAULT_AI_DEPTH);
-//    makeMove(&game, move);
-//    dumpPGN(&game, WHITE, FALSE);
 
     return EXIT_SUCCESS;
 }
