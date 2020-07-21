@@ -155,10 +155,13 @@ def process_game_full(game):
 
     if my_color == to_play:
         move = get_fastchess_move_from_moves(game["state"]["moves"])
-        r = make_move(game["id"], move)
+        make_move(game["id"], move)
 
 
 def process_game_state(game_state, game_id):
+    if not game_state.get("status") == "started":
+        return
+
     move = get_fastchess_move_from_moves(game_state["moves"])
     make_move(game_id, move)
 
@@ -177,7 +180,11 @@ def get_fastchess_move_from_fen(fen):
 
 
 def get_fastchess_move_from_moves(moves):
-    response = subprocess.run(["../chess", "-m", f"{moves}"], capture_output=True)
+    if moves:
+        response = subprocess.run(["../chess", "-m", f"{moves}"], capture_output=True)
+    else:
+        response = subprocess.run(["../chess", "-m"], capture_output=True)
+
     return response.stdout.decode("utf-8")
 
 

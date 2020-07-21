@@ -2878,14 +2878,24 @@ int main(int argc, char *argv[]) {
     }
 
     Game game;
-    if (mode == FEN_MODE) {
-        getFenGame(&game, argv[optind]);
-    } else if (mode == MOVES_MODE) {
-        getMovelistGame(&game, argv[optind]);
+    if (argc > optind) {
+        if (mode == FEN_MODE) {
+            getFenGame(&game, argv[optind]);
+        } else if (mode == MOVES_MODE) {
+            getMovelistGame(&game, argv[optind]);
+        }
+    } else {
+        getInitialGame(&game);
     }
 
-    Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
-    Move move = node.move;
+    Move move;
+    if ( countBookOccurrences(&game) > 0 ) {
+        move = getBookMove(&game);
+    } else {
+        Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
+        move = node.move;
+    }
+
     printf("%c%c%c%c", getFile(getFrom(move)), getRank(getFrom(move)), getFile(getTo(move)), getRank(getTo(move)));
 
     return EXIT_SUCCESS;
