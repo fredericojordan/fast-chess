@@ -429,7 +429,7 @@ int countBookOccurrences(Game * game) {
         if ( ch == '\n' || ch == EOF ) {
             line[charPos-1] = '\0';
 
-            if (startsWith(line, moveList) && strlen(line) > strlen(moveList)) {
+            if (startsWith(line, moveList) && strlen(line) > strlen(moveList)+4) {
                 occurrences++;
             }
 
