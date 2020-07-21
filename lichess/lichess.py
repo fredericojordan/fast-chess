@@ -3,6 +3,7 @@ import logging
 import os
 import signal
 import subprocess
+import sys
 from pprint import pprint
 
 import requests
@@ -17,12 +18,20 @@ AUTH_HEADER = {"Authorization": f"Bearer {LICHESS_TOKEN}"}
 BASE_URL = "https://lichess.org"
 
 TERMINATE = False
+
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(levelname)s > %(message)s')
+handler.setFormatter(formatter)
+LOGGER.addHandler(handler)
 
 
 def signal_handler(signal, frame):
     global TERMINATE
-    LOGGER.debug("Recieved SIGINT. Terminating client.")
+    LOGGER.debug("Received SIGINT. Terminating client.")
     TERMINATE = True
 
 
@@ -109,6 +118,7 @@ def ongoing_games():
 
 
 def process_game_event(event, game_id):
+    LOGGER.debug(event)
     pprint(event)
 
     event_type = event.get("type")
@@ -123,6 +133,7 @@ def process_game_event(event, game_id):
 
 
 def process_event(event):
+    LOGGER.debug(event)
     pprint(event)
 
     event_type = event.get("type")
@@ -175,15 +186,15 @@ def process_ongoing_game(game):
 
 
 def get_fastchess_move_from_fen(fen):
-    response = subprocess.run(["../chess", "-f", f"{fen}"], capture_output=True)
+    response = subprocess.run(["./chess", "-f", f"{fen}"], capture_output=True)
     return response.stdout.decode("utf-8")
 
 
 def get_fastchess_move_from_moves(moves):
     if moves:
-        response = subprocess.run(["../chess", "-m", f"{moves}"], capture_output=True)
+        response = subprocess.run(["./chess", "-m", f"{moves}"], capture_output=True)
     else:
-        response = subprocess.run(["../chess", "-m"], capture_output=True)
+        response = subprocess.run(["./chess", "-m"], capture_output=True)
 
     return response.stdout.decode("utf-8")
 
