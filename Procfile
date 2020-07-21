@@ -1,0 +1,1 @@
+web: ./heroku-web.sh
