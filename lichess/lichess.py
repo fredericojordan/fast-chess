@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import signal
 import subprocess
 from pprint import pprint
 
@@ -8,10 +10,23 @@ from dotenv import load_dotenv
 
 load_dotenv(verbose=True)
 
+LICHESS_USER = "fred-fast-chess"
 LICHESS_TOKEN = os.getenv("LICHESS_TOKEN")
 AUTH_HEADER = {"Authorization": f"Bearer {LICHESS_TOKEN}"}
 
 BASE_URL = "https://lichess.org"
+
+TERMINATE = False
+LOGGER = logging.getLogger(__name__)
+
+
+def signal_handler(signal, frame):
+    global TERMINATE
+    LOGGER.debug("Recieved SIGINT. Terminating client.")
+    TERMINATE = True
+
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def get_my_account():
@@ -33,6 +48,7 @@ def accept_challenge(challenge_id):
 
 
 def make_move(game_id, move):
+    LOGGER.debug(f"Making move on game {game_id}: {move}")
     return requests.post(
         f"{BASE_URL}/api/bot/game/{game_id}/move/{move}", headers=AUTH_HEADER
     )
@@ -59,7 +75,7 @@ def stream_game(game_id):
 
 
 def watch_event_stream():
-    while True:
+    while not TERMINATE:
         try:
             response = stream_incoming_events()
             lines = response.iter_lines()
@@ -72,14 +88,15 @@ def watch_event_stream():
 
 
 def watch_game_stream(game_id):
-    while True:
+    LOGGER.debug(f"Streaming game {game_id}")
+    while not TERMINATE:
         try:
             response = stream_game(game_id)
             lines = response.iter_lines()
             for line in lines:
                 if line:
                     game_event = json.loads(line.decode("utf-8"))
-                    process_game_event(game_event)
+                    process_game_event(game_event, game_id)
         except:
             pass
 
@@ -91,7 +108,7 @@ def ongoing_games():
             yield game
 
 
-def process_game_event(event):
+def process_game_event(event, game_id):
     pprint(event)
 
     event_type = event.get("type")
@@ -99,10 +116,10 @@ def process_game_event(event):
         return
 
     if event_type == "gameFull":
-        pass
+        process_game_full(event)
 
     if event_type == "gameState":
-        pass
+        process_game_state(event, game_id)
 
 
 def process_event(event):
@@ -132,23 +149,40 @@ def complete_fen(game):
     return f"{board_fen} {to_play} - - 0 1"
 
 
-def process_game(game):
-    if game.get("isMyTurn"):
-        fastchess_move = get_fastchess_move(game)
-        make_move(game.get("gameId"), fastchess_move)
+def process_game_full(game):
+    my_color = "black" if game["black"]["id"] == LICHESS_USER else "white"
+    to_play = "white" if len(game["state"]["moves"].split()) % 2 == 0 else "black"
+
+    if my_color == to_play:
+        move = get_fastchess_move_from_moves(game["state"]["moves"])
+        r = make_move(game["id"], move)
 
 
-def get_fastchess_move(game):
-    position_fen = complete_fen(game)
-    response = subprocess.run(["../chess", f"{position_fen}"], capture_output=True)
+def process_game_state(game_state, game_id):
+    move = get_fastchess_move_from_moves(game_state["moves"])
+    make_move(game_id, move)
+
+
+def process_ongoing_game(game):
+    watch_game_stream(game["gameId"])
+
+    # if game["isMyTurn"]:
+    #     fastchess_move = get_fastchess_move_from_fen(complete_fen(game))
+    #     make_move(game["gameId"], fastchess_move)
+
+
+def get_fastchess_move_from_fen(fen):
+    response = subprocess.run(["../chess", "-f", f"{fen}"], capture_output=True)
+    return response.stdout.decode("utf-8")
+
+
+def get_fastchess_move_from_moves(moves):
+    response = subprocess.run(["../chess", "-m", f"{moves}"], capture_output=True)
     return response.stdout.decode("utf-8")
 
 
 if __name__ == "__main__":
-    pass
-    # watch_event_stream()
-    # watch_game_stream("GEv5ltw2")
+    for game in ongoing_games():
+        process_ongoing_game(game)
 
-    # for game in ongoing_games():
-    #     pprint(game)
-    #     process_game(game)
+    watch_event_stream()
