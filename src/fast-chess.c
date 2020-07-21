@@ -299,6 +299,7 @@ void getMovelistGame(Game * game, char moves[]) {
 
     for (int i=0; i<strlen(moves)-3; i += 5) {
         makeMove(game, parseMove(&moves[i]));
+        if (moves[i+5] == ' ') i++;  // FIXME Queening
     }
 }
 
