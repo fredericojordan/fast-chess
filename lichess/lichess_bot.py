@@ -7,6 +7,7 @@ import sys
 
 import lichess_requests as li
 
+EXECUTABLE_NAME = "fastchess-heroku18"
 LICHESS_USER = "fred-fast-chess"
 
 LOGGER = logging.getLogger(__name__)
@@ -127,16 +128,16 @@ def is_my_turn(game_state, initial_state):
 
 def get_fastchess_move_from_fen(fen):
     LOGGER.debug(f"Fetching move from: {fen}")
-    response = subprocess.run(["./chess", "-f", f"{fen}"], capture_output=True)
+    response = subprocess.run([f"./{EXECUTABLE_NAME}", "-f", f"{fen}"], capture_output=True)
     return response.stdout.decode("utf-8")
 
 
 def get_fastchess_move_from_movelist(moves):
     LOGGER.debug(f"Fetching move from: {moves}")
     if moves:
-        response = subprocess.run(["./chess", "-m", f"{moves}"], capture_output=True)
+        response = subprocess.run([f"./{EXECUTABLE_NAME}", "-m", f"{moves}"], capture_output=True)
     else:
-        response = subprocess.run(["./chess", "-m"], capture_output=True)
+        response = subprocess.run([f"./{EXECUTABLE_NAME}", "-m"], capture_output=True)
 
     return response.stdout.decode("utf-8")
 

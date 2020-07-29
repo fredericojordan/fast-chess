@@ -1,1 +1,1 @@
-web: bash heroku-web.sh
+fastchess: python lichess/lichess_bot.py
