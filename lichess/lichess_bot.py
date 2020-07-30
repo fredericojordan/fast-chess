@@ -100,9 +100,14 @@ def process_game_event(event, initial_state):
 
 
 def process_challenge(challenge):
-    LOGGER.debug(f"Accepting challenge {challenge['id']}")
-    li.accept_challenge(challenge["id"])
-    return True
+    if challenge["variant"]["key"] == "standard":
+        LOGGER.debug(f"Accepting challenge {challenge['id']}")
+        li.accept_challenge(challenge["id"])
+        return True
+
+    LOGGER.debug(f"Declining challenge {challenge['id']}")
+    li.decline_challenge(challenge["id"])
+    return False
 
 
 def complete_fen(game):
