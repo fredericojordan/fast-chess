@@ -93,7 +93,8 @@ def process_game_event(event, initial_state):
         process_game_state(event, initial_state)
 
     if event_type == "chatLine":
-        send_default_message(initial_state["id"])
+        if not event["username"] == LICHESS_USER:
+            send_default_message(initial_state["id"])
 
 
 def process_challenge(challenge):
