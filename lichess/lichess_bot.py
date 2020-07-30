@@ -127,8 +127,8 @@ def process_game_state(game_state, initial_state):
 
 
 def send_default_message(game_id):
-    message = f"Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python. Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}"
-    li.write_in_chat(game_id, message)
+    li.write_in_chat(game_id, "Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python.")
+    li.write_in_chat(game_id, f"Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}")
 
 
 def is_my_turn(game_state, initial_state):
