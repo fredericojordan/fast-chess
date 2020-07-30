@@ -100,7 +100,7 @@ def process_game_event(event, initial_state):
 
 
 def process_challenge(challenge):
-    if challenge["variant"]["key"] == "standard":
+    if challenge["rated"] is False and challenge["variant"]["key"] == "standard":
         LOGGER.debug(f"Accepting challenge {challenge['id']}")
         li.accept_challenge(challenge["id"])
         return True
