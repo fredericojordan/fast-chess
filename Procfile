@@ -1,0 +1,1 @@
+fastchess: python lichess/lichess_bot.py

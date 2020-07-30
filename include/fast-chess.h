@@ -140,6 +140,7 @@ void getFenGame(Game * game, char fen[]);
 int loadFen(Position * position, char fen[]);
 int toFen(char * fen, Position * position);
 int toMinFen(char * fen, Position * position);
+void getMovelistGame(Game * game, char moves[]);
 
 // ========= UTILITY =========
 

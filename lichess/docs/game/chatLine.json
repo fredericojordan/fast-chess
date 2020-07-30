@@ -1,0 +1,4 @@
+{'room': 'player',
+ 'text': 'Hello, human!',
+ 'type': 'chatLine',
+ 'username': 'fred-fast-chess'}
