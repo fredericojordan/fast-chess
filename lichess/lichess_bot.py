@@ -8,7 +8,7 @@ from datetime import datetime
 
 import lichess_requests as li
 
-ENGINE_VERSION = "v1.6.3"
+ENGINE_VERSION = "v1.7.0"
 EXECUTABLE_NAME = "fastchess-heroku18"
 LICHESS_USER = "fred-fast-chess"
 

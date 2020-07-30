@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#define ENGINE_VERSION "v1.6.3"
+#define ENGINE_VERSION "v1.7.0"
 
 #define ENGINE_NAME "github.com/fredericojordan/fast-chess " ENGINE_VERSION
 #define HUMAN_NAME "Unknown Human Player"
