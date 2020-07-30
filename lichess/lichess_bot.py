@@ -118,6 +118,8 @@ def complete_fen(game):
 
 def process_game_state(game_state, initial_state):
     if not game_state.get("status") == "started":
+        if "winner" in game_state:
+            li.write_in_chat(initial_state["id"], "Good game!")
         return
 
     if is_my_turn(game_state, initial_state):
