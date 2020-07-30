@@ -1,0 +1,59 @@
+{'bdraw': False,
+ 'binc': 0,
+ 'btime': 2147483647,
+ 'moves': 'e2e4 e7e5 g1f3 d7d5 e4d5 d8d5 b1c3 d5e6 f1b5 c7c6 b5a4 g8f6 f3g5 '
+          'e6g4 d1g4 c8g4 e1g1 f8c5 c3e4 f6e4 g5e4 b8d7 c2c3 e8c8 b2b4 c5b6 '
+          'e4d6 c8b8 d6f7 b8c8 f7h8 d8h8 f1e1 h8f8 h2h3 b6f2 g1h2 f2e1 h3g4 '
+          'f8f2 h2g1 f2e2 a4d1 e2f2 d2d3 e1c3 g1f2 c3a1 f2f3 a1c3 b4b5 c6b5 '
+          'c1e3 c3d4 e3d4 e5d4 f3e4 d7f6 e4d4 f6d7 g4g5 b5b4 d1g4 c8c7 d4c4 '
+          'd7e5 c4b4 e5g4 a2a4 c7c8 d3d4 g4e3 b4c5 e3g2 c5d6 g2e3 d6e7 e3f5 '
+          'e7e6 f5d4 e6f7 d4f5 f7e6 g7g6 e6f7 f5h4 f7g8 h4f3 g8h7 f3e5 h7g7 '
+          'a7a6 g7f6 e5d3 f6g6 d3c5 g6f7 c5a4 g5g6 c8d7 g6g7 a4c3 g7g8q c3d5 '
+          'g8g4 d7c6 g4g2 c6d6 g2g6 d6e5 g6e6 e5d4 e6d7 b7b5 f7e6 b5b4 d7d5 '
+          'd4c3 d5c5 c3b3 e6d5 b3a4 d5c4 a4a3 c5b4 a3a2 c4c3 a2a1 b4b2',
+ 'status': 'mate',
+ 'type': 'gameState',
+ 'wdraw': False,
+ 'winc': 0,
+ 'wtime': 2147483647}
+
+{'black': {'id': 'fred-fast-chess',
+           'name': 'fred-fast-chess',
+           'provisional': True,
+           'rating': 1500,
+           'title': 'BOT'},
+ 'clock': None,
+ 'createdAt': 1595213613157,
+ 'id': 'GEv5ltw2',
+ 'initialFen': 'startpos',
+ 'perf': {'name': 'Correspondence'},
+ 'rated': False,
+ 'speed': 'correspondence',
+ 'state': {'bdraw': False,
+           'binc': 0,
+           'btime': 2147483647,
+           'moves': 'e2e4 e7e5 g1f3 d7d5 e4d5 d8d5 b1c3 d5e6 f1b5 c7c6 b5a4 '
+                    'g8f6 f3g5 e6g4 d1g4 c8g4 e1g1 f8c5 c3e4 f6e4 g5e4 b8d7 '
+                    'c2c3 e8c8 b2b4 c5b6 e4d6 c8b8 d6f7 b8c8 f7h8 d8h8 f1e1 '
+                    'h8f8 h2h3 b6f2 g1h2 f2e1 h3g4 f8f2 h2g1 f2e2 a4d1 e2f2 '
+                    'd2d3 e1c3 g1f2 c3a1 f2f3 a1c3 b4b5 c6b5 c1e3 c3d4 e3d4 '
+                    'e5d4 f3e4 d7f6 e4d4 f6d7 g4g5 b5b4 d1g4 c8c7 d4c4 d7e5 '
+                    'c4b4 e5g4 a2a4 c7c8 d3d4 g4e3 b4c5 e3g2 c5d6 g2e3 d6e7 '
+                    'e3f5 e7e6 f5d4 e6f7 d4f5 f7e6 g7g6 e6f7 f5h4 f7g8 h4f3 '
+                    'g8h7 f3e5 h7g7 a7a6 g7f6 e5d3 f6g6 d3c5 g6f7 c5a4 g5g6 '
+                    'c8d7 g6g7 a4c3 g7g8q c3d5 g8g4 d7c6 g4g2 c6d6 g2g6 d6e5 '
+                    'g6e6 e5d4 e6d7 b7b5 f7e6 b5b4 d7d5 d4c3 d5c5 c3b3 e6d5 '
+                    'b3a4 d5c4 a4a3 c5b4 a3a2 c4c3 a2a1 b4b2',
+           'status': 'mate',
+           'type': 'gameState',
+           'wdraw': False,
+           'winc': 0,
+           'winner': 'white',
+           'wtime': 2147483647},
+ 'type': 'gameFull',
+ 'variant': {'key': 'standard', 'name': 'Standard', 'short': 'Std'},
+ 'white': {'id': 'fredericojordan',
+           'name': 'fredericojordan',
+           'provisional': True,
+           'rating': 1404,
+           'title': None}}
