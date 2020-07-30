@@ -7,6 +7,7 @@ import sys
 
 import lichess_requests as li
 
+ENGINE_VERSION = "v1.6.3"
 EXECUTABLE_NAME = "fastchess-heroku18"
 LICHESS_USER = "fred-fast-chess"
 
@@ -125,7 +126,7 @@ def process_game_state(game_state, initial_state):
 
 
 def send_default_message(game_id):
-    message = "Blip, blop! Hello, human. I am a chess bot written in C + Python. Visit https://github.com/fredericojordan/fast-chess to find out more!"
+    message = f"Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python. Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}"
     li.write_in_chat(game_id, message)
 
 
