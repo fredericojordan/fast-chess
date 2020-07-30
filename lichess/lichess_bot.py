@@ -92,6 +92,9 @@ def process_game_event(event, initial_state):
     if event_type == "gameState":
         process_game_state(event, initial_state)
 
+    if event_type == "chatLine":
+        send_default_message(initial_state["id"])
+
 
 def process_challenge(challenge):
     if challenge["challenger"]["id"] == "fredericojordan":
@@ -120,6 +123,11 @@ def process_game_state(game_state, initial_state):
         li.make_move(initial_state["id"], move)
 
 
+def send_default_message(game_id):
+    message = "Blip, blop! Hello, human. I am a chess bot written in C + Python. Visit https://github.com/fredericojordan/fast-chess to find out more!"
+    li.write_in_chat(game_id, message)
+
+
 def is_my_turn(game_state, initial_state):
     my_color = "black" if initial_state["black"]["id"] == LICHESS_USER else "white"
     to_play = "white" if len(game_state["moves"].split()) % 2 == 0 else "black"
@@ -128,14 +136,18 @@ def is_my_turn(game_state, initial_state):
 
 def get_fastchess_move_from_fen(fen):
     LOGGER.debug(f"Fetching move from: {fen}")
-    response = subprocess.run([f"./{EXECUTABLE_NAME}", "-f", f"{fen}"], capture_output=True)
+    response = subprocess.run(
+        [f"./{EXECUTABLE_NAME}", "-f", f"{fen}"], capture_output=True
+    )
     return response.stdout.decode("utf-8")
 
 
 def get_fastchess_move_from_movelist(moves):
     LOGGER.debug(f"Fetching move from: {moves}")
     if moves:
-        response = subprocess.run([f"./{EXECUTABLE_NAME}", "-m", f"{moves}"], capture_output=True)
+        response = subprocess.run(
+            [f"./{EXECUTABLE_NAME}", "-m", f"{moves}"], capture_output=True
+        )
     else:
         response = subprocess.run([f"./{EXECUTABLE_NAME}", "-m"], capture_output=True)
 
@@ -165,8 +177,7 @@ def start():
                 queued_games -= 1
                 ongoing_games += 1
                 pool.apply_async(
-                    watch_game_stream,
-                    [event["game"]["id"], event_queue],
+                    watch_game_stream, [event["game"]["id"], event_queue],
                 )
 
             while (queued_games + ongoing_games) < MAX_GAMES and challenges:
