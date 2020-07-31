@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#define ENGINE_VERSION "v1.6.3"
+#define ENGINE_VERSION "v1.7.0"
 
 #define ENGINE_NAME "github.com/fredericojordan/fast-chess " ENGINE_VERSION
 #define HUMAN_NAME "Unknown Human Player"
@@ -81,7 +81,23 @@ typedef int Move;
 #define DEFAULT_AI_DEPTH (3)
 
 typedef struct {
-   int board[NUM_SQUARES];
+   Bitboard whiteKing;
+   Bitboard whiteQueens;
+   Bitboard whiteRooks;
+   Bitboard whiteKnights;
+   Bitboard whiteBishops;
+   Bitboard whitePawns;
+
+   Bitboard blackKing;
+   Bitboard blackQueens;
+   Bitboard blackRooks;
+   Bitboard blackKnights;
+   Bitboard blackBishops;
+   Bitboard blackPawns;
+} Board;
+
+typedef struct {
+   Board board;
    char toMove;
    char epSquare;
    char castlingRights;
@@ -117,7 +133,7 @@ extern Bitboard FILES_BB[8];
 extern Bitboard RANKS_BB[8];
 
 extern char INITIAL_FEN[];
-extern int INITIAL_BOARD[NUM_SQUARES];
+extern Board INITIAL_BOARD;
 extern int PIECE_VALUES[];
 
 #define DOUBLED_PAWN_PENALTY      (10)
@@ -137,6 +153,7 @@ extern int FLIP_VERTICAL[];
 
 void getInitialGame(Game * game);
 void getFenGame(Game * game, char fen[]);
+void insertPiece(Board * board, Bitboard position, char pieceCode);
 int loadFen(Position * position, char fen[]);
 int toFen(char * fen, Position * position);
 int toMinFen(char * fen, Position * position);
@@ -163,17 +180,19 @@ Move generateMove(int leavingSquare, int arrivingSquare);
 int getFrom(Move move);
 int getTo(Move move);
 int char2piece(char pieceCode);
-char piece2char(int piece);
-char * piece2str(int piece);
+int bb2piece(Bitboard position, Board * board);
+char bb2char(Bitboard position, Board * board);
+char * bb2str(Bitboard position, Board * board);
 void printBitboard(Bitboard bitboard);
-void printBoard(int board[]);
+char getPieceChar(Bitboard position, Board * board);
+void printBoard(Board * board);
 void printGame(Game * game);
 Bitboard not(Bitboard bb);
 char opponent(char color);
 int countBits(Bitboard bb);
 void sortNodes(Node * sortedNodes, Node * nodes, int len, char color);
 void printMove(Move move);
-void printFullMove(Move move, int board[]);
+void printFullMove(Move move, Board * board);
 void printLegalMoves(Position * position);
 void printNode(Node node);
 void getTimestamp(char * timestamp);
@@ -186,13 +205,12 @@ void writeToHashFile(Position * position, int evaluation, int depth);
 
 // ====== BOARD FILTERS ======
 
-Bitboard getColoredPieces(int board[], char color);
-Bitboard getEmptySquares(int board[]);
-Bitboard getOccupiedSquares(int board[]);
-Bitboard getPieces(int board[], int pieceType);
+Bitboard getColoredPieces(Board * board, char color);
+Bitboard getEmptySquares(Board * board);
+Bitboard getOccupiedSquares(Board * board);
+Bitboard getTwinPieces(Bitboard position, Board * board);
 Bitboard fileFilter(Bitboard positions);
 Bitboard rankFilter(Bitboard positions);
-char countPieces(Bitboard bitboard);
 
 // ======= DIRECTIONS ========
 
@@ -215,82 +233,83 @@ Bitboard SSW(Bitboard moving_piece);
 
 // ========== PAWN ===========
 
-Bitboard getPawns(int board[]);
-Bitboard pawnSimplePushes(Bitboard moving_piece, int board[], char color);
-Bitboard pawnDoublePushes(Bitboard moving_piece, int board[], char color);
-Bitboard pawnPushes(Bitboard moving_piece, int board[], char color);
-Bitboard pawnEastAttacks(Bitboard moving_piece, int board[], char color);
-Bitboard pawnWestAttacks(Bitboard moving_piece, int board[], char color);
-Bitboard pawnAttacks(Bitboard moving_piece, int board[], char color);
-Bitboard pawnSimpleCaptures(Bitboard moving_piece, int board[], char color);
+Bitboard getPawns(Board * board);
+Bitboard pawnSimplePushes(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnDoublePushes(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnPushes(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnEastAttacks(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnWestAttacks(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnAttacks(Bitboard moving_piece, Board * board, char color);
+Bitboard pawnSimpleCaptures(Bitboard moving_piece, Board * board, char color);
 Bitboard pawnEpCaptures(Bitboard moving_piece, Position * position, char color);
 Bitboard pawnCaptures(Bitboard moving_piece, Position * position, char color);
 Bitboard pawnMoves(Bitboard moving_piece, Position * position, char color);
 BOOL isDoublePush(int leaving, int arriving);
 char getEpSquare(int leaving);
-BOOL isDoubledPawn(Bitboard position, int board[]);
-BOOL isIsolatedPawn(Bitboard position, int board[]);
-BOOL isBackwardsPawn(Bitboard position, int board[]);
-BOOL isPassedPawn(Bitboard position, int board[]);
-BOOL isOpenFile(Bitboard position, int board[]);
-BOOL isSemiOpenFile(Bitboard position, int board[]);
+BOOL isDoubledPawn(Bitboard position, Board * board, char color);
+BOOL isIsolatedPawn(Bitboard position, Board * board, char color);
+BOOL isBackwardsPawn(Bitboard position, Board * board, char color);
+BOOL isPassedPawn(Bitboard position, Board * board, char color);
+BOOL isOpenFile(Bitboard position, Board * board);
+BOOL isSemiOpenFile(Bitboard position, Board * board);
 
 // ========== KNIGHT =========
 
-Bitboard getKnights(int board[]);
+Bitboard getKnights(Board * board);
 Bitboard knightAttacks(Bitboard moving_piece);
-Bitboard knightMoves(Bitboard moving_piece, int board[], char color);
+Bitboard knightMoves(Bitboard moving_piece, Board * board, char color);
 
 // ========== KING ===========
 
-Bitboard getKing(int board[], char color);
+Bitboard getKing(Board * board, char color);
 Bitboard kingAttacks(Bitboard moving_piece);
-Bitboard kingMoves(Bitboard moving_piece, int board[], char color) ;
+Bitboard kingMoves(Bitboard moving_piece, Board * board, char color) ;
 BOOL canCastleKingside(Position * position, char color);
 BOOL canCastleQueenside(Position * position, char color);
 char removeCastlingRights(char original_rights, char removed_rights);
 
 // ========== BISHOP =========
 
-Bitboard getBishops(int board[]);
+Bitboard getBishops(Board * board);
 Bitboard NE_ray(Bitboard bb);
 Bitboard SE_ray(Bitboard bb);
 Bitboard NW_ray(Bitboard bb);
 Bitboard SW_ray(Bitboard bb);
-Bitboard NE_attack(Bitboard single_piece, int board[], char color);
-Bitboard NW_attack(Bitboard single_piece, int board[], char color);
-Bitboard SE_attack(Bitboard single_piece, int board[], char color);
-Bitboard SW_attack(Bitboard single_piece, int board[], char color);
-Bitboard diagonalAttacks(Bitboard single_piece, int board[], char color);
-Bitboard antiDiagonalAttacks(Bitboard single_piece, int board[], char color);
-Bitboard bishopAttacks(Bitboard moving_pieces, int board[], char color);
-Bitboard bishopMoves(Bitboard moving_piece, int board[], char color);
+Bitboard NE_attack(Bitboard single_piece, Board * board, char color);
+Bitboard NW_attack(Bitboard single_piece, Board * board, char color);
+Bitboard SE_attack(Bitboard single_piece, Board * board, char color);
+Bitboard SW_attack(Bitboard single_piece, Board * board, char color);
+Bitboard diagonalAttacks(Bitboard single_piece, Board * board, char color);
+Bitboard antiDiagonalAttacks(Bitboard single_piece, Board * board, char color);
+Bitboard bishopAttacks(Bitboard moving_pieces, Board * board, char color);
+Bitboard bishopMoves(Bitboard moving_piece, Board * board, char color);
 
 // ========== ROOK ===========
 
-Bitboard getRooks(int board[]);
+Bitboard getRooks(Board * board);
 Bitboard northRay(Bitboard moving_pieces);
 Bitboard southRay(Bitboard moving_pieces);
 Bitboard eastRay(Bitboard moving_pieces);
 Bitboard westRay(Bitboard moving_pieces);
-Bitboard northAttack(Bitboard single_piece, int board[], char color);
-Bitboard southAttack(Bitboard single_piece, int board[], char color);
-Bitboard fileAttacks(Bitboard single_piece, int board[], char color);
-Bitboard eastAttack(Bitboard single_piece, int board[], char color);
-Bitboard westAttack(Bitboard single_piece, int board[], char color);
-Bitboard rankAttacks(Bitboard single_piece, int board[], char color);
-Bitboard rookAttacks(Bitboard moving_piece, int board[], char color);
-Bitboard rookMoves(Bitboard moving_piece, int board[], char color);
+Bitboard northAttack(Bitboard single_piece, Board * board, char color);
+Bitboard southAttack(Bitboard single_piece, Board * board, char color);
+Bitboard fileAttacks(Bitboard single_piece, Board * board, char color);
+Bitboard eastAttack(Bitboard single_piece, Board * board, char color);
+Bitboard westAttack(Bitboard single_piece, Board * board, char color);
+Bitboard rankAttacks(Bitboard single_piece, Board * board, char color);
+Bitboard rookAttacks(Bitboard moving_piece, Board * board, char color);
+Bitboard rookMoves(Bitboard moving_piece, Board * board, char color);
 
 // ========== QUEEN ==========
 
-Bitboard getQueens(int board[]);
-Bitboard queenAttacks(Bitboard moving_piece, int board[], char color);
-Bitboard queenMoves(Bitboard moving_piece, int board[], char color);
+Bitboard getQueens(Board * board);
+Bitboard queenAttacks(Bitboard moving_piece, Board * board, char color);
+Bitboard queenMoves(Bitboard moving_piece, Board * board, char color);
 
 // ======== MAKE MOVE ========
 
-void movePiece(int board[], Move move);
+void clearPositions(Board * board, Bitboard positions);
+void movePiece(Board * board, Move move);
 void updatePosition(Position * newPosition, Position * position, Move move);
 void makeMove(Game * game, Move move);
 void unmakeMove(Game * game);
@@ -299,10 +318,10 @@ void unmakeMove(Game * game);
 
 Bitboard getMoves(Bitboard movingPiece, Position * position, char color);
 int pseudoLegalMoves(Move * moves, Position * position, char color);
-Bitboard getAttacks(Bitboard movingPiece, int board[], char color);
-int countAttacks(Bitboard target, int board[], char color);
-BOOL isAttacked(Bitboard target, int board[], char color);
-BOOL isCheck(int board[], char color);
+Bitboard getAttacks(Bitboard movingPiece, Board * board, char color);
+int countAttacks(Bitboard target, Board * board, char color);
+BOOL isAttacked(Bitboard target, Board * board, char color);
+BOOL isCheck(Board * board, char color);
 BOOL isLegalMove(Position * position, Move move);
 int legalMoves(Move * legalMoves, Position * position, char color);
 int legalMovesCount(Position * position, char color);
@@ -313,8 +332,8 @@ int legalCaptures(Move * legalCaptures, Position * position, char color);
 
 BOOL isCheckmate(Position * position);
 BOOL isStalemate(Position * position);
-BOOL hasInsufficientMaterial(int board[]);
-BOOL isEndgame(int board[]);
+BOOL hasInsufficientMaterial(Board * board);
+BOOL isEndgame(Board * board);
 BOOL isOver75MovesRule(Position * position);
 BOOL hasGameEnded(Position * position);
 void printOutcome(Position * position);
@@ -322,10 +341,10 @@ void printOutcome(Position * position);
 // ========== EVAL ===========
 
 int winScore(char color);
-int materialSum(int board[], char color);
-int materialBalance(int board[]);
-int positionalBonus(int board[], char color);
-int positionalBalance(int board[]);
+int materialSum(Board * board, char color);
+int materialBalance(Board * board);
+int positionalBonus(Board * board, char color);
+int positionalBalance(Board * board);
 int endNodeEvaluation(Position * position);
 int staticEvaluation(Position * position);
 int getCaptureSequence(Move * captures, Position * position, int targetSquare);
