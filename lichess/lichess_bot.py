@@ -9,7 +9,7 @@ from datetime import datetime
 import lichess_requests as li
 
 ENGINE_VERSION = "v1.7.0"
-EXECUTABLE_NAME = "fastchess-heroku18"
+EXECUTABLE_PATH = f"./bin/fastchess-{ENGINE_VERSION}-heroku18"
 LICHESS_USER = "fred-fast-chess"
 
 LOGGER = logging.getLogger(__name__)
@@ -136,11 +136,11 @@ def is_my_turn(game_state, initial_state):
 
 def get_fastchess_move_from_fen(fen):
     LOGGER.debug(f"Fetching move from: {fen}")
+
     start_time = datetime.now()
-    response = subprocess.run(
-        [f"./{EXECUTABLE_NAME}", "-f", f"{fen}"], capture_output=True
-    )
+    response = subprocess.run([EXECUTABLE_PATH, "-f", fen], capture_output=True)
     running_time = datetime.now() - start_time
+
     move = response.stdout.decode("utf-8")
     LOGGER.debug(f"found move {move} in {running_time}")
     return move
@@ -148,16 +148,14 @@ def get_fastchess_move_from_fen(fen):
 
 def get_fastchess_move_from_movelist(moves):
     LOGGER.debug(f"Fetching move from: {moves}")
+
     start_time = datetime.now()
-
     if moves:
-        response = subprocess.run(
-            [f"./{EXECUTABLE_NAME}", "-m", f"{moves}"], capture_output=True
-        )
+        response = subprocess.run([EXECUTABLE_PATH, "-m", moves], capture_output=True)
     else:
-        response = subprocess.run([f"./{EXECUTABLE_NAME}", "-m"], capture_output=True)
-
+        response = subprocess.run([EXECUTABLE_PATH, "-m"], capture_output=True)
     running_time = datetime.now() - start_time
+
     move = response.stdout.decode("utf-8")
     LOGGER.debug(f"found move {move} in {running_time}")
     return move
