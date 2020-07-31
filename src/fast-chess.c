@@ -2954,7 +2954,7 @@ Move parseMove(char * move) {
 
 Move getPlayerMove() {
     char input[100];
-    gets( input );
+    fgets( input, 100, stdin );
     return parseMove(input);
 }
 
