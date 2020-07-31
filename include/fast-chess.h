@@ -308,6 +308,7 @@ Bitboard queenMoves(Bitboard moving_piece, Board * board, char color);
 
 // ======== MAKE MOVE ========
 
+void clearPositions(Board * board, Bitboard positions);
 void movePiece(Board * board, Move move);
 void updatePosition(Position * newPosition, Position * position, Move move);
 void makeMove(Game * game, Move move);
