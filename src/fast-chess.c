@@ -3034,10 +3034,11 @@ int main(int argc, char *argv[]) {
     int opt;
     int FEN_MODE = 0, MOVES_MODE = 1, mode = FEN_MODE;
 
-    while ((opt = getopt(argc, argv, "fm")) != -1) {
+    while ((opt = getopt(argc, argv, "fmv")) != -1) {
         switch (opt) {
         case 'f': mode = FEN_MODE; break;
         case 'm': mode = MOVES_MODE; break;
+        case 'v': printf(ENGINE_VERSION); exit(0);
         default:
             fprintf(stderr, "Usage: %s [-fm] game_string\n", argv[0]);
             exit(EXIT_FAILURE);
