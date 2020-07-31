@@ -289,10 +289,10 @@ SDL_Texture * getPieceTexture(int piece) {
     return NULL;
 }
 
-void renderPieces(int board[], char color) {
+void renderPieces(Board * board, char color) {
     int i;
     for (i=0; i<NUM_SQUARES; i++) {
-        int piece = board[i];
+        int piece = bb2piece(index2bb(i), board);
 
         if ( piece != EMPTY ) {
             SDL_Rect squareRect = index2rect(i, color);
@@ -301,7 +301,7 @@ void renderPieces(int board[], char color) {
     }
 }
 
-void renderCheck(int board[], char color) {
+void renderCheck(Board * board, char color) {
     if (isCheck(board, WHITE)) {
         Bitboard kingPos = getKing(board, WHITE);
         SDL_Rect checkRect = bb2rect(kingPos, color);
@@ -322,7 +322,7 @@ void renderLastMove(int lastMove, char color) {
     }
 }
 
-void renderRegularBoard(int board[], char color, Move lastMove) {
+void renderRegularBoard(Board * board, char color, Move lastMove) {
     SDL_RenderClear(renderer);
     renderBackground();
     renderAlgebricNotation(color);
@@ -332,7 +332,7 @@ void renderRegularBoard(int board[], char color, Move lastMove) {
     SDL_RenderPresent(renderer);
 }
 
-void renderHeatTiles(int board[], char color) {
+void renderHeatTiles(Board * board, char color) {
     int atkValue, i, j;
 
     for (i=0; i<NUM_SQUARES; i++) {
@@ -353,7 +353,7 @@ void renderHeatTiles(int board[], char color) {
 
 
 
-void renderHeatmapBoard(int board[], char color, Move lastMove) {
+void renderHeatmapBoard(Board * board, char color, Move lastMove) {
     SDL_RenderClear(renderer);
     renderWhiteBackground();
     renderHeatTiles(board, color);
@@ -363,7 +363,7 @@ void renderHeatmapBoard(int board[], char color, Move lastMove) {
     SDL_RenderPresent(renderer);
 }
 
-void renderBoard(int board[], char color, Move lastMove) {
+void renderBoard(Board * board, char color, Move lastMove) {
     if (heatmap) {
         renderHeatmapBoard(board, color, lastMove);
     } else {
@@ -537,7 +537,7 @@ void setEndTitle(Position * position) {
     } else if (isStalemate(position)) {
         SDL_SetWindowTitle(window, "Chess Game - Draw by stalemate!");
         printf("Draw by stalemate!\n");
-    } else if (hasInsufficientMaterial(position->board)) {
+    } else if (hasInsufficientMaterial(&(position->board))) {
         SDL_SetWindowTitle(window, "Chess Game - Draw by insufficient material!");
         printf("Draw by insufficient material!\n");
     } else if (isOver75MovesRule(position)) {
@@ -547,12 +547,47 @@ void setEndTitle(Position * position) {
     fflush(stdout);
 }
 
-void cyclePiece(Game * game, int leavingPos) {
-    if (game->position.board[leavingPos] == (WHITE|KING)) {
-        game->position.board[leavingPos] = BLACK|PAWN;
+void cyclePiece(Game * game, int position) {
+    Bitboard pos = index2bb(position);
+
+    if (pos & game->position.board.whiteKing) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whiteQueens |= pos;
+    } else if (pos & game->position.board.whiteQueens) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whiteRooks |= pos;
+    } else if (pos & game->position.board.whiteRooks) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whiteKnights |= pos;
+    } else if (pos & game->position.board.whiteKnights) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whiteBishops |= pos;
+    } else if (pos & game->position.board.whiteBishops) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whitePawns |= pos;
+    } else if (pos & game->position.board.whitePawns) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackKing |= pos;
+    } else if (pos & game->position.board.blackKing) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackQueens |= pos;
+    } else if (pos & game->position.board.blackQueens) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackRooks |= pos;
+    } else if (pos & game->position.board.blackRooks) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackKnights |= pos;
+    } else if (pos & game->position.board.blackKnights) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackBishops |= pos;
+    } else if (pos & game->position.board.blackBishops) {
+        clearPositions(&(game->position.board), pos);
+        game->position.board.blackPawns |= pos;
+    } else if (pos & game->position.board.blackPawns) {
+        clearPositions(&(game->position.board), pos);
     } else {
-        game->position.board[leavingPos] += 1;
-        game->position.board[leavingPos] %= 15;
+        clearPositions(&(game->position.board), pos);
+        game->position.board.whiteKing |= pos;
     }
 }
 
@@ -577,8 +612,8 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
             if (*leavingPos == *arrivingPos) {
                 cyclePiece(game, *leavingPos);
             } else {
-                movePiece(game->position.board, generateMove(*leavingPos, *arrivingPos));
-                renderBoard(game->position.board, *color, *lastMove);
+                movePiece(&(game->position.board), generateMove(*leavingPos, *arrivingPos));
+                renderBoard(&(game->position.board), *color, *lastMove);
             }
         } else {
             if ( *ongoing && ( !*hasAI || game->position.toMove == *color) ) {
@@ -591,12 +626,12 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
                         *lastMove = moves[i];
 
                         printf("Player made move as %s: ", game->position.toMove==WHITE?"white":"black");
-                        printFullMove(*lastMove, game->position.board);
+                        printFullMove(*lastMove, &(game->position.board));
                         printf(".\n");
                         fflush(stdout);
 
                         makeMove(game, *lastMove);
-                        renderBoard(game->position.board, *color, *lastMove);
+                        renderBoard(&(game->position.board), *color, *lastMove);
 
                         if ( hasGameEnded(&(game->position)) ) {
                             *ongoing = FALSE;
@@ -620,7 +655,7 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
         case SDLK_c:
             heatmap = FALSE;
             nextColorScheme();
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             break;
 
         case SDLK_d:
@@ -647,14 +682,14 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
 
         case SDLK_h:
             heatmap = heatmap?FALSE:TRUE;
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             printf("Heatmap %s.\n", heatmap?"enabled":"disabled");
             fflush(stdout);
             break;
 
         case SDLK_i:
             *color = opponent(*color);
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             printf("Now playing as %s.\n", *color==WHITE?"WHITE":"BLACK");
             fflush(stdout);
             break;
@@ -675,13 +710,13 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
         case SDLK_r:
             heatmap = FALSE;
             loadRandomBackground();
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             break;
 
         case SDLK_t:
             heatmap = FALSE;
             loadRandomTintedBackground();
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             break;
 
         case SDLK_u:
@@ -691,7 +726,7 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
             SDL_SetWindowTitle(window, "Chess Game");
             *ongoing = TRUE;
             *lastMove = getLastMove(game);
-            renderBoard(game->position.board, *color, *lastMove);
+            renderBoard(&(game->position.board), *color, *lastMove);
             printf("Last move was undone.\n");
             fflush(stdout);
             break;
@@ -734,7 +769,7 @@ void handleEvent(SDL_Event event, Game * game, char * color, BOOL * hasAI, int *
                     TILE_SIDE = (int) (event.window.data2/8);
                 }
                 SDL_SetWindowSize(window, 8*TILE_SIDE, 8*TILE_SIDE);
-                renderBoard(game->position.board, *color, *lastMove);
+                renderBoard(&(game->position.board), *color, *lastMove);
                 fflush(stdout);
                 break;
             }
@@ -755,14 +790,14 @@ void play(char color, BOOL hasAI, int AIdepth) {
     Move lastMove = 0;
 
     while( run ) {
-        renderBoard(game.position.board, color, lastMove);
+        renderBoard(&(game.position.board), color, lastMove);
 
         if ( hasAI && ongoing && !editing && game.position.toMove == opponent(color) ) {
             SDL_SetWindowTitle(window, "Chess Game - Calculating move...");
             lastMove = getAIMove(&game, AIdepth);
             makeMove(&game, lastMove);
             SDL_SetWindowTitle(window, "Chess Game");
-            renderBoard(game.position.board, color, lastMove);
+            renderBoard(&(game.position.board), color, lastMove);
 
             if ( hasGameEnded(&game.position) ) {
                 ongoing = FALSE;
