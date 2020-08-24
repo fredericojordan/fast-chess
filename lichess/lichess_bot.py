@@ -95,7 +95,7 @@ def process_game_event(event, initial_state):
         process_game_state(event, initial_state)
 
     if event_type == "chatLine":
-        if not event["username"] == LICHESS_USER:
+        if event["room"] == "player" and not event["username"] == LICHESS_USER:
             send_default_message(initial_state["id"])
 
 
@@ -129,8 +129,14 @@ def process_game_state(game_state, initial_state):
 
 
 def send_default_message(game_id):
-    li.write_in_chat(game_id, "Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python.")
-    li.write_in_chat(game_id, f"Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}")
+    li.write_in_chat(
+        game_id,
+        "Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python.",
+    )
+    li.write_in_chat(
+        game_id,
+        f"Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}",
+    )
 
 
 def is_my_turn(game_state, initial_state):
