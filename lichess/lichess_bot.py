@@ -8,7 +8,7 @@ from datetime import datetime
 
 import lichess_requests as li
 
-ENGINE_VERSION = "v1.7.0"
+ENGINE_VERSION = "v1.8.0"
 EXECUTABLE_PATH = f"./bin/fastchess-{ENGINE_VERSION}-heroku18"
 LICHESS_USER = "fred-fast-chess"
 
