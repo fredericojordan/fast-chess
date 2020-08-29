@@ -3059,7 +3059,7 @@ int main(int argc, char *argv[]) {
     }
 
     Move move;
-    if ( countBookOccurrences(&game) > 0 ) {
+    if ( mode == MOVES_MODE && countBookOccurrences(&game) > 0 ) {
         move = getBookMove(&game);
     } else {
         Node node = iterativeDeepeningAlphaBeta(&(game.position), depth, INT32_MIN, INT32_MAX, FALSE);
