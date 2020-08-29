@@ -8,7 +8,7 @@ from datetime import datetime
 
 import lichess_requests as li
 
-ENGINE_VERSION = "v1.7.0"
+ENGINE_VERSION = "v1.8.0"
 EXECUTABLE_PATH = f"./bin/fastchess-{ENGINE_VERSION}-heroku18"
 LICHESS_USER = "fred-fast-chess"
 
@@ -95,12 +95,14 @@ def process_game_event(event, initial_state):
         process_game_state(event, initial_state)
 
     if event_type == "chatLine":
-        if not event["username"] == LICHESS_USER:
+        if event["room"] == "player" and not event["username"] == LICHESS_USER:
             send_default_message(initial_state["id"])
 
 
 def process_challenge(challenge):
-    if challenge["rated"] is False and challenge["variant"]["key"] == "standard":
+    if (challenge["rated"] is False and challenge["variant"]["key"] == "standard") or (
+        challenge["challenger"]["id"] == "fredericojordan"
+    ):
         LOGGER.debug(f"Accepting challenge {challenge['id']}")
         li.accept_challenge(challenge["id"])
         return True
@@ -129,8 +131,14 @@ def process_game_state(game_state, initial_state):
 
 
 def send_default_message(game_id):
-    li.write_in_chat(game_id, "Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python.")
-    li.write_in_chat(game_id, f"Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}")
+    li.write_in_chat(
+        game_id,
+        "Blip, blop! Hello, human. I am a chess engine written in C and lichess bot written in Python.",
+    )
+    li.write_in_chat(
+        game_id,
+        f"Visit https://github.com/fredericojordan/fast-chess to find out more! You are playing version {ENGINE_VERSION}",
+    )
 
 
 def is_my_turn(game_state, initial_state):

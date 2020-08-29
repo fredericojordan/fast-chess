@@ -2278,7 +2278,7 @@ int quiescenceEvaluation(Position * position) {
 
         for (i=0; i<captureCount; i++) {
             if (staticExchangeEvaluation(position, getTo(captures[i])) <= 0)
-                break;
+                continue;
 
             updatePosition(&newPosition, position, captures[i]);
             int score = quiescenceEvaluation(&newPosition);
@@ -3033,14 +3033,16 @@ int main(int argc, char *argv[]) {
 
     int opt;
     int FEN_MODE = 0, MOVES_MODE = 1, mode = FEN_MODE;
+    int depth = DEFAULT_AI_DEPTH;
 
-    while ((opt = getopt(argc, argv, "fmv")) != -1) {
+    while ((opt = getopt(argc, argv, "fmd:v")) != -1) {
         switch (opt) {
         case 'f': mode = FEN_MODE; break;
         case 'm': mode = MOVES_MODE; break;
+        case 'd': depth = atoi(optarg); break;
         case 'v': printf(ENGINE_VERSION); exit(0);
         default:
-            fprintf(stderr, "Usage: %s [-fm] game_string\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-d depth] [-f fen] [-m move_list]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -3057,10 +3059,10 @@ int main(int argc, char *argv[]) {
     }
 
     Move move;
-    if ( countBookOccurrences(&game) > 0 ) {
+    if ( mode == MOVES_MODE && countBookOccurrences(&game) > 0 ) {
         move = getBookMove(&game);
     } else {
-        Node node = iterativeDeepeningAlphaBeta(&(game.position), DEFAULT_AI_DEPTH, INT32_MIN, INT32_MAX, FALSE);
+        Node node = iterativeDeepeningAlphaBeta(&(game.position), depth, INT32_MIN, INT32_MAX, FALSE);
         move = node.move;
     }
 
