@@ -2278,7 +2278,7 @@ int quiescenceEvaluation(Position * position) {
 
         for (i=0; i<captureCount; i++) {
             if (staticExchangeEvaluation(position, getTo(captures[i])) <= 0)
-                break;
+                continue;
 
             updatePosition(&newPosition, position, captures[i]);
             int score = quiescenceEvaluation(&newPosition);
