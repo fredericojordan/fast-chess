@@ -1082,67 +1082,67 @@ Bitboard rankFilter(Bitboard positions) {
 // ======= DIRECTIONS ========
 
 Bitboard east(Bitboard bb) {
-    return (bb << 1) & not(FILE_A);
+    return (bb << 1) & 0xfefefefefefefefe; // not(FILE_A)
 }
 
 Bitboard west(Bitboard bb) {
-    return (bb >> 1) & not(FILE_H);
+    return (bb >> 1) & 0x7f7f7f7f7f7f7f7f; // not(FILE_H)
 }
 
 Bitboard north(Bitboard bb) {
-    return (bb << 8) & not(RANK_1);
+    return (bb << 8) & 0xffffffffffffff00; // not(RANK_1)
 }
 
 Bitboard south(Bitboard bb) {
-    return (bb >> 8) & not(RANK_8);
+    return (bb >> 8) & 0x00ffffffffffffff; // not(RANK_8)
 }
 
 Bitboard NE(Bitboard bb) {
-    return north(east(bb));
+    return (bb << 9) & 0xfefefefefefefe00; // not(RANK_1 | FILE_A)
 }
 
 Bitboard NW(Bitboard bb) {
-    return north(west(bb));
+    return (bb << 7) & 0x7f7f7f7f7f7f7f00; // not(RANK_1 | FILE_H)
 }
 
 Bitboard SE(Bitboard bb) {
-    return south(east(bb));
+    return (bb >> 7) & 0x00fefefefefefefe; // not(RANK_8 | FILE_A)
 }
 
 Bitboard SW(Bitboard bb) {
-    return south(west(bb));
+    return (bb >> 9) & 0x007f7f7f7f7f7f7f; // not(RANK_8 | FILE_H)
 }
 
 Bitboard WNW(Bitboard moving_piece) {
-    return moving_piece << 6 & not(FILE_G | FILE_H | RANK_1);
+    return (moving_piece << 6) & 0x3f3f3f3f3f3f3f00; // not(RANK_1 | FILE_G | FILE_H)
 }
 
 Bitboard ENE(Bitboard moving_piece) {
-    return moving_piece << 10 & not(FILE_A | FILE_B | RANK_1);
+    return (moving_piece << 10) & 0xfcfcfcfcfcfcfc00; // not(RANK_1 | FILE_A | FILE_B)
 }
 
 Bitboard NNW(Bitboard moving_piece) {
-    return moving_piece << 15 & not(FILE_H | RANK_1 | RANK_2);
+    return (moving_piece << 15) & 0x7f7f7f7f7f7f0000; // not(RANK_1 | RANK_2 | FILE_H)
 }
 
 Bitboard NNE(Bitboard moving_piece) {
-    return moving_piece << 17 & not(FILE_A | RANK_1 | RANK_2);
+    return (moving_piece << 17) & 0xfefefefefefe0000; // not(RANK_1 | RANK_2 | FILE_A)
 }
 
 Bitboard ESE(Bitboard moving_piece) {
-    return moving_piece >> 6 & not(FILE_A | FILE_B | RANK_8);
+    return (moving_piece >> 6) & 0x00fcfcfcfcfcfcfc; // not(RANK_8| FILE_A | FILE_B)
 }
 
 Bitboard WSW(Bitboard moving_piece) {
-    return moving_piece >> 10 & not(FILE_G | FILE_H | RANK_8);
+    return (moving_piece >> 10) & 0x003f3f3f3f3f3f3f; // not(RANK_8 | FILE_G | FILE_H)
 }
 
 Bitboard SSE(Bitboard moving_piece) {
-    return moving_piece >> 15 & not(FILE_A | RANK_7 | RANK_8);
+    return (moving_piece >> 15) & 0x0000fefefefefefe; // not(RANK_7 | RANK_8 | FILE_A)
 }
 
 Bitboard SSW(Bitboard moving_piece) {
-    return moving_piece >> 17 & not(FILE_H | RANK_7 | RANK_8);
+    return (moving_piece >> 17) & 0x00007f7f7f7f7f7f; // not(RANK_7 | RANK_8 | FILE_H)
 }
 
 // ========== PAWN ===========
