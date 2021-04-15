@@ -1918,10 +1918,21 @@ int countAttacks(Bitboard target, Board * board, char color) {
 }
 
 BOOL isAttacked(Bitboard target, Board * board, char color) {
-    if (countAttacks(target, board, color) > 0)
-        return TRUE;
-    else
-        return FALSE;
+    int i, attackCount = 0;
+
+    Bitboard attackers = getColoredPieces(board, color);
+    Bitboard position = 1;
+
+    for (i=0; i<NUM_SQUARES; i++) {
+        if (position & attackers) {
+            if ( getAttacks(position, board, color) & target ) {
+                return TRUE;
+            }
+        }
+        position = position << 1;
+    }
+
+    return FALSE;
 }
 
 BOOL isCheck(Board * board, char color) {
