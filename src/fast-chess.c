@@ -3073,7 +3073,7 @@ int main(int argc, char *argv[]) {
     if ( mode == MOVES_MODE && countBookOccurrences(&game) > 0 ) {
         move = getBookMove(&game);
     } else {
-        Node node = iterativeDeepeningAlphaBeta(&(game.position), depth, INT32_MIN, INT32_MAX, FALSE);
+        Node node = iterativeDeepeningAlphaBeta(&(game.position), (char) depth, INT32_MIN, INT32_MAX, FALSE);
         move = node.move;
     }
 
