@@ -1,0 +1,63 @@
+name: performance
+
+on: pull_request
+
+jobs:
+  performance:
+    name: Compare performance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+
+      - name: Checkout base ref
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.base_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build chess engine
+        run: cmake . && make
+
+      - name: Calculate base performance
+        run: (TIME="%e" time ./scripts/perf-test.sh) 2>&1 | tee /tmp/perf_base | tail -n 1 | awk '{printf "perf_base=%s", $1}' >> $GITHUB_ENV
+        working-directory: .
+
+      - name: Checkout head
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build chess engine
+        run: cmake . && make
+
+      - name: Calculate HEAD performance
+        run: (TIME="%e" time ./scripts/perf-test.sh) 2>&1 | tee /tmp/perf_head | tail -n 1 | awk '{printf "perf_head=%s", $1}' >> $GITHUB_ENV
+        working-directory: .
+
+      - name: Display performance diff
+        continue-on-error: true
+        run: diff /tmp/perf_base /tmp/perf_head | tee /tmp/diff
+
+      - name: Set diff output to variable
+        id: perf-diff
+        run: |
+          content=$(cat /tmp/diff)
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          echo "::set-output name=result::$content"
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: steps.perf-diff.outputs.result != ''
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: |
+            Performance diff of ${{ github.event.pull_request.head.sha }}.
+            ```diff
+            ${{ steps.perf-diff.outputs.result }}
+            ```
+
+      - name: Check performance
+        run: awk 'BEGIN{ if (${{ env.perf_head }} > ${{ env.perf_base }}) {print "::error::Performance benchmark runtime has increased from ${{ env.perf_base }}s to ${{ env.perf_head }}s"; exit 1;} else {print "OK! Performance script took ${{ env.perf_head }}s to run!"}}'
