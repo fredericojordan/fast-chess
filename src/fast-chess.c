@@ -3038,7 +3038,7 @@ void playTextRandomColor(int depth) {
 
 // ===========================
 
- /*
+// /*
 int main(int argc, char *argv[]) {
     srand(time(NULL));
 
