@@ -9,7 +9,7 @@ from datetime import datetime
 import lichess_requests as li
 
 ENGINE_VERSION = "v1.8.1"
-EXECUTABLE_PATH = f"./bin/fastchess-{ENGINE_VERSION}-heroku18"
+EXECUTABLE_PATH = f"./bin/chess"
 LICHESS_USER = "fred-fast-chess"
 
 LOGGER = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ def watch_game_stream(game_id, event_queue):
         except:
             break
 
-    event_queue.put_nowait({"type": "fastchess:gameFinished"})
+    event_queue.put_nowait({"type": "fastchess:gameFinished", "game": {"id": game_id}})
 
 
 def process_game_event(event, initial_state):
@@ -100,16 +100,24 @@ def process_game_event(event, initial_state):
 
 
 def process_challenge(challenge):
-    if (challenge["rated"] is False and challenge["variant"]["key"] == "standard") or (
-        challenge["challenger"]["id"] == "fredericojordan"
-    ):
-        LOGGER.debug(f"Accepting challenge {challenge['id']}")
+    if challenge["challenger"]["id"] == "fredericojordan":
+        LOGGER.debug(f"Accepting challenge {challenge['id']} from my master!")
         li.accept_challenge(challenge["id"])
         return True
 
-    LOGGER.debug(f"Declining challenge {challenge['id']}")
-    li.decline_challenge(challenge["id"])
-    return False
+    if not challenge["variant"]["key"] == "standard":
+        LOGGER.debug(f"Declining challenge {challenge['id']}: Non standard game")
+        li.decline_challenge(challenge["id"], reason=li.REASON_STANDARD)
+        return False
+
+    if challenge["rated"] is True and not challenge["timeControl"].get("type") == "unlimited":
+        LOGGER.debug(f"Declining challenge {challenge['id']}: Too fast for my points!")
+        li.decline_challenge(challenge["id"], reason=li.REASON_TOO_FAST)
+        return False
+
+    LOGGER.debug(f"Accepting challenge {challenge['id']}")
+    li.accept_challenge(challenge["id"])
+    return True
 
 
 def complete_fen(game):
@@ -156,7 +164,7 @@ def get_fastchess_move_from_fen(fen):
 
 
 def get_fastchess_move_from_movelist(moves):
-    LOGGER.debug(f"Fetching move from: {moves}")
+    LOGGER.debug(f"Fetching move from: {moves}" if moves else "Fetching initial move")
 
     start_time = datetime.now()
     if moves:
@@ -179,24 +187,27 @@ def start():
     )
     event_stream.start()
 
-    ongoing_games = 0
+    ongoing_games = []
     queued_games = 0
 
     with multiprocessing.pool.Pool(MAX_GAMES + 1) as pool:
         while not TERMINATE:
             event = event_queue.get()
+            game_id = event["game"]["id"]
             if event["type"] == "fastchess:gameFinished":
-                ongoing_games -= 1
+                ongoing_games.remove(game_id)
             elif event["type"] == "challenge":
                 challenges.append(event["challenge"])
-            elif event["type"] == "gameStart":
+            elif event["type"] == "gameStart" and game_id not in ongoing_games:
                 queued_games -= 1
-                ongoing_games += 1
-                pool.apply_async(
-                    watch_game_stream, [event["game"]["id"], event_queue],
-                )
+                ongoing_games.append(game_id)
+                LOGGER.debug(f"Watching game stream {game_id}")
+                # pool.apply_async(
+                #     watch_game_stream,
+                #     [game_id, event_queue],
+                # )
 
-            while (queued_games + ongoing_games) < MAX_GAMES and challenges:
+            while (queued_games + len(ongoing_games)) < MAX_GAMES and challenges:
                 try:
                     challenge = challenges.pop(0)
                     accepted = process_challenge(challenge)

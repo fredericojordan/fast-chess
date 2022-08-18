@@ -3038,25 +3038,29 @@ void playTextRandomColor(int depth) {
 
 // ===========================
 
- /*
+// /*
 int main(int argc, char *argv[]) {
     srand(time(NULL));
 
     int opt;
-    int FEN_MODE = 0, MOVES_MODE = 1, mode = FEN_MODE;
+    int FEN_MODE = 0, MOVES_MODE = 1, mode = MOVES_MODE;
     int depth = DEFAULT_AI_DEPTH;
+    BOOL verbose = FALSE;
 
-    while ((opt = getopt(argc, argv, "fmd:v")) != -1) {
+    while ((opt = getopt(argc, argv, "fmd:Vhv")) != -1) {
         switch (opt) {
         case 'f': mode = FEN_MODE; break;
         case 'm': mode = MOVES_MODE; break;
         case 'd': depth = atoi(optarg); break;
+        case 'V': verbose = TRUE; break;
         case 'v': printf(ENGINE_VERSION); exit(0);
+        case 'h':
         default:
-            fprintf(stderr, "Usage: %s [-d depth] [-f fen] [-m move_list]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-d depth] [-f fen] [-m move_list] [-V]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
+    if (verbose) {printf("depth=%i\n", depth);}
 
     Game game;
     if (argc > optind) {
@@ -3073,7 +3077,7 @@ int main(int argc, char *argv[]) {
     if ( mode == MOVES_MODE && countBookOccurrences(&game) > 0 ) {
         move = getBookMove(&game);
     } else {
-        Node node = iterativeDeepeningAlphaBeta(&(game.position), (char) depth, INT32_MIN, INT32_MAX, FALSE);
+        Node node = iterativeDeepeningAlphaBeta(&(game.position), (char) depth, INT32_MIN, INT32_MAX, verbose);
         move = node.move;
     }
 
