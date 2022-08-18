@@ -95,7 +95,7 @@ def process_game_event(event, initial_state):
         process_game_state(event, initial_state)
 
     if event_type == "chatLine":
-        if event["room"] == "player" and not event["username"] == LICHESS_USER:
+        if event["room"] == "player" and event["username"] not in [LICHESS_USER, "lichess"]:
             send_default_message(initial_state["id"])
 
 
