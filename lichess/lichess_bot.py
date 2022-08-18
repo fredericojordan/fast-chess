@@ -201,11 +201,10 @@ def start():
             elif event["type"] == "gameStart" and game_id not in ongoing_games:
                 queued_games -= 1
                 ongoing_games.append(game_id)
-                LOGGER.debug(f"Watching game stream {game_id}")
-                # pool.apply_async(
-                #     watch_game_stream,
-                #     [game_id, event_queue],
-                # )
+                pool.apply_async(
+                    watch_game_stream,
+                    [game_id, event_queue],
+                )
 
             while (queued_games + len(ongoing_games)) < MAX_GAMES and challenges:
                 try:
