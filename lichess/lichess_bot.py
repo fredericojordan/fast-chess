@@ -9,7 +9,7 @@ from datetime import datetime
 import lichess_requests as li
 
 ENGINE_VERSION = "v1.8.1"
-EXECUTABLE_PATH = f"./bin/fastchess-{ENGINE_VERSION}-heroku18"
+EXECUTABLE_PATH = "./bin/fast-chess"
 LICHESS_USER = "fred-fast-chess"
 
 LOGGER = logging.getLogger(__name__)
@@ -100,16 +100,20 @@ def process_game_event(event, initial_state):
 
 
 def process_challenge(challenge):
-    if (challenge["rated"] is False and challenge["variant"]["key"] == "standard") or (
-        challenge["challenger"]["id"] == "fredericojordan"
-    ):
+    reason = None
+    if challenge["variant"]["key"] != "standard":
+        reason = li.DeclineReason.STANDARD
+    elif challenge["rated"]:
+        reason = li.DeclineReason.CASUAL
+
+    if reason:  # and challenge["challenger"]["id"] != "fredericojordan":
+        LOGGER.debug(f"Declining challenge {challenge['id']}: {reason}")
+        li.decline_challenge(challenge["id"], reason)
+        return False
+    else:
         LOGGER.debug(f"Accepting challenge {challenge['id']}")
         li.accept_challenge(challenge["id"])
         return True
-
-    LOGGER.debug(f"Declining challenge {challenge['id']}")
-    li.decline_challenge(challenge["id"])
-    return False
 
 
 def complete_fen(game):
