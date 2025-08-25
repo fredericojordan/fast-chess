@@ -2056,8 +2056,7 @@ BOOL isOver75MovesRule(Position * position) {
 }
 
 BOOL hasGameEnded(Position * position) {
-    if ( isCheckmate(position) ||
-         isStalemate(position) ||
+    if ( legalMovesCount(position, position->toMove) == 0 ||
          hasInsufficientMaterial(&(position->board)) ||
          isOver75MovesRule(position) )
         return TRUE;

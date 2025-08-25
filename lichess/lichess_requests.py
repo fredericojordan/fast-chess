@@ -45,10 +45,11 @@ def accept_challenge(challenge_id):
 
 
 def decline_challenge(challenge_id, reason: DeclineReason | None = None):
+    extras = {"json": {"reason": reason}} if reason else {}
     return requests.post(
         f"{BASE_URL}/challenge/{challenge_id}/decline",
         headers=AUTH_HEADER,
-        **(dict(data=dict(reason=reason)) if reason else dict()),
+        **extras,
     )
 
 
