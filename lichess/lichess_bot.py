@@ -148,7 +148,7 @@ def is_my_turn(game_state, initial_state):
     return my_color == to_play
 
 
-def get_fastchess_960_move(moves, initial_fen):
+def get_fastchess_960_move(initial_fen, moves):
     LOGGER.debug(f"Fetching 960 move from: {initial_fen} and moves: {moves}")
 
     start_time = datetime.now()
@@ -164,7 +164,7 @@ def get_fastchess_960_move(moves, initial_fen):
 
 def get_fastchess_move(game_state, initial_state):
     if initial_state["variant"]["key"] == "chess960":
-        return get_fastchess_960_move(game_state["moves"], initial_state["initial_fen"])
+        return get_fastchess_960_move(initial_state["initialFen"], game_state["moves"])
     else:
         return get_fastchess_move_from_movelist(game_state["moves"])
 
