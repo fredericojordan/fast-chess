@@ -60,8 +60,9 @@ def watch_game_stream(game_id, event_queue):
     initial_state = json.loads(next(lines).decode("utf-8"))
     LOGGER.debug(f"{game_id} initial state: {initial_state}")
 
-    if is_my_turn(initial_state["state"], initial_state):
-        move = get_fastchess_move(initial_state)
+    game_state = initial_state["state"]
+    if is_my_turn(game_state, initial_state):
+        move = get_fastchess_move(game_state, initial_state)
         LOGGER.debug(f"{game_id} initial move: {move}")
         li.make_move(initial_state["id"], move)
 
@@ -129,7 +130,7 @@ def process_game_state(game_state, initial_state):
         return
 
     if is_my_turn(game_state, initial_state):
-        move = get_fastchess_move_from_movelist(game_state["moves"])
+        move = get_fastchess_move(game_state, initial_state)
         LOGGER.debug(f"Making move on game {initial_state['id']}: {move}")
         li.make_move(initial_state["id"], move)
 
@@ -147,10 +148,7 @@ def is_my_turn(game_state, initial_state):
     return my_color == to_play
 
 
-def get_fastchess_960_move(initial_state):
-    initial_fen = initial_state["initial_fen"]
-    moves = initial_state["moves"]
-
+def get_fastchess_960_move(moves, initial_fen):
     LOGGER.debug(f"Fetching 960 move from: {initial_fen} and moves: {moves}")
 
     start_time = datetime.now()
@@ -164,11 +162,11 @@ def get_fastchess_960_move(initial_state):
     return move
 
 
-def get_fastchess_move(initial_state):
+def get_fastchess_move(game_state, initial_state):
     if initial_state["variant"]["key"] == "chess960":
-        return get_fastchess_960_move(initial_state)
+        return get_fastchess_960_move(game_state["moves"], initial_state["initial_fen"])
     else:
-        return get_fastchess_move_from_movelist(initial_state["state"]["moves"])
+        return get_fastchess_move_from_movelist(game_state["moves"])
 
 
 def get_fastchess_move_from_fen(fen):
