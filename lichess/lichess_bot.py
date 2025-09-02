@@ -149,7 +149,7 @@ def is_my_turn(game_state, initial_state):
 
 
 def get_fastchess_960_move(initial_fen, moves):
-    LOGGER.debug(f"Fetching 960 move from: {initial_fen} and moves: {moves}")
+    LOGGER.debug(f"Fetching 960 move from: {initial_fen!r} and moves: {moves!r}")
 
     start_time = datetime.now()
     response = subprocess.run(
