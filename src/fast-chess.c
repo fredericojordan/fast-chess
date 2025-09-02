@@ -3043,7 +3043,7 @@ int main(int argc, char *argv[]) {
     int FEN_MODE = 0, MOVES_MODE = 1, FEN_MOVES_MODE = 2, mode = FEN_MODE;
     int depth = DEFAULT_AI_DEPTH;
 
-    while ((opt = getopt(argc, argv, "fmd9:v")) != -1) {
+    while ((opt = getopt(argc, argv, "fm9d:v")) != -1) {
         switch (opt) {
         case 'f': mode = FEN_MODE; break;
         case 'm': mode = MOVES_MODE; break;
@@ -3060,7 +3060,7 @@ int main(int argc, char *argv[]) {
     getInitialGame(&game);
     if (argc > optind) {
         if (mode == FEN_MODE || mode == FEN_MOVES_MODE) {
-            getFenGame(&game, argv[optind]);
+            getFenGame(&game, argv[optind++]);
         }
         if (mode == MOVES_MODE || mode == FEN_MOVES_MODE) {
             getMovelistGame(&game, argv[optind]);
