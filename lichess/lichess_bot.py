@@ -60,8 +60,9 @@ def watch_game_stream(game_id, event_queue):
     initial_state = json.loads(next(lines).decode("utf-8"))
     LOGGER.debug(f"{game_id} initial state: {initial_state}")
 
-    if is_my_turn(initial_state["state"], initial_state):
-        move = get_fastchess_move_from_movelist(initial_state["state"]["moves"])
+    game_state = initial_state["state"]
+    if is_my_turn(game_state, initial_state):
+        move = get_fastchess_move(game_state, initial_state)
         LOGGER.debug(f"{game_id} initial move: {move}")
         li.make_move(initial_state["id"], move)
 
@@ -101,19 +102,19 @@ def process_game_event(event, initial_state):
 
 def process_challenge(challenge):
     reason = None
-    if challenge["variant"]["key"] != "standard":
-        reason = li.DeclineReason.STANDARD
+    if challenge["variant"]["key"] not in ["standard", "chess960"]:
+        reason = li.DeclineReason.VARIANT
     elif challenge["rated"]:
         reason = li.DeclineReason.CASUAL
 
-    if reason:  # and challenge["challenger"]["id"] != "fredericojordan":
-        LOGGER.debug(f"Declining challenge {challenge['id']}: {reason}")
-        li.decline_challenge(challenge["id"], reason)
-        return False
-    else:
+    if reason is None or challenge["challenger"]["id"] == "fredericojordan":
         LOGGER.debug(f"Accepting challenge {challenge['id']}")
         li.accept_challenge(challenge["id"])
         return True
+    else:
+        LOGGER.debug(f"Declining challenge {challenge['id']}: {reason}")
+        li.decline_challenge(challenge["id"], reason)
+        return False
 
 
 def complete_fen(game):
@@ -129,7 +130,7 @@ def process_game_state(game_state, initial_state):
         return
 
     if is_my_turn(game_state, initial_state):
-        move = get_fastchess_move_from_movelist(game_state["moves"])
+        move = get_fastchess_move(game_state, initial_state)
         LOGGER.debug(f"Making move on game {initial_state['id']}: {move}")
         li.make_move(initial_state["id"], move)
 
@@ -145,6 +146,27 @@ def is_my_turn(game_state, initial_state):
     my_color = "black" if initial_state["black"]["id"] == LICHESS_USER else "white"
     to_play = "white" if len(game_state["moves"].split()) % 2 == 0 else "black"
     return my_color == to_play
+
+
+def get_fastchess_960_move(initial_fen, moves):
+    LOGGER.debug(f"Fetching 960 move from: {initial_fen!r} and moves: {moves!r}")
+
+    start_time = datetime.now()
+    response = subprocess.run(
+        [EXECUTABLE_PATH, "-9", initial_fen, moves], capture_output=True
+    )
+    running_time = datetime.now() - start_time
+
+    move = response.stdout.decode("utf-8")
+    LOGGER.debug(f"found move {move} in {running_time}")
+    return move
+
+
+def get_fastchess_move(game_state, initial_state):
+    if initial_state["variant"]["key"] == "chess960":
+        return get_fastchess_960_move(initial_state["initialFen"], game_state["moves"])
+    else:
+        return get_fastchess_move_from_movelist(game_state["moves"])
 
 
 def get_fastchess_move_from_fen(fen):
@@ -197,7 +219,8 @@ def start():
                 queued_games -= 1
                 ongoing_games += 1
                 pool.apply_async(
-                    watch_game_stream, [event["game"]["id"], event_queue],
+                    watch_game_stream,
+                    [event["game"]["id"], event_queue],
                 )
 
             while (queued_games + ongoing_games) < MAX_GAMES and challenges:
