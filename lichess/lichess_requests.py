@@ -12,7 +12,7 @@ AUTH_HEADER = {"Authorization": f"Bearer {LICHESS_TOKEN}"}
 BASE_URL = "https://lichess.org/api"
 
 
-class DeclineReason(enum.Enum):
+class DeclineReason(str, enum.Enum):
     GENERIC = "generic"  # I'm not accepting challenges at the moment.
     LATER = "later"  # This is not the right time for me, please ask again later.
     TOO_FAST = "tooFast"  # This time control is too fast for me, please challenge again with a slower game.

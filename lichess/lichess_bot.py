@@ -112,7 +112,7 @@ def process_challenge(challenge):
         return True
     else:
         LOGGER.debug(f"Declining challenge {challenge['id']}: {reason}")
-        li.decline_challenge(challenge["id"], reason.value)
+        li.decline_challenge(challenge["id"], reason)
         return False
 
 
