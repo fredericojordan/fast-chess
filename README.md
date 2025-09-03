@@ -28,7 +28,7 @@ Many thanks to [Chess Programming Wiki](http://chessprogramming.wikispaces.com) 
 
 1. Download [latest release](https://github.com/fredericojordan/fast-chess/releases)
 2. Extract file contents
-3. Run `chess.exe` (Windows) or `./chess` (macOS/Linux)
+3. Run `chess.exe` (Windows) or `./bin/fast-chess` (macOS/Linux)
 4. ???
 5. Profit
 
@@ -80,5 +80,5 @@ git clone https://github.com/fredericojordan/fast-chess.git
 cd fast-chess
 cmake .
 make
-./chess
+./bin/fast-chess
 ```
