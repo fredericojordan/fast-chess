@@ -3,8 +3,8 @@ name: benchmark
 on: pull_request
 
 jobs:
-  performance:
-    name: Compare performance
+  benchmark:
+    name: Benchmark performance
     runs-on: ubuntu-latest
 
     steps:
