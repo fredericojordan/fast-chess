@@ -2723,7 +2723,7 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
     if ( firstReply.score == winScore(position->toMove) ) {
         if (verbose) {
             printf("Playing checkmate move: ");
-            printFullMove(nodes[0].move, position->board);
+            printFullMove(nodes[0].move, &(position->board));
             printf(".\n");
         }
         return (Node) { .move = nodes[0].move, .score = firstReply.score };
@@ -2731,7 +2731,7 @@ Node idabThreadedBestFirst(Position * position, int depth, BOOL verbose) {
 
     if (verbose) {
         printf("Move ");
-        printFullMove(nodes[0].move, position->board);
+        printFullMove(nodes[0].move, &(position->board));
         printf(" had score of %+.2f.\n", firstReply.score/100.0);
         printf("Analyzing other %d possible moves with minimum depth of %d plies:\n[", moveCount-1, depth);
         for (i=0; i<moveCount-1; i++)
