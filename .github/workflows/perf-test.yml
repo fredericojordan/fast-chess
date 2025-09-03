@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y g++ cmake libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+        run: sudo apt-get update && sudo apt-get install -y g++ cmake  # libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
 
       - name: Checkout base ref
         uses: actions/checkout@v2
