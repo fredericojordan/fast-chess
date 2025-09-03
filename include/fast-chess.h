@@ -124,6 +124,7 @@ typedef struct {
     int * alpha;
     int * beta;
     BOOL verbose;
+    int result;
 } ThreadInfo;
 
 extern char FILES[8];
