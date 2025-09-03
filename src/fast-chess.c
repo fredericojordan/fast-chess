@@ -1788,6 +1788,17 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 
             if (arrivingSquare == str2index("c1"))
                 movePiece(&(newPosition->board), generateMove(str2index("a1"), str2index("d1")));
+
+            if (arrivingBB & position->board.whiteRooks) {
+                clearPositions(&(newPosition->board), arrivingBB | leavingBB);
+                if ( arrivingSquare > leavingSquare ) {
+                    newPosition->board.whiteKing |= str2bb("g1");
+                    newPosition->board.whiteRooks |= str2bb("f1");
+                } else {
+                    newPosition->board.whiteKing |= str2bb("c1");
+                    newPosition->board.whiteRooks |= str2bb("d1");
+                }
+            }
         }
     } else if ( leavingBB & position->board.blackKing ) {
         newPosition->castlingRights = removeCastlingRights(newPosition->castlingRights, CASTLE_KINGSIDE_BLACK|CASTLE_QUEENSIDE_BLACK);
@@ -1798,6 +1809,17 @@ void updatePosition(Position * newPosition, Position * position, Move move) {
 
             if (arrivingSquare == str2index("c8"))
                 movePiece(&(newPosition->board), generateMove(str2index("a8"), str2index("d8")));
+
+            if (arrivingBB & position->board.blackRooks) {
+                clearPositions(&(newPosition->board), arrivingBB | leavingBB);
+                if ( arrivingSquare > leavingSquare ) {
+                    newPosition->board.blackKing |= str2bb("g8");
+                    newPosition->board.blackRooks |= str2bb("f8");
+                } else {
+                    newPosition->board.blackKing |= str2bb("c8");
+                    newPosition->board.blackRooks |= str2bb("d8");
+                }
+            }
         }
     }
 }
