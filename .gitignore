@@ -4,5 +4,5 @@ CMakeCache.txt
 CMakeFiles/
 Makefile
 build/
-chess
 cmake_install.cmake
+.ipynb_checkpoints/
