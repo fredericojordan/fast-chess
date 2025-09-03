@@ -14,6 +14,8 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <pthread.h>
+#include <limits.h>
 
 #include "fast-chess.h"
 
