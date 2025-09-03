@@ -1,7 +1,5 @@
 # fast-chess
 
-[![Build Status](https://travis-ci.org/fredericojordan/fast-chess.svg?branch=master)](https://travis-ci.org/fredericojordan/fast-chess) [![CircleCI](https://circleci.com/gh/fredericojordan/fast-chess.svg?style=shield)](https://circleci.com/gh/fredericojordan/fast-chess)
-
 ![fast-chess](http://i.imgur.com/O6rcSqu.png)
 
 Simple chess game intended to be faster than my (now abandoned) [python version](https://github.com/fredericojordan/chess), hence the name.
