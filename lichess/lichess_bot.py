@@ -65,6 +65,8 @@ def watch_game_stream(game_id, event_queue):
         if move := get_fastchess_move(game_state, initial_state):
             LOGGER.debug(f"{game_id} initial move: {move}")
             li.make_move(initial_state["id"], move)
+        else:
+            LOGGER.warning(f"failed to find initial move for {game_id=}")
 
     while not TERMINATE:
         try:
@@ -124,16 +126,18 @@ def complete_fen(game):
 
 
 def process_game_state(game_state, initial_state):
+    game_id = initial_state["id"]
     if not game_state.get("status") == "started":
         if "winner" in game_state:
-            li.write_in_chat(initial_state["id"], "Good game!")
+            li.write_in_chat(game_id, "Good game!")
         return
 
-    if is_my_turn(game_state, initial_state) and (
-        move := get_fastchess_move(game_state, initial_state)
-    ):
-        LOGGER.debug(f"Making move on game {initial_state['id']}: {move}")
-        li.make_move(initial_state["id"], move)
+    if is_my_turn(game_state, initial_state):
+        if move := get_fastchess_move(game_state, initial_state):
+            LOGGER.debug(f"Making move on game {game_id}: {move}")
+            li.make_move(game_id, move)
+        else:
+            LOGGER.warning(f"failed to find move for {game_id=}")
 
 
 def send_default_message(game_id):
