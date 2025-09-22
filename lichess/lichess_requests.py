@@ -12,7 +12,7 @@ AUTH_HEADER = {"Authorization": f"Bearer {LICHESS_TOKEN}"}
 BASE_URL = "https://lichess.org/api"
 
 
-class DeclineReason(str, enum.Enum):
+class DeclineReason(enum.StrEnum):
     GENERIC = "generic"  # I'm not accepting challenges at the moment.
     LATER = "later"  # This is not the right time for me, please ask again later.
     TOO_FAST = "tooFast"  # This time control is too fast for me, please challenge again with a slower game.
@@ -44,8 +44,8 @@ def accept_challenge(challenge_id):
     )
 
 
-def decline_challenge(challenge_id, reason=None):
-    extras = {"json": {"reason": str(reason)}} if reason else {}
+def decline_challenge(challenge_id, reason: DeclineReason | None = None):
+    extras = {"json": {"reason": reason}} if reason else {}
     return requests.post(
         f"{BASE_URL}/challenge/{challenge_id}/decline",
         headers=AUTH_HEADER,
